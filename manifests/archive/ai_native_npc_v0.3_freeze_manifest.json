@@ -1,0 +1,10 @@
+{
+  "document": "ai_native_npc_requirements_implementation_plan_v0.3_integrated.md",
+  "document_version": "0.3.0",
+  "schema_source": "ai_native_npc_schema_2_0.json",
+  "schema_source_sha256": "34b57127ccc42d4c14337e78a079715e964da2430059f164bb37c30861503f8d",
+  "enum_registry_sha256": "536bdc8dcb5a83afda31aed354e95e5c638f2e54da745ffcd0e1d01d03504234",
+  "skill_registry_sha256": "159a779b2f85296c8fa74a3e55f648387b5617e83719af498cb54c14f5f8f581",
+  "postprocess_sha256": "eea1bcc20a851da8fb72247d84037687152813aefc44b43a33b020808e903389",
+  "status": "Phase0_GO_Schema2_Freeze_Candidate"
+}

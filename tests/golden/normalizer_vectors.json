@@ -1,0 +1,8256 @@
+{
+  "abs_tolerance": 1e-09,
+  "contract_revision": "2.0.0-rc5",
+  "fixture_version": 1,
+  "rel_tolerance": 1e-09,
+  "vectors": [
+    {
+      "expected": 0.0,
+      "index": 0,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 0,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 0,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 1,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 1,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 1,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 2,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2400.0
+    },
+    {
+      "expected": 0.0,
+      "index": 2,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 2,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 600.0
+    },
+    {
+      "expected": 1.0,
+      "index": 2,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2400.0
+    },
+    {
+      "expected": -1.0,
+      "index": 3,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2400.0
+    },
+    {
+      "expected": 0.0,
+      "index": 3,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 3,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 600.0
+    },
+    {
+      "expected": 1.0,
+      "index": 3,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2400.0
+    },
+    {
+      "expected": -1.0,
+      "index": 4,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2400.0
+    },
+    {
+      "expected": 0.0,
+      "index": 4,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 4,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 600.0
+    },
+    {
+      "expected": 1.0,
+      "index": 4,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2400.0
+    },
+    {
+      "expected": -1.0,
+      "index": 5,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2400.0
+    },
+    {
+      "expected": 0.0,
+      "index": 5,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 5,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 600.0
+    },
+    {
+      "expected": 1.0,
+      "index": 5,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2400.0
+    },
+    {
+      "expected": -1.0,
+      "index": 6,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -8000.0
+    },
+    {
+      "expected": 0.0,
+      "index": 6,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 6,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2000.0
+    },
+    {
+      "expected": 1.0,
+      "index": 6,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 8000.0
+    },
+    {
+      "expected": -1.0,
+      "index": 7,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -8000.0
+    },
+    {
+      "expected": 0.0,
+      "index": 7,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 7,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2000.0
+    },
+    {
+      "expected": 1.0,
+      "index": 7,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 8000.0
+    },
+    {
+      "expected": -1.0,
+      "index": 8,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -8000.0
+    },
+    {
+      "expected": 0.0,
+      "index": 8,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 8,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2000.0
+    },
+    {
+      "expected": 1.0,
+      "index": 8,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 8000.0
+    },
+    {
+      "expected": -1.0,
+      "index": 9,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1440.0
+    },
+    {
+      "expected": 0.0,
+      "index": 9,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 9,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 360.0
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1440.0
+    },
+    {
+      "expected": 0.0,
+      "index": 10,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 11,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 12,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 12,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 12,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 13,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 13,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 13,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 14,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 14,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 14,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 15,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 15,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 16,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 16,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 16,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 17,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 17,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 17,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 18,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 18,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 18,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 19,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 19,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 19,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 20,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 20,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 20,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 21,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 21,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 21,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 22,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 22,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 22,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 23,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 23,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 23,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 24,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 24,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 24,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 25,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 25,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 25,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 26,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 26,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 26,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 27,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 27,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 27,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 28,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 28,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 28,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 29,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 29,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 29,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 30,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 30,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 30,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 31,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 31,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 31,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 32,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -20.0
+    },
+    {
+      "expected": 0.0,
+      "index": 32,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 32,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 5.0
+    },
+    {
+      "expected": 1.0,
+      "index": 32,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 20.0
+    },
+    {
+      "expected": 0.0,
+      "index": 33,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 33,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 33,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 34,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -20.0
+    },
+    {
+      "expected": 0.0,
+      "index": 34,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 34,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 5.0
+    },
+    {
+      "expected": 1.0,
+      "index": 34,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 20.0
+    },
+    {
+      "expected": 0.0,
+      "index": 35,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 35,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 35,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 36,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 36,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 36,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 37,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 37,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 37,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 38,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 38,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 38,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 39,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 39,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 39,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 40,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 40,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 40,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 41,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 41,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 41,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 42,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 42,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 42,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 43,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 43,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 43,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 44,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 44,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 44,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 45,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 45,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 45,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 46,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 46,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 46,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 47,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 47,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 47,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 48,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 48,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 48,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 49,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 49,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 49,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 50,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 50,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 50,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 51,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 51,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 51,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 52,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 52,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 52,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 53,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 53,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 53,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 54,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 54,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 54,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 55,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 55,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 55,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 56,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 56,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 56,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 57,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 57,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 57,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 58,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 58,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 58,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 59,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 59,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 59,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 60,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 60,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 60,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 61,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 61,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 61,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 62,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 62,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 62,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 63,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 63,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 63,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 64,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 64,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 64,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 65,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 65,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 65,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 66,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 66,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 66,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 67,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 67,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 67,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 68,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 68,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 68,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 69,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 69,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 69,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 70,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 70,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 70,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 71,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 71,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 71,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 72,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 72,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 72,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 73,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 73,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 73,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 74,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 74,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 74,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 75,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 75,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 75,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 76,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 76,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 76,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 77,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 77,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 77,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 78,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 78,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 78,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 79,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 79,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 79,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 80,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 80,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 80,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 81,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 81,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 81,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 82,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 82,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 82,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 83,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 83,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 83,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 84,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 84,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 84,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 85,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 85,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 85,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 86,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 86,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 86,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 87,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 87,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 87,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 88,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 88,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 88,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 89,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 89,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 89,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 90,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 90,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 90,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 91,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 91,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 91,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 92,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -510.0
+    },
+    {
+      "expected": 0.0,
+      "index": 92,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 92,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 127.5
+    },
+    {
+      "expected": 1.0,
+      "index": 92,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 510.0
+    },
+    {
+      "expected": 0.0,
+      "index": 93,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -60.0
+    },
+    {
+      "expected": 0.0,
+      "index": 93,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 93,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 15.0
+    },
+    {
+      "expected": 1.0,
+      "index": 93,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 60.0
+    },
+    {
+      "expected": 0.0,
+      "index": 94,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 94,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 60.0
+    },
+    {
+      "expected": 1.0,
+      "index": 94,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 240.0
+    },
+    {
+      "expected": 1.0,
+      "index": 94,
+      "kind": null,
+      "sentinel_matched": true,
+      "table": "global",
+      "value": 123.0
+    },
+    {
+      "expected": 0.0,
+      "index": 95,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 95,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 95,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 96,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 96,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 96,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 97,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 97,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 97,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 98,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -32.0
+    },
+    {
+      "expected": 0.0,
+      "index": 98,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 98,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 8.0
+    },
+    {
+      "expected": 1.0,
+      "index": 98,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 32.0
+    },
+    {
+      "expected": 0.0,
+      "index": 99,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -32.0
+    },
+    {
+      "expected": 0.0,
+      "index": 99,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 99,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 8.0
+    },
+    {
+      "expected": 1.0,
+      "index": 99,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 32.0
+    },
+    {
+      "expected": 0.0,
+      "index": 100,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 100,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 100,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 101,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 101,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 101,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 102,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 102,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 102,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 103,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 103,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 103,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 104,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -16.0
+    },
+    {
+      "expected": 0.0,
+      "index": 104,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 104,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 4.0
+    },
+    {
+      "expected": 1.0,
+      "index": 104,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 16.0
+    },
+    {
+      "expected": 0.0,
+      "index": 105,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -16.0
+    },
+    {
+      "expected": 0.0,
+      "index": 105,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 105,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 4.0
+    },
+    {
+      "expected": 1.0,
+      "index": 105,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 16.0
+    },
+    {
+      "expected": 0.0,
+      "index": 106,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 106,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 106,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 107,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 107,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 107,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 108,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -16.0
+    },
+    {
+      "expected": 0.0,
+      "index": 108,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 108,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 4.0
+    },
+    {
+      "expected": 1.0,
+      "index": 108,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 16.0
+    },
+    {
+      "expected": 0.0,
+      "index": 109,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -16.0
+    },
+    {
+      "expected": 0.0,
+      "index": 109,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 109,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 4.0
+    },
+    {
+      "expected": 1.0,
+      "index": 109,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 16.0
+    },
+    {
+      "expected": 0.0,
+      "index": 110,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -16.0
+    },
+    {
+      "expected": 0.0,
+      "index": 110,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 110,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 4.0
+    },
+    {
+      "expected": 1.0,
+      "index": 110,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 16.0
+    },
+    {
+      "expected": 0.0,
+      "index": 111,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -16.0
+    },
+    {
+      "expected": 0.0,
+      "index": 111,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 111,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 4.0
+    },
+    {
+      "expected": 1.0,
+      "index": 111,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 16.0
+    },
+    {
+      "expected": 0.0,
+      "index": 112,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -16.0
+    },
+    {
+      "expected": 0.0,
+      "index": 112,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 112,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 4.0
+    },
+    {
+      "expected": 1.0,
+      "index": 112,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 16.0
+    },
+    {
+      "expected": 0.0,
+      "index": 113,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -16.0
+    },
+    {
+      "expected": 0.0,
+      "index": 113,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 113,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 4.0
+    },
+    {
+      "expected": 1.0,
+      "index": 113,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 16.0
+    },
+    {
+      "expected": 0.0,
+      "index": 114,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -16.0
+    },
+    {
+      "expected": 0.0,
+      "index": 114,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 114,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 4.0
+    },
+    {
+      "expected": 1.0,
+      "index": 114,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 16.0
+    },
+    {
+      "expected": 0.0,
+      "index": 115,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -24.0
+    },
+    {
+      "expected": 0.0,
+      "index": 115,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 115,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 6.0
+    },
+    {
+      "expected": 1.0,
+      "index": 115,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 24.0
+    },
+    {
+      "expected": 0.0,
+      "index": 116,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 116,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 116,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 117,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 117,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 117,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 118,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 118,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 118,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 119,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 119,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 119,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 120,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 120,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 120,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 121,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 121,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 121,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 122,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 122,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 122,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 123,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 123,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 123,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 124,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 124,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 124,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 125,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 125,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 125,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 126,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 126,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 126,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 127,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 127,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 127,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "global",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 0,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -10000.0
+    },
+    {
+      "expected": 0.0,
+      "index": 0,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 0,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 2500.0
+    },
+    {
+      "expected": 1.0,
+      "index": 0,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 10000.0
+    },
+    {
+      "expected": -1.0,
+      "index": 1,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -10000.0
+    },
+    {
+      "expected": 0.0,
+      "index": 1,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 1,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 2500.0
+    },
+    {
+      "expected": 1.0,
+      "index": 1,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 10000.0
+    },
+    {
+      "expected": -1.0,
+      "index": 2,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -10000.0
+    },
+    {
+      "expected": 0.0,
+      "index": 2,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 2,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 2500.0
+    },
+    {
+      "expected": 1.0,
+      "index": 2,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 10000.0
+    },
+    {
+      "expected": 0.0,
+      "index": 3,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -10000.0
+    },
+    {
+      "expected": 0.0,
+      "index": 3,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 3,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 2500.0
+    },
+    {
+      "expected": 1.0,
+      "index": 3,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 10000.0
+    },
+    {
+      "expected": 0.0,
+      "index": 4,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -10000.0
+    },
+    {
+      "expected": 0.0,
+      "index": 4,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 4,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 2500.0
+    },
+    {
+      "expected": 1.0,
+      "index": 4,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 10000.0
+    },
+    {
+      "expected": 0.0,
+      "index": 5,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 5,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.9186432718796463,
+      "index": 5,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 2500.0
+    },
+    {
+      "expected": 1.0,
+      "index": 5,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 10000.0
+    },
+    {
+      "expected": -0.9320390859672263,
+      "index": 6,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -1.2
+    },
+    {
+      "expected": 0.0,
+      "index": 6,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.644217687237691,
+      "index": 6,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.7
+    },
+    {
+      "expected": 0.3623577544766736,
+      "index": 7,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -1.2
+    },
+    {
+      "expected": 1.0,
+      "index": 7,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.7648421872844885,
+      "index": 7,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.7
+    },
+    {
+      "expected": -0.9320390859672263,
+      "index": 8,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -1.2
+    },
+    {
+      "expected": 0.0,
+      "index": 8,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.644217687237691,
+      "index": 8,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.7
+    },
+    {
+      "expected": 0.3623577544766736,
+      "index": 9,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -1.2
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.7648421872844885,
+      "index": 9,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.7
+    },
+    {
+      "expected": -1.0,
+      "index": 10,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -2400.0
+    },
+    {
+      "expected": 0.0,
+      "index": 10,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 10,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 600.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 2400.0
+    },
+    {
+      "expected": -1.0,
+      "index": 11,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -2400.0
+    },
+    {
+      "expected": 0.0,
+      "index": 11,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 11,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 600.0
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 2400.0
+    },
+    {
+      "expected": -1.0,
+      "index": 12,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -2400.0
+    },
+    {
+      "expected": 0.0,
+      "index": 12,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 12,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 600.0
+    },
+    {
+      "expected": 1.0,
+      "index": 12,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 2400.0
+    },
+    {
+      "expected": -1.0,
+      "index": 13,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -2400.0
+    },
+    {
+      "expected": 0.0,
+      "index": 13,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 13,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 600.0
+    },
+    {
+      "expected": 1.0,
+      "index": 13,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 2400.0
+    },
+    {
+      "expected": 0.0,
+      "index": 14,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 14,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 5000.0
+    },
+    {
+      "expected": 1.0,
+      "index": 14,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 20000.0
+    },
+    {
+      "expected": 0.0,
+      "index": 14,
+      "kind": null,
+      "sentinel_matched": true,
+      "table": "target_common",
+      "value": 123.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 15,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 15,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 16,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -20.0
+    },
+    {
+      "expected": 0.0,
+      "index": 16,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 16,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 5.0
+    },
+    {
+      "expected": 1.0,
+      "index": 16,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 20.0
+    },
+    {
+      "expected": 0.0,
+      "index": 17,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 17,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 17,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 18,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 18,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 18,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 19,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 19,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 19,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 20,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 20,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 20,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 21,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 21,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 21,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 22,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 22,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 22,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 23,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 23,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 23,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 24,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 24,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 24,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 25,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 25,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 25,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 26,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 26,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 26,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 27,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -20.0
+    },
+    {
+      "expected": 0.0,
+      "index": 27,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 27,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 5.0
+    },
+    {
+      "expected": 1.0,
+      "index": 27,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 20.0
+    },
+    {
+      "expected": 0.0,
+      "index": 28,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 28,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 28,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 29,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 29,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 29,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 30,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 30,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 5.0
+    },
+    {
+      "expected": 1.0,
+      "index": 30,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 20.0
+    },
+    {
+      "expected": 1.0,
+      "index": 30,
+      "kind": null,
+      "sentinel_matched": true,
+      "table": "target_common",
+      "value": 123.0
+    },
+    {
+      "expected": 0.0,
+      "index": 31,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 31,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 5.0
+    },
+    {
+      "expected": 1.0,
+      "index": 31,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "target_common",
+      "value": 20.0
+    },
+    {
+      "expected": 1.0,
+      "index": 31,
+      "kind": null,
+      "sentinel_matched": true,
+      "table": "target_common",
+      "value": 123.0
+    },
+    {
+      "expected": 0.0,
+      "index": 0,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -20.0
+    },
+    {
+      "expected": 0.0,
+      "index": 0,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 0,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 5.0
+    },
+    {
+      "expected": 1.0,
+      "index": 0,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 20.0
+    },
+    {
+      "expected": 0.0,
+      "index": 1,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 1,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 1,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 2,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 2,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 2,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 3,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -10000.0
+    },
+    {
+      "expected": 0.0,
+      "index": 3,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 3,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 2500.0
+    },
+    {
+      "expected": 1.0,
+      "index": 3,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 10000.0
+    },
+    {
+      "expected": -1.0,
+      "index": 4,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -10000.0
+    },
+    {
+      "expected": 0.0,
+      "index": 4,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 4,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 2500.0
+    },
+    {
+      "expected": 1.0,
+      "index": 4,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 10000.0
+    },
+    {
+      "expected": -1.0,
+      "index": 5,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -10000.0
+    },
+    {
+      "expected": 0.0,
+      "index": 5,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 5,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 2500.0
+    },
+    {
+      "expected": 1.0,
+      "index": 5,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 10000.0
+    },
+    {
+      "expected": 0.0,
+      "index": 6,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -10000.0
+    },
+    {
+      "expected": 0.0,
+      "index": 6,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 6,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 2500.0
+    },
+    {
+      "expected": 1.0,
+      "index": 6,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 10000.0
+    },
+    {
+      "expected": -0.9320390859672263,
+      "index": 7,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -1.2
+    },
+    {
+      "expected": 0.0,
+      "index": 7,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 0.644217687237691,
+      "index": 7,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.7
+    },
+    {
+      "expected": 0.3623577544766736,
+      "index": 8,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -1.2
+    },
+    {
+      "expected": 1.0,
+      "index": 8,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 0.7648421872844885,
+      "index": 8,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.7
+    },
+    {
+      "expected": 0.0,
+      "index": 9,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 10,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 11,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 12,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 12,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 12,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 13,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 13,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 13,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 14,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 14,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 14,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 15,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 15,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 16,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 16,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 16,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 17,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 17,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 17,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 18,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 18,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 18,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 19,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 19,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 19,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 20,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 20,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 20,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 21,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -20.0
+    },
+    {
+      "expected": 0.0,
+      "index": 21,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 21,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 5.0
+    },
+    {
+      "expected": 1.0,
+      "index": 21,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 20.0
+    },
+    {
+      "expected": 0.0,
+      "index": 22,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 22,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 22,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 23,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 23,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 23,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "event",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 0,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 0,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 0,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 1,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 1,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 1,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 2,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 2,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 2,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 3,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 3,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 3,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 4,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 4,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 4,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 5,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": -20.0
+    },
+    {
+      "expected": 0.0,
+      "index": 5,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 0.0
+    },
+    {
+      "expected": 0.5,
+      "index": 5,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 5.0
+    },
+    {
+      "expected": 1.0,
+      "index": 5,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 20.0
+    },
+    {
+      "expected": 0.0,
+      "index": 6,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 6,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 6,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 7,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 7,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 7,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 8,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 8,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 8,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 9,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 10,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 11,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 12,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 12,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 12,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 13,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 13,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 13,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 14,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 14,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 14,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 15,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 15,
+      "kind": null,
+      "sentinel_matched": false,
+      "table": "candidate_pair",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 0,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 0,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 0,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 1,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 1,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 1,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 2,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 2,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 2,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 3,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 3,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 3,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 4,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 4,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 4,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 5,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 5,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 5,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 6,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 6,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 6,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 7,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 7,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 7,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 8,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 8,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 8,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 9,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 9,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 9,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 10,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 10,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 10,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 11,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 11,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 11,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 12,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 12,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 12,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 13,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 13,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 13,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 14,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 14,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 14,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": 0,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 0,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 0,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 0,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 1,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 1,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 1,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 2,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 2,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 2,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 3,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 3,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 3,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 4,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 4,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 4,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 5,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 5,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 5,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 6,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 6,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 6,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 7,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 7,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 7,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 8,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 8,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 8,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 9,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 9,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 10,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 10,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 11,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 11,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 12,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 12,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 12,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 13,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 13,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 13,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 14,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 14,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 14,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 15,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 15,
+      "kind": 1,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 0,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 0,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 0,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 1,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 1,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 1,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 2,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 2,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 2,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 3,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 3,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 3,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 4,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 4,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 4,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 5,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 5,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 5,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 6,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 6,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 6,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 7,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 7,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 7,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 8,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 8,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 8,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 9,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 10,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 11,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 12,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 12,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 12,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 13,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 13,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 13,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 14,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 14,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 14,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": 2,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 0,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 0,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 0,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 1,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 1,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 1,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 2,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 2,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 2,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 3,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 3,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 3,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 4,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 4,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 4,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 5,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 5,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 5,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 6,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 6,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 6,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 7,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 7,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 7,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 8,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 8,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 8,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 9,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 10,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 11,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 11,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 12,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 12,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 12,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 13,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 13,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 13,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 14,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 14,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 14,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": 3,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 0,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 0,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 0,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 1,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 1,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 1,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 2,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 2,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 2,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 3,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 3,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 3,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 4,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 4,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 4,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 5,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 5,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 5,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 6,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 6,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 6,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 7,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 7,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 7,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 8,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 8,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 8,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 9,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 10,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 11,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 12,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 12,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 12,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 13,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 13,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 13,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 14,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 14,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 14,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 15,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 15,
+      "kind": 4,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 0,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 0,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 0,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 1,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 1,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 1,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 2,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 2,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 2,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 3,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 3,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 3,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 4,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 4,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 4,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 5,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 5,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 5,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 6,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 6,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 6,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 7,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 7,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 7,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 8,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 8,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 8,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 9,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 10,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 11,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 12,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 12,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 12,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 13,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 13,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 13,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 14,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 14,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 14,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 15,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 15,
+      "kind": 5,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 0,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 0,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 0,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 1,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 1,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 1,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 2,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 2,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 2,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 3,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 3,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 3,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 4,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 4,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 4,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 5,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 5,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 5,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 6,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 6,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 6,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 7,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 7,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 7,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 8,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 8,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 8,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 9,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 10,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 11,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 12,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 12,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 12,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 13,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 13,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 13,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 14,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 14,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 14,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": 6,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 0,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 0,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 0,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 1,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 1,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 1,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 2,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 2,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 2,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 3,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 3,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 3,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 4,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 4,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 4,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 5,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 5,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 5,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 6,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 6,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 6,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": -1.0,
+      "index": 7,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 7,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 7,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 8,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 8,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 8,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 9,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 9,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 10,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 10,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 11,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 11,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 12,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 12,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 12,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 13,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.5,
+      "index": 13,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.5
+    },
+    {
+      "expected": 1.0,
+      "index": 13,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 14,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 1.0,
+      "index": 14,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 1.0
+    },
+    {
+      "expected": 1.0,
+      "index": 14,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -2.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": -1.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 0.0
+    },
+    {
+      "expected": 0.0,
+      "index": 15,
+      "kind": 7,
+      "sentinel_matched": false,
+      "table": "target_payload",
+      "value": 2.0
+    }
+  ]
+}

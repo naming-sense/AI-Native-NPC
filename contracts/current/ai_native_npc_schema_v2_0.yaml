@@ -1,0 +1,5261 @@
+schema:
+  name: ai_native_npc_policy
+  version: 2.0.0
+  contract_revision: 2.0.0-rc5
+  release_stage: rc5
+  bundle_version: 0.4.6
+  source_format_version: 1
+  endianness: little
+  float_format: IEEE-754 binary32
+  time_basis: server_monotonic_world_seconds
+  distance_unit: centimeter
+dependencies:
+  skill_registry: skill_registry_v1.yaml
+  goal_registry: goal_registry_v1.yaml
+  test_taxonomy: test_taxonomy_v1.yaml
+constants:
+  schema_version: 2.0.0
+  skill_registry_version: 1.0.0
+  target_slotter_version: 1.0.0
+  postprocess_version: 1.0.0
+  normalization_version: 2.0.0
+  regular_target_slots: 16
+  no_target_slot: 16
+  total_target_slots: 17
+  skill_count: 16
+  candidate_count: 272
+  event_slots: 12
+  global_feature_count: 128
+  target_feature_count: 48
+  event_feature_count: 24
+  candidate_pair_feature_count: 16
+  parameter_count: 4
+  spatial_max_cm: 5000.0
+  path_distance_max_cm: 10000.0
+  speed_max_cm_s: 1200.0
+  acceleration_max_cm_s2: 4000.0
+  yaw_rate_max_deg_s: 720.0
+  target_age_max_s: 10.0
+  event_age_max_s: 10.0
+  visible_duration_max_s: 10.0
+  skill_time_max_s: 10.0
+  goal_phase_time_max_s: 30.0
+  goal_deadline_max_s: 120.0
+  count_max: 8.0
+  schema_contract_revision: 2.0.0-rc5
+  goal_registry_version: 1.0.1
+  goal_priority_max: 255.0
+  long_duration_max_s: 30.0
+  slotter_confidence_scale: 1000
+  slotter_age_centisecond_scale: 100
+  slotter_distance_bin_cm: 10
+  slotter_loudness_scale: 1000
+enums:
+  target_kind:
+  - id: 0
+    name: NoTarget
+  - id: 1
+    name: Entity
+  - id: 2
+    name: SoundEvent
+  - id: 3
+    name: LastKnownPosition
+  - id: 4
+    name: CoverSlot
+  - id: 5
+    name: SmartObject
+  - id: 6
+    name: Waypoint
+  - id: 7
+    name: WorldPosition
+  skill:
+  - id: 0
+    name: Idle
+  - id: 1
+    name: ContinueCurrentAction
+  - id: 2
+    name: LookAt
+  - id: 3
+    name: TurnTo
+  - id: 4
+    name: Approach
+  - id: 5
+    name: KeepDistance
+  - id: 6
+    name: RetreatFrom
+  - id: 7
+    name: Follow
+  - id: 8
+    name: Investigate
+  - id: 9
+    name: SearchArea
+  - id: 10
+    name: Greet
+  - id: 11
+    name: Warn
+  - id: 12
+    name: CallForHelp
+  - id: 13
+    name: TakeCover
+  - id: 14
+    name: Flee
+  - id: 15
+    name: Attack
+  goal_type:
+  - id: 0
+    name: None
+  - id: 1
+    name: IdleObserve
+  - id: 2
+    name: InvestigateDisturbance
+  - id: 3
+    name: EnforceBoundary
+  - id: 4
+    name: CombatEngage
+  - id: 5
+    name: Disengage
+  - id: 6
+    name: Escort
+  - id: 7
+    name: Reserved
+  goal_phase:
+  - id: 0
+    name: None
+  - id: 1
+    name: Observe
+  - id: 2
+    name: Orient
+  - id: 3
+    name: Navigate
+  - id: 4
+    name: Interact
+  - id: 5
+    name: Search
+  - id: 6
+    name: Resolve
+  - id: 7
+    name: Return
+  event_type:
+  - id: 0
+    name: NoneOrPadding
+  - id: 1
+    name: SightAcquired
+  - id: 2
+    name: SightLost
+  - id: 3
+    name: SoundHeard
+  - id: 4
+    name: Damaged
+  - id: 5
+    name: SkillSucceeded
+  - id: 6
+    name: SkillFailed
+  - id: 7
+    name: SkillInterrupted
+  - id: 8
+    name: WarningIssued
+  - id: 9
+    name: WarningIgnored
+  - id: 10
+    name: TargetMovedSignificantly
+  - id: 11
+    name: TargetInvalidated
+  - id: 12
+    name: GoalChanged
+  - id: 13
+    name: ReservationLost
+  - id: 14
+    name: SharedKnowledgeReceived
+  - id: 15
+    name: Other
+  goal_source_priority:
+  - id: 0
+    name: Routine
+  - id: 1
+    name: Social
+  - id: 2
+    name: Combat
+  - id: 3
+    name: Quest
+  - id: 4
+    name: Emergency
+runtime_handle_contract:
+  model_input: false
+  fields:
+  - name: kind
+    dtype: uint8
+  - name: stable_id
+    dtype: uint64
+  - name: generation
+    dtype: uint32
+  - name: revision
+    dtype: uint64
+  identity_key:
+  - kind
+  - stable_id
+  - generation
+  snapshot_key:
+  - kind
+  - stable_id
+  - generation
+  - revision
+  dedupe_key: identity_key
+  candidate_hash_key: snapshot_key
+  model_feature_exclusions:
+  - stable_id
+  - generation
+  - revision
+  - event_id
+  - slot_id
+  - waypoint_id
+  - reservation_id
+  - created_world_time
+  - absolute_world_position
+target_slots:
+  regular_slots: 16
+  no_target_slot: 16
+  total_slots: 17
+  quota:
+    Entity: 8
+    SoundEvent: 2
+    CoverSlot: 2
+    SmartObject: 1
+    PositionLike: 3
+  position_like_kinds:
+  - LastKnownPosition
+  - Waypoint
+  - WorldPosition
+  mandatory_preserve_order:
+  - rank: 0
+    source: current_skill_target
+    max_count: 1
+  - rank: 1
+    source: active_goal_primary_target
+    max_count: 1
+  - rank: 2
+    source: active_dialogue_target
+    max_count: 1
+  - rank: 3
+    source: reserved_resource
+    max_count: 2
+  - rank: 4
+    source: recent_attacker
+    max_count: 2
+  - rank: 5
+    source: active_goal_secondary_target
+    max_count: 2
+  mandatory_overflow:
+    threshold: 16
+    action: abstain_and_goal_fallback
+    critical_failure: true
+  quantization:
+    rounding: half_away_from_zero
+    confidence:
+      input_min: 0.0
+      input_max: 1.0
+      scale_ref: slotter_confidence_scale
+      dtype: uint16
+    age_seconds:
+      input_min: 0.0
+      input_max_ref: target_age_max_s
+      scale_ref: slotter_age_centisecond_scale
+      dtype: uint16
+    distance_cm:
+      input_min: 0.0
+      input_max_ref: spatial_max_cm
+      bin_size_ref: slotter_distance_bin_cm
+      dtype: uint16
+    loudness:
+      input_min: 0.0
+      input_max: 1.0
+      scale_ref: slotter_loudness_scale
+      dtype: uint16
+  category_sort_keys:
+    Entity:
+    - field: visible_now
+      direction: desc
+      encoding: boolean
+    - field: confidence
+      direction: desc
+      encoding: confidence
+    - field: age_seconds
+      direction: asc
+      encoding: age_seconds
+    - field: distance_cm
+      direction: asc
+      encoding: distance_cm
+    - field: canonical_handle_bytes
+      direction: asc
+      encoding: bytes
+    SoundEvent:
+    - field: event_priority
+      direction: desc
+      encoding: uint8
+    - field: confidence
+      direction: desc
+      encoding: confidence
+    - field: age_seconds
+      direction: asc
+      encoding: age_seconds
+    - field: loudness
+      direction: desc
+      encoding: loudness
+    - field: canonical_handle_bytes
+      direction: asc
+      encoding: bytes
+    CoverSlot:
+    - field: availability
+      direction: desc
+      encoding: boolean
+    - field: resource_generation_valid
+      direction: desc
+      encoding: boolean
+    - field: path_reachable
+      direction: desc
+      encoding: boolean
+    - field: distance_cm
+      direction: asc
+      encoding: distance_cm
+    - field: canonical_handle_bytes
+      direction: asc
+      encoding: bytes
+    SmartObject:
+    - field: availability
+      direction: desc
+      encoding: boolean
+    - field: resource_generation_valid
+      direction: desc
+      encoding: boolean
+    - field: distance_cm
+      direction: asc
+      encoding: distance_cm
+    - field: canonical_handle_bytes
+      direction: asc
+      encoding: bytes
+    PositionLike:
+    - field: goal_owned
+      direction: desc
+      encoding: boolean
+    - field: confidence
+      direction: desc
+      encoding: confidence
+    - field: age_seconds
+      direction: asc
+      encoding: age_seconds
+    - field: distance_cm
+      direction: asc
+      encoding: distance_cm
+    - field: kind
+      direction: asc
+      encoding: uint8
+    - field: canonical_handle_bytes
+      direction: asc
+      encoding: bytes
+  overflow_round_robin:
+  - Entity
+  - SoundEvent
+  - CoverSlot
+  - SmartObject
+  - PositionLike
+  slot_hysteresis:
+    selection_affected: false
+    retain_by: identity_key
+    new_target_order:
+    - mandatory_rank
+    - category_order
+    - category_sort_key
+    assign_to: lowest_free_regular_slot
+candidate_layout:
+  count: 272
+  order: skill_major_target_minor
+  skill_stride_ref: total_target_slots
+  candidate_index_fields:
+  - skill_id
+  - target_slot
+  continue_control:
+    skill_id: 1
+    executable_skill: false
+    exactly_one_valid_when_running: true
+    requires_can_continue_latest_belief: true
+    duplicate_running_skill_target_candidate: masked
+    current_skill_one_hot_index_17: reserved_zero
+score_contract:
+  query:
+    projection_dim: 64
+    layer_norm: true
+    l2_normalize: true
+  key:
+    dimension: 64
+    layer_norm: true
+    l2_normalize: true
+  cosine_temperature: 0.5
+  skill_bias_clamp:
+  - -0.25
+  - 0.25
+  target_kind_bias_clamp:
+  - -0.25
+  - 0.25
+  raw_score_clamp:
+  - -2.5
+  - 2.5
+  formula: clamp(cosine(q,key)/temperature + skill_bias + target_kind_bias, raw_min, raw_max)
+  switch_cost:
+    min: 0.0
+    max: 1.0
+    lambda: 1.0
+    terms:
+    - name: skill_changed
+      weight: 0.45
+    - name: target_changed
+      weight: 0.25
+    - name: before_min_duration
+      weight: 0.2
+    - name: release_or_transfer_reservation
+      weight: 0.1
+  adjusted_score_formula: raw_score - lambda * switch_cost
+  masked_softmax:
+    temperature: 1.0
+    invalid_value: negative_infinity
+    entropy_normalization: divide_by_log_valid_count_when_count_gt_1
+contract_mismatch_policy:
+  schema_or_registry_or_version_mismatch: hard_reject_before_feature_build_or_inference
+  response_hash_mismatch: discard_response
+  ood_scope: valid_contract_inputs_only
+commit_validation:
+  Entity:
+    mode: latest_valid_belief
+    identity_generation_must_match: true
+    requested_revision_policy: newer_valid_belief_allowed
+    requires_current_perception_when_skill_requires_tracking: true
+  SoundEvent:
+    mode: immutable_snapshot_exact
+    snapshot_revision: exact
+    ttl_required: true
+  LastKnownPosition:
+    mode: immutable_snapshot_exact
+    snapshot_revision: exact
+    ttl_required: true
+    origin_actor_lookup_for_tactical_update: false
+  CoverSlot:
+    mode: resource_compare_and_swap
+    compare:
+    - stable_id
+    - generation
+    - availability_revision
+    reservation_id_created_at_commit: true
+  SmartObject:
+    mode: resource_compare_and_swap
+    compare:
+    - stable_id
+    - generation
+    - availability_revision
+    reservation_id_created_at_commit: true
+  Waypoint:
+    mode: immutable_or_authoritative_definition
+    snapshot_revision: exact
+  WorldPosition:
+    mode: immutable_snapshot_exact
+    snapshot_revision: exact
+    ttl_required_if_configured: true
+  NoTarget:
+    mode: none
+tensors:
+  global_state:
+    shape:
+    - B
+    - 128
+    dtype: float32
+    fields:
+    - index: 0
+      name: self_health_norm
+      source: self authoritative health ratio
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 1
+      name: self_stamina_norm
+      source: self authoritative stamina ratio
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 2
+      name: self_speed_norm
+      source: self speed
+      unit: cm/s
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: speed_max_cm_s
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 3
+      name: self_local_velocity_x
+      source: self velocity in NPC-local frame
+      unit: cm/s
+      normalizer:
+        type: divide_clamp
+        min: -1.0
+        max: 1.0
+        divisor_ref: speed_max_cm_s
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 4
+      name: self_local_velocity_y
+      source: self velocity in NPC-local frame
+      unit: cm/s
+      normalizer:
+        type: divide_clamp
+        min: -1.0
+        max: 1.0
+        divisor_ref: speed_max_cm_s
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 5
+      name: self_local_velocity_z
+      source: self velocity in NPC-local frame
+      unit: cm/s
+      normalizer:
+        type: divide_clamp
+        min: -1.0
+        max: 1.0
+        divisor_ref: speed_max_cm_s
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 6
+      name: self_local_acceleration_x
+      source: self acceleration in NPC-local frame
+      unit: cm/s²
+      normalizer:
+        type: divide_clamp
+        min: -1.0
+        max: 1.0
+        divisor_ref: acceleration_max_cm_s2
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 7
+      name: self_local_acceleration_y
+      source: self acceleration in NPC-local frame
+      unit: cm/s²
+      normalizer:
+        type: divide_clamp
+        min: -1.0
+        max: 1.0
+        divisor_ref: acceleration_max_cm_s2
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 8
+      name: self_local_acceleration_z
+      source: self acceleration in NPC-local frame
+      unit: cm/s²
+      normalizer:
+        type: divide_clamp
+        min: -1.0
+        max: 1.0
+        divisor_ref: acceleration_max_cm_s2
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 9
+      name: self_yaw_rate_norm
+      source: self yaw angular speed
+      unit: deg/s
+      normalizer:
+        type: divide_clamp
+        min: -1.0
+        max: 1.0
+        divisor_ref: yaw_rate_max_deg_s
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 10
+      name: self_grounded
+      source: self movement state
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 11
+      name: self_crouched
+      source: self movement state
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 12
+      name: self_sprinting
+      source: self movement state
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 13
+      name: self_in_combat
+      source: authoritative self combat state
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 14
+      name: self_damaged_recently
+      source: damage event within 3 seconds
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 15
+      name: self_recent_damage_norm
+      source: damage received in 3-second window / max health
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 16
+      name: current_skill_Idle
+      source: current skill one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 17
+      name: current_skill_ContinueCurrentAction_reserved_zero
+      source: control candidate is never an executing skill
+      unit: none
+      normalizer:
+        type: constant
+        value: 0.0
+      valid_range:
+      - 0.0
+      - 0.0
+      missing:
+        policy: constant
+        value: 0.0
+      constraints:
+        must_equal: 0.0
+    - index: 18
+      name: current_skill_LookAt
+      source: current skill one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 19
+      name: current_skill_TurnTo
+      source: current skill one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 20
+      name: current_skill_Approach
+      source: current skill one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 21
+      name: current_skill_KeepDistance
+      source: current skill one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 22
+      name: current_skill_RetreatFrom
+      source: current skill one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 23
+      name: current_skill_Follow
+      source: current skill one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 24
+      name: current_skill_Investigate
+      source: current skill one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 25
+      name: current_skill_SearchArea
+      source: current skill one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 26
+      name: current_skill_Greet
+      source: current skill one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 27
+      name: current_skill_Warn
+      source: current skill one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 28
+      name: current_skill_CallForHelp
+      source: current skill one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 29
+      name: current_skill_TakeCover
+      source: current skill one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 30
+      name: current_skill_Flee
+      source: current skill one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 31
+      name: current_skill_Attack
+      source: current skill one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 32
+      name: skill_elapsed_norm
+      source: elapsed time in current skill
+      unit: s
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: skill_time_max_s
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 33
+      name: skill_progress_norm
+      source: skill-defined progress
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 34
+      name: skill_min_duration_remaining_norm
+      source: remaining minimum hold time
+      unit: s
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: skill_time_max_s
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 35
+      name: skill_interruptible_now
+      source: current skill may be interrupted
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 36
+      name: skill_has_target
+      source: current skill has typed target
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 37
+      name: skill_target_still_believed_valid
+      source: current target remains valid in Belief
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 38
+      name: last_skill_result_success
+      source: last terminal result
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 39
+      name: last_skill_result_failure
+      source: last terminal result
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 40
+      name: personality_aggression
+      source: NPC profile
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: -1.0
+        max: 1.0
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 41
+      name: personality_courage
+      source: NPC profile
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: -1.0
+        max: 1.0
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 42
+      name: personality_curiosity
+      source: NPC profile
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: -1.0
+        max: 1.0
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 43
+      name: personality_loyalty
+      source: NPC profile
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: -1.0
+        max: 1.0
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 44
+      name: personality_sociability
+      source: NPC profile
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: -1.0
+        max: 1.0
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 45
+      name: personality_impulsivity
+      source: NPC profile
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: -1.0
+        max: 1.0
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 46
+      name: personality_patience
+      source: NPC profile
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: -1.0
+        max: 1.0
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 47
+      name: personality_vigilance
+      source: NPC profile
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: -1.0
+        max: 1.0
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 48
+      name: personality_altruism
+      source: NPC profile
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: -1.0
+        max: 1.0
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 49
+      name: personality_rule_adherence
+      source: NPC profile
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: -1.0
+        max: 1.0
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 50
+      name: emotion_fear
+      source: authoritative event-driven state, read-only to policy
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 51
+      name: emotion_anger
+      source: authoritative event-driven state, read-only to policy
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 52
+      name: emotion_suspicion
+      source: authoritative event-driven state, read-only to policy
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 53
+      name: emotion_curiosity
+      source: authoritative event-driven state, read-only to policy
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 54
+      name: emotion_tension
+      source: authoritative event-driven state, read-only to policy
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 55
+      name: emotion_affection
+      source: authoritative event-driven state, read-only to policy
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 56
+      name: emotion_confusion
+      source: authoritative event-driven state, read-only to policy
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 57
+      name: emotion_confidence
+      source: authoritative event-driven state, read-only to policy
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 58
+      name: relationship_affinity
+      source: relationship to primary social subject
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: -1.0
+        max: 1.0
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 59
+      name: relationship_trust
+      source: relationship to primary social subject
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: -1.0
+        max: 1.0
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 60
+      name: relationship_respect
+      source: relationship to primary social subject
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: -1.0
+        max: 1.0
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 61
+      name: relationship_fear
+      source: relationship to primary social subject
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 62
+      name: relationship_debt
+      source: relationship to primary social subject
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: -1.0
+        max: 1.0
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 63
+      name: relationship_suspicion
+      source: relationship to primary social subject
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 64
+      name: relationship_loyalty
+      source: relationship to primary social subject
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: -1.0
+        max: 1.0
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 65
+      name: relationship_hostility
+      source: relationship to primary social subject
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 66
+      name: role_combatant
+      source: role attribute, not unseen Role ID
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 67
+      name: role_guard
+      source: role attribute
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 68
+      name: role_civilian
+      source: role attribute
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 69
+      name: role_companion
+      source: role attribute
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 70
+      name: role_support
+      source: role attribute
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 71
+      name: role_authority_level
+      source: role attribute
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 72
+      name: role_social_authority
+      source: role attribute
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 73
+      name: role_territory_ownership
+      source: role attribute
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 74
+      name: role_mission_importance
+      source: role attribute
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 75
+      name: role_risk_tolerance
+      source: role attribute
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 76
+      name: goal_type_None
+      source: active goal type one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 77
+      name: goal_type_IdleObserve
+      source: active goal type one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 78
+      name: goal_type_InvestigateDisturbance
+      source: active goal type one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 79
+      name: goal_type_EnforceBoundary
+      source: active goal type one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 80
+      name: goal_type_CombatEngage
+      source: active goal type one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 81
+      name: goal_type_Disengage
+      source: active goal type one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 82
+      name: goal_type_Escort
+      source: active goal type one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 83
+      name: goal_type_Reserved
+      source: active goal type one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 84
+      name: goal_phase_None
+      source: active goal phase one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 85
+      name: goal_phase_Observe
+      source: active goal phase one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 86
+      name: goal_phase_Orient
+      source: active goal phase one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 87
+      name: goal_phase_Navigate
+      source: active goal phase one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 88
+      name: goal_phase_Interact
+      source: active goal phase one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 89
+      name: goal_phase_Search
+      source: active goal phase one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 90
+      name: goal_phase_Resolve
+      source: active goal phase one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 91
+      name: goal_phase_Return
+      source: active goal phase one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 92
+      name: goal_priority_norm
+      source: active goal priority uint8 / 255
+      unit: ratio
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: goal_priority_max
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 93
+      name: goal_time_in_phase_norm
+      source: time since phase entry
+      unit: s
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: goal_phase_time_max_s
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 94
+      name: goal_deadline_remaining_norm
+      source: remaining authoritative deadline; 1 when no deadline
+      unit: s
+      normalizer:
+        type: sentinel_divide_clamp
+        sentinel: no_deadline
+        sentinel_value: 1.0
+        divisor_ref: goal_deadline_max_s
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: sentinel
+        sentinel: no_deadline
+        encoded_value: 1.0
+    - index: 95
+      name: goal_progress_norm
+      source: goal-defined non-revision progress
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 96
+      name: goal_interruptible
+      source: active phase interruptibility permits ordinary preemption
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 97
+      name: goal_has_primary_target
+      source: active goal owns a typed target
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 98
+      name: allowed_skill_fraction
+      source: allowed skill count / 16
+      unit: ratio
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: skill_count
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 99
+      name: forbidden_skill_fraction
+      source: forbidden skill count / 16
+      unit: ratio
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: skill_count
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 100
+      name: world_safe_zone
+      source: authoritative zone flag
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 101
+      name: world_restricted_zone
+      source: authoritative zone flag
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 102
+      name: world_indoors
+      source: environment flag
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 103
+      name: world_combat_allowed
+      source: authoritative rule flag
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 104
+      name: world_perceived_ally_count_norm
+      source: count from Belief
+      unit: count
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: count_max
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 105
+      name: world_perceived_hostile_count_norm
+      source: count from Belief
+      unit: count
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: count_max
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 106
+      name: world_light_level_norm
+      source: environment sample available to NPC
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 107
+      name: world_crowd_density_norm
+      source: perceived local density
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 108
+      name: recent_sound_count_norm
+      source: valid events in 10-second buffer
+      unit: count
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: count_max
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 109
+      name: recent_sight_change_count_norm
+      source: valid events in 10-second buffer
+      unit: count
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: count_max
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 110
+      name: recent_damage_count_norm
+      source: valid events in 10-second buffer
+      unit: count
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: count_max
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 111
+      name: recent_skill_failure_count_norm
+      source: valid events in 10-second buffer
+      unit: count
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: count_max
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 112
+      name: recent_target_switch_count_norm
+      source: valid events in 10-second buffer
+      unit: count
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: count_max
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 113
+      name: recent_warning_count_norm
+      source: valid events in 10-second buffer
+      unit: count
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: count_max
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 114
+      name: recent_reservation_conflict_count_norm
+      source: valid events in 10-second buffer
+      unit: count
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: count_max
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 115
+      name: event_buffer_fill_ratio
+      source: valid event slots / 12
+      unit: ratio
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: event_slots
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 116
+      name: reserved_116
+      source: reserved; must be zero
+      unit: none
+      normalizer:
+        type: constant
+        value: 0.0
+      valid_range:
+      - 0.0
+      - 0.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 117
+      name: reserved_117
+      source: reserved; must be zero
+      unit: none
+      normalizer:
+        type: constant
+        value: 0.0
+      valid_range:
+      - 0.0
+      - 0.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 118
+      name: reserved_118
+      source: reserved; must be zero
+      unit: none
+      normalizer:
+        type: constant
+        value: 0.0
+      valid_range:
+      - 0.0
+      - 0.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 119
+      name: reserved_119
+      source: reserved; must be zero
+      unit: none
+      normalizer:
+        type: constant
+        value: 0.0
+      valid_range:
+      - 0.0
+      - 0.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 120
+      name: reserved_120
+      source: reserved; must be zero
+      unit: none
+      normalizer:
+        type: constant
+        value: 0.0
+      valid_range:
+      - 0.0
+      - 0.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 121
+      name: reserved_121
+      source: reserved; must be zero
+      unit: none
+      normalizer:
+        type: constant
+        value: 0.0
+      valid_range:
+      - 0.0
+      - 0.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 122
+      name: reserved_122
+      source: reserved; must be zero
+      unit: none
+      normalizer:
+        type: constant
+        value: 0.0
+      valid_range:
+      - 0.0
+      - 0.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 123
+      name: reserved_123
+      source: reserved; must be zero
+      unit: none
+      normalizer:
+        type: constant
+        value: 0.0
+      valid_range:
+      - 0.0
+      - 0.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 124
+      name: reserved_124
+      source: reserved; must be zero
+      unit: none
+      normalizer:
+        type: constant
+        value: 0.0
+      valid_range:
+      - 0.0
+      - 0.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 125
+      name: reserved_125
+      source: reserved; must be zero
+      unit: none
+      normalizer:
+        type: constant
+        value: 0.0
+      valid_range:
+      - 0.0
+      - 0.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 126
+      name: reserved_126
+      source: reserved; must be zero
+      unit: none
+      normalizer:
+        type: constant
+        value: 0.0
+      valid_range:
+      - 0.0
+      - 0.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 127
+      name: reserved_127
+      source: reserved; must be zero
+      unit: none
+      normalizer:
+        type: constant
+        value: 0.0
+      valid_range:
+      - 0.0
+      - 0.0
+      missing:
+        policy: constant
+        value: 0.0
+  target_features:
+    shape:
+    - B
+    - 17
+    - 48
+    dtype: float32
+    payload_range:
+    - 32
+    - 47
+    common_fields:
+    - index: 0
+      name: relative_position_x
+      source: perceived target position in NPC-local frame
+      unit: cm
+      normalizer:
+        type: divide_clamp
+        min: -1.0
+        max: 1.0
+        divisor_ref: spatial_max_cm
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 1
+      name: relative_position_y
+      source: perceived target position in NPC-local frame
+      unit: cm
+      normalizer:
+        type: divide_clamp
+        min: -1.0
+        max: 1.0
+        divisor_ref: spatial_max_cm
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 2
+      name: relative_position_z
+      source: perceived target position in NPC-local frame
+      unit: cm
+      normalizer:
+        type: divide_clamp
+        min: -1.0
+        max: 1.0
+        divisor_ref: spatial_max_cm
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 3
+      name: distance_3d_norm
+      source: distance to perceived position
+      unit: cm
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: spatial_max_cm
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 4
+      name: distance_planar_norm
+      source: planar distance to perceived position
+      unit: cm
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: spatial_max_cm
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 5
+      name: log_distance_norm
+      source: log distance
+      unit: cm
+      normalizer:
+        type: log1p_ratio
+        input_min: 0.0
+        input_max_ref: spatial_max_cm
+        denominator_ref: spatial_max_cm
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 6
+      name: bearing_sin
+      source: NPC-local bearing
+      unit: rad
+      normalizer:
+        type: trigonometric
+        function: sin
+        input_unit: radian
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 7
+      name: bearing_cos
+      source: NPC-local bearing
+      unit: rad
+      normalizer:
+        type: trigonometric
+        function: cos
+        input_unit: radian
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 8
+      name: elevation_sin
+      source: NPC-local elevation
+      unit: rad
+      normalizer:
+        type: trigonometric
+        function: sin
+        input_unit: radian
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 9
+      name: elevation_cos
+      source: NPC-local elevation
+      unit: rad
+      normalizer:
+        type: trigonometric
+        function: cos
+        input_unit: radian
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 10
+      name: relative_velocity_x
+      source: belief-derived velocity, never hidden Actor velocity
+      unit: cm/s
+      normalizer:
+        type: divide_clamp
+        min: -1.0
+        max: 1.0
+        divisor_ref: speed_max_cm_s
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 11
+      name: relative_velocity_y
+      source: belief-derived velocity, never hidden Actor velocity
+      unit: cm/s
+      normalizer:
+        type: divide_clamp
+        min: -1.0
+        max: 1.0
+        divisor_ref: speed_max_cm_s
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 12
+      name: relative_velocity_z
+      source: belief-derived velocity, never hidden Actor velocity
+      unit: cm/s
+      normalizer:
+        type: divide_clamp
+        min: -1.0
+        max: 1.0
+        divisor_ref: speed_max_cm_s
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 13
+      name: closing_speed_norm
+      source: positive means approaching
+      unit: cm/s
+      normalizer:
+        type: divide_clamp
+        min: -1.0
+        max: 1.0
+        divisor_ref: speed_max_cm_s
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 14
+      name: path_distance_norm
+      source: navigation estimate to believed position
+      unit: cm
+      normalizer:
+        type: sentinel_divide_clamp
+        sentinel: invalid
+        sentinel_value: 0.0
+        divisor_ref: path_distance_max_cm
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: sentinel
+        sentinel: invalid
+        encoded_value: 0.0
+    - index: 15
+      name: path_reachable_belief
+      source: path query to believed snapshot position
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 16
+      name: belief_age_norm
+      source: now - observed_at
+      unit: s
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: target_age_max_s
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 17
+      name: belief_confidence
+      source: position/state confidence
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 18
+      name: source_sight
+      source: Belief source one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 19
+      name: source_hearing
+      source: Belief source one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 20
+      name: source_last_known
+      source: Belief source one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 21
+      name: source_shared
+      source: Belief source one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 22
+      name: source_scripted
+      source: Belief source one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 23
+      name: position_valid
+      source: perceived/snapshot position is valid
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 24
+      name: visible_now
+      source: currently perceived by sight
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 25
+      name: line_of_sight_belief
+      source: LOS query against believed/currently perceived target
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 26
+      name: sight_strength
+      source: sensor strength
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 27
+      name: visible_duration_norm
+      source: continuous visibility duration
+      unit: s
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: visible_duration_max_s
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 28
+      name: heard_recently
+      source: valid hearing event associated with target
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 29
+      name: hearing_strength
+      source: normalized loudness/strength
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 30
+      name: time_since_seen_norm
+      source: time since last sight; 1 if never
+      unit: s
+      normalizer:
+        type: sentinel_divide_clamp
+        sentinel: never
+        sentinel_value: 1.0
+        divisor_ref: target_age_max_s
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: sentinel
+        sentinel: never
+        encoded_value: 1.0
+    - index: 31
+      name: time_since_heard_norm
+      source: time since last hearing; 1 if never
+      unit: s
+      normalizer:
+        type: sentinel_divide_clamp
+        sentinel: never
+        sentinel_value: 1.0
+        divisor_ref: target_age_max_s
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: sentinel
+        sentinel: never
+        encoded_value: 1.0
+    padding:
+      unused_regular_slot: all_zero
+      no_target_common: all_zero
+      no_target_payload: all_zero
+  target_kind_ids:
+    shape:
+    - B
+    - 17
+    dtype: int64
+    padding:
+      value: 0
+      meaning: NoTarget
+  target_mask:
+    shape:
+    - B
+    - 17
+    dtype: bool
+    semantics:
+      regular: true_if_occupied
+      slot_16: always_true
+      padding_bits: zero
+  event_features:
+    shape:
+    - B
+    - 12
+    - 24
+    dtype: float32
+    fields:
+    - index: 0
+      name: age_norm
+      source: now - event time
+      unit: s
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: event_age_max_s
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 1
+      name: strength
+      source: event strength
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 2
+      name: confidence
+      source: event confidence
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 3
+      name: relative_position_x
+      source: event snapshot in NPC-local frame
+      unit: cm
+      normalizer:
+        type: divide_clamp
+        min: -1.0
+        max: 1.0
+        divisor_ref: spatial_max_cm
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 4
+      name: relative_position_y
+      source: event snapshot in NPC-local frame
+      unit: cm
+      normalizer:
+        type: divide_clamp
+        min: -1.0
+        max: 1.0
+        divisor_ref: spatial_max_cm
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 5
+      name: relative_position_z
+      source: event snapshot in NPC-local frame
+      unit: cm
+      normalizer:
+        type: divide_clamp
+        min: -1.0
+        max: 1.0
+        divisor_ref: spatial_max_cm
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 6
+      name: distance_norm
+      source: distance to event snapshot
+      unit: cm
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: spatial_max_cm
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 7
+      name: bearing_sin
+      source: event bearing
+      unit: rad
+      normalizer:
+        type: trigonometric
+        function: sin
+        input_unit: radian
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 8
+      name: bearing_cos
+      source: event bearing
+      unit: rad
+      normalizer:
+        type: trigonometric
+        function: cos
+        input_unit: radian
+      valid_range:
+      - -1.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 9
+      name: source_sight
+      source: event source one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 10
+      name: source_hearing
+      source: event source one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 11
+      name: source_damage
+      source: event source one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 12
+      name: source_scripted
+      source: event source one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 13
+      name: result_success
+      source: skill result one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 14
+      name: result_failure
+      source: skill result one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 15
+      name: result_interrupted
+      source: skill result one-hot
+      unit: one-hot
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 16
+      name: urgent
+      source: event urgency
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 17
+      name: target_present_in_current_slots
+      source: stable handle remapped to current slot
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 18
+      name: same_as_current_skill_target
+      source: handle equality
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 19
+      name: same_goal_revision
+      source: event goal revision equals current
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 20
+      name: magnitude_norm
+      source: event-specific magnitude
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 21
+      name: duration_norm
+      source: event-specific duration
+      unit: s
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: event_age_max_s
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 22
+      name: reserved_22
+      source: must be zero
+      unit: none
+      normalizer:
+        type: constant
+        value: 0.0
+      valid_range:
+      - 0.0
+      - 0.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 23
+      name: reserved_23
+      source: must be zero
+      unit: none
+      normalizer:
+        type: constant
+        value: 0.0
+      valid_range:
+      - 0.0
+      - 0.0
+      missing:
+        policy: constant
+        value: 0.0
+  event_type_ids:
+    shape:
+    - B
+    - 12
+    dtype: int64
+    padding:
+      value: 0
+  event_target_slots:
+    shape:
+    - B
+    - 12
+    dtype: int64
+    padding:
+      value: 16
+      meaning: NoTarget_or_unmapped
+  event_mask:
+    shape:
+    - B
+    - 12
+    dtype: bool
+    padding:
+      value: false
+  candidate_pair_features:
+    shape:
+    - B
+    - 272
+    - 16
+    dtype: float32
+    fields:
+    - index: 0
+      name: same_as_current_skill
+      source: candidate skill equals running skill
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 1
+      name: same_as_current_target
+      source: typed handle equals running target
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 2
+      name: target_present
+      source: target slot is valid; NoTarget is valid
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 3
+      name: target_visible_now
+      source: copied from target belief
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 4
+      name: target_position_confidence
+      source: copied from target belief
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 5
+      name: target_age_norm
+      source: copied from target belief
+      unit: s
+      normalizer:
+        type: divide_clamp
+        min: 0.0
+        max: 1.0
+        divisor_ref: target_age_max_s
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 6
+      name: distance_norm
+      source: copied from target feature
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 7
+      name: path_distance_norm
+      source: computed to believed snapshot
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 8
+      name: path_reachable_belief
+      source: computed to believed snapshot
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 9
+      name: skill_requires_los
+      source: Skill Registry metadata
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 10
+      name: los_satisfied_belief
+      source: computed against currently permitted belief
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 11
+      name: skill_requires_resource
+      source: Skill Registry metadata
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 12
+      name: resource_available_belief
+      source: latest allowed availability snapshot
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 13
+      name: skill_allowed_by_goal
+      source: Goal contract
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 14
+      name: target_kind_allowed
+      source: Skill Registry matrix
+      unit: bool
+      normalizer:
+        type: boolean
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+    - index: 15
+      name: default_parameter_norm
+      source: Skill Registry default primary parameter
+      unit: ratio
+      normalizer:
+        type: clamp
+        min: 0.0
+        max: 1.0
+      valid_range:
+      - 0.0
+      - 1.0
+      missing:
+        policy: constant
+        value: 0.0
+  candidate_mask:
+    shape:
+    - B
+    - 272
+    dtype: bool
+    padding:
+      value: false
+outputs:
+  candidate_raw_scores:
+    shape:
+    - B
+    - 272
+    dtype: float32
+    valid_range:
+    - -2.5
+    - 2.5
+    meaning: bounded raw candidate score before switch cost
+  candidate_parameter_proposals:
+    shape:
+    - B
+    - 272
+    - 4
+    dtype: float32
+    activation: sigmoid
+    valid_range:
+    - 0.0
+    - 1.0
+    fields:
+    - index: 0
+      name: duration_norm
+      registry_slot: duration
+    - index: 1
+      name: speed_norm
+      registry_slot: speed
+    - index: 2
+      name: preferred_distance_norm
+      registry_slot: preferred_distance
+    - index: 3
+      name: intensity_norm
+      registry_slot: intensity
+    interpretation: skill_registry_parameter_contract
+    inactive_slot_policy: ignore_and_use_registry_default
+    commit_policy: decode_then_clamp_to_registry_min_max_on_server_game_thread
+target_payload_features:
+  NoTarget:
+  - payload_index: 0
+    tensor_index: 32
+    name: zero_0
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  - payload_index: 1
+    tensor_index: 33
+    name: zero_1
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  - payload_index: 2
+    tensor_index: 34
+    name: zero_2
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  - payload_index: 3
+    tensor_index: 35
+    name: zero_3
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  - payload_index: 4
+    tensor_index: 36
+    name: zero_4
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  - payload_index: 5
+    tensor_index: 37
+    name: zero_5
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  - payload_index: 6
+    tensor_index: 38
+    name: zero_6
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  - payload_index: 7
+    tensor_index: 39
+    name: zero_7
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  - payload_index: 8
+    tensor_index: 40
+    name: zero_8
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  - payload_index: 9
+    tensor_index: 41
+    name: zero_9
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  - payload_index: 10
+    tensor_index: 42
+    name: zero_10
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  - payload_index: 11
+    tensor_index: 43
+    name: zero_11
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  - payload_index: 12
+    tensor_index: 44
+    name: zero_12
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  - payload_index: 13
+    tensor_index: 45
+    name: zero_13
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  - payload_index: 14
+    tensor_index: 46
+    name: zero_14
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  - payload_index: 15
+    tensor_index: 47
+    name: zero_15
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  Entity:
+  - payload_index: 0
+    tensor_index: 32
+    name: alive_probability
+    source: Belief estimate
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 1
+    tensor_index: 33
+    name: armed_probability
+    source: Belief estimate
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 2
+    tensor_index: 34
+    name: attacking_probability
+    source: Belief estimate
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 3
+    tensor_index: 35
+    name: health_estimate
+    source: Belief estimate
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 4
+    tensor_index: 36
+    name: health_uncertainty
+    source: estimate interval width
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 5
+    tensor_index: 37
+    name: threat_estimate
+    source: perception/classifier estimate
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 6
+    tensor_index: 38
+    name: interactable
+    source: observed/known affordance
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 7
+    tensor_index: 39
+    name: same_faction_probability
+    source: Belief estimate
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 8
+    tensor_index: 40
+    name: affinity
+    source: relationship [-1,1]
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: -1.0
+      max: 1.0
+    valid_range:
+    - -1.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 9
+    tensor_index: 41
+    name: trust
+    source: relationship [-1,1]
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: -1.0
+      max: 1.0
+    valid_range:
+    - -1.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 10
+    tensor_index: 42
+    name: fear
+    source: relationship [0,1]
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 11
+    tensor_index: 43
+    name: hostility
+    source: relationship [0,1]
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 12
+    tensor_index: 44
+    name: debt
+    source: relationship [-1,1]
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: -1.0
+      max: 1.0
+    valid_range:
+    - -1.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 13
+    tensor_index: 45
+    name: suspicion
+    source: relationship [0,1]
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 14
+    tensor_index: 46
+    name: current_action_confidence
+    source: observed action classifier confidence
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 15
+    tensor_index: 47
+    name: identity_confidence
+    source: entity attribution confidence
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  SoundEvent:
+  - payload_index: 0
+    tensor_index: 32
+    name: loudness
+    source: normalized loudness
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 1
+    tensor_index: 33
+    name: danger_estimate
+    source: sensor/event semantic estimate
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 2
+    tensor_index: 34
+    name: attribution_confidence
+    source: confidence in source attribution
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 3
+    tensor_index: 35
+    name: repetition_norm
+    source: repeat count / 8
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 4
+    tensor_index: 36
+    name: class_footstep
+    source: sound class one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 5
+    tensor_index: 37
+    name: class_weapon
+    source: sound class one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 6
+    tensor_index: 38
+    name: class_explosion
+    source: sound class one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 7
+    tensor_index: 39
+    name: class_voice
+    source: sound class one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 8
+    tensor_index: 40
+    name: class_impact
+    source: sound class one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 9
+    tensor_index: 41
+    name: class_door
+    source: sound class one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 10
+    tensor_index: 42
+    name: class_vehicle
+    source: sound class one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 11
+    tensor_index: 43
+    name: class_other
+    source: sound class one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 12
+    tensor_index: 44
+    name: source_moving_probability
+    source: event inference
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 13
+    tensor_index: 45
+    name: occluded_probability
+    source: hearing propagation estimate
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 14
+    tensor_index: 46
+    name: ttl_remaining_norm
+    source: remaining TTL / event max TTL
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 15
+    tensor_index: 47
+    name: reserved
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  LastKnownPosition:
+  - payload_index: 0
+    tensor_index: 32
+    name: subject_is_player
+    source: Belief semantic flag
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 1
+    tensor_index: 33
+    name: subject_hostile_probability
+    source: snapshot belief
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 2
+    tensor_index: 34
+    name: subject_armed_probability
+    source: snapshot belief
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 3
+    tensor_index: 35
+    name: subject_alive_probability_at_observation
+    source: snapshot belief; not updated from hidden truth
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 4
+    tensor_index: 36
+    name: motion_direction_sin
+    source: last observed motion
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: -1.0
+      max: 1.0
+    valid_range:
+    - -1.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 5
+    tensor_index: 37
+    name: motion_direction_cos
+    source: last observed motion
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: -1.0
+      max: 1.0
+    valid_range:
+    - -1.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 6
+    tensor_index: 38
+    name: observed_speed_norm
+    source: last observed speed / 1200
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 7
+    tensor_index: 39
+    name: reason_sight_lost
+    source: snapshot reason one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 8
+    tensor_index: 40
+    name: reason_shared
+    source: snapshot reason one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 9
+    tensor_index: 41
+    name: reason_scripted
+    source: snapshot reason one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 10
+    tensor_index: 42
+    name: goal_primary_target
+    source: owned by active goal
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 11
+    tensor_index: 43
+    name: search_radius_norm
+    source: search radius / 5000
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 12
+    tensor_index: 44
+    name: confidence_decay_rate_norm
+    source: configured decay rate
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 13
+    tensor_index: 45
+    name: ttl_remaining_norm
+    source: remaining snapshot TTL
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 14
+    tensor_index: 46
+    name: subject_identity_confidence
+    source: snapshot attribution confidence
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 15
+    tensor_index: 47
+    name: reserved
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  CoverSlot:
+  - payload_index: 0
+    tensor_index: 32
+    name: cover_quality
+    source: '[0,1]'
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 1
+    tensor_index: 33
+    name: exposure_reduction
+    source: '[0,1]'
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 2
+    tensor_index: 34
+    name: flank_risk
+    source: '[0,1]'
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 3
+    tensor_index: 35
+    name: distance_to_peek_norm
+    source: cm / 5000
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 4
+    tensor_index: 36
+    name: occupancy_ratio
+    source: '[0,1]'
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 5
+    tensor_index: 37
+    name: available_belief
+    source: latest known availability
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 6
+    tensor_index: 38
+    name: reserved_by_self
+    source: 0 or 1
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 7
+    tensor_index: 39
+    name: resource_generation_valid
+    source: 0 or 1
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 8
+    tensor_index: 40
+    name: low_cover
+    source: one-hot/flag
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 9
+    tensor_index: 41
+    name: high_cover
+    source: one-hot/flag
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 10
+    tensor_index: 42
+    name: left_peek
+    source: 0 or 1
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 11
+    tensor_index: 43
+    name: right_peek
+    source: 0 or 1
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 12
+    tensor_index: 44
+    name: destructible_probability
+    source: '[0,1]'
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 13
+    tensor_index: 45
+    name: hazard_norm
+    source: '[0,1]'
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 14
+    tensor_index: 46
+    name: lease_required
+    source: 0 or 1
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 15
+    tensor_index: 47
+    name: resource_age_norm
+    source: availability revision age / 10s
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  SmartObject:
+  - payload_index: 0
+    tensor_index: 32
+    name: availability_belief
+    source: '[0,1]'
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 1
+    tensor_index: 33
+    name: capacity_norm
+    source: capacity / configured max
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 2
+    tensor_index: 34
+    name: occupancy_ratio
+    source: '[0,1]'
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 3
+    tensor_index: 35
+    name: interaction_duration_norm
+    source: seconds / 30
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 4
+    tensor_index: 36
+    name: requires_item
+    source: 0 or 1
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 5
+    tensor_index: 37
+    name: hazard_norm
+    source: '[0,1]'
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 6
+    tensor_index: 38
+    name: use_type_door
+    source: one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 7
+    tensor_index: 39
+    name: use_type_console
+    source: one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 8
+    tensor_index: 40
+    name: use_type_pickup
+    source: one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 9
+    tensor_index: 41
+    name: use_type_heal
+    source: one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 10
+    tensor_index: 42
+    name: use_type_vehicle
+    source: one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 11
+    tensor_index: 43
+    name: use_type_social
+    source: one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 12
+    tensor_index: 44
+    name: use_type_traversal
+    source: one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 13
+    tensor_index: 45
+    name: use_type_other
+    source: one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 14
+    tensor_index: 46
+    name: resource_generation_valid
+    source: 0 or 1
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 15
+    tensor_index: 47
+    name: resource_age_norm
+    source: availability revision age / 10s
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  Waypoint:
+  - payload_index: 0
+    tensor_index: 32
+    name: goal_primary
+    source: 0 or 1
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 1
+    tensor_index: 33
+    name: goal_secondary
+    source: 0 or 1
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 2
+    tensor_index: 34
+    name: sequence_progress
+    source: '[0,1]'
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 3
+    tensor_index: 35
+    name: wait_duration_norm
+    source: seconds / 30
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 4
+    tensor_index: 36
+    name: desired_facing_sin
+    source: '[-1,1]'
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: -1.0
+      max: 1.0
+    valid_range:
+    - -1.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 5
+    tensor_index: 37
+    name: desired_facing_cos
+    source: '[-1,1]'
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: -1.0
+      max: 1.0
+    valid_range:
+    - -1.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 6
+    tensor_index: 38
+    name: patrol_waypoint
+    source: semantic flag
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 7
+    tensor_index: 39
+    name: return_point
+    source: semantic flag
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 8
+    tensor_index: 40
+    name: search_point
+    source: semantic flag
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 9
+    tensor_index: 41
+    name: escape_point
+    source: semantic flag
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 10
+    tensor_index: 42
+    name: formation_point
+    source: semantic flag
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 11
+    tensor_index: 43
+    name: scripted_point
+    source: semantic flag
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 12
+    tensor_index: 44
+    name: path_index_norm
+    source: index / configured max
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 13
+    tensor_index: 45
+    name: loop_flag
+    source: 0 or 1
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 14
+    tensor_index: 46
+    name: arrival_radius_norm
+    source: cm / 5000
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 15
+    tensor_index: 47
+    name: reserved
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+  WorldPosition:
+  - payload_index: 0
+    tensor_index: 32
+    name: goal_primary
+    source: 0 or 1
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 1
+    tensor_index: 33
+    name: goal_secondary
+    source: 0 or 1
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 2
+    tensor_index: 34
+    name: safe_zone_probability
+    source: '[0,1]'
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 3
+    tensor_index: 35
+    name: hazard_norm
+    source: '[0,1]'
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 4
+    tensor_index: 36
+    name: search_radius_norm
+    source: cm / 5000
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 5
+    tensor_index: 37
+    name: arrival_radius_norm
+    source: cm / 5000
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 6
+    tensor_index: 38
+    name: desired_facing_sin
+    source: '[-1,1]'
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: -1.0
+      max: 1.0
+    valid_range:
+    - -1.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 7
+    tensor_index: 39
+    name: desired_facing_cos
+    source: '[-1,1]'
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: -1.0
+      max: 1.0
+    valid_range:
+    - -1.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 8
+    tensor_index: 40
+    name: source_goal
+    source: one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 9
+    tensor_index: 41
+    name: source_script
+    source: one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 10
+    tensor_index: 42
+    name: source_shared_knowledge
+    source: one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 11
+    tensor_index: 43
+    name: source_player_ping
+    source: one-hot
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 12
+    tensor_index: 44
+    name: immutable_flag
+    source: must be 1 in V1
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: padding_zero
+      value: 0.0
+      occupied_required_value: 1.0
+    constraints:
+      occupied_required_value: 1.0
+  - payload_index: 13
+    tensor_index: 45
+    name: ttl_remaining_norm
+    source: remaining TTL / configured max
+    unit: ratio
+    normalizer:
+      type: clamp
+      min: 0.0
+      max: 1.0
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 14
+    tensor_index: 46
+    name: authority_valid
+    source: 0 or 1
+    unit: bool
+    normalizer:
+      type: boolean
+    valid_range:
+    - 0.0
+    - 1.0
+    missing:
+      policy: constant
+      value: 0.0
+  - payload_index: 15
+    tensor_index: 47
+    name: reserved
+    source: must be zero
+    unit: none
+    normalizer:
+      type: constant
+      value: 0.0
+    valid_range:
+    - 0.0
+    - 0.0
+    missing:
+      policy: constant
+      value: 0.0
+    constraints:
+      must_equal: 0.0
+hash_contract:
+  candidate_set_hash:
+    algorithm: SHA-256
+    raw_float_included: false
+    byte_order: little
+    serialization_version: 1
+    fields:
+    - name: magic
+      type: bytes[8]
+      value_ascii: ANPCSET2
+    - name: serialization_version
+      type: uint16
+      value: 1
+    - name: schema_source_sha256
+      type: bytes[32]
+    - name: target_slot_count
+      type: uint8
+      value_ref: total_target_slots
+    - name: target_handles
+      type: target_handle[17]
+      field_order:
+      - kind:uint8
+      - stable_id:uint64
+      - generation:uint32
+      - revision:uint64
+    - name: target_mask
+      type: bitset
+      bit_count: 17
+      byte_count: 3
+      bit_order: LSB-first
+      unused_high_bits: zero
+    - name: candidate_mask
+      type: bitset
+      bit_count: 272
+      byte_count: 34
+      bit_order: LSB-first
+      unused_high_bits: none
+    response_validation_order:
+    - compare_response_hash_to_pending_request_hash
+    - then_validate_latest_world_state
+    - never_recompute_current_hash_for_first_comparison
+  decision_contract_hash:
+    algorithm: SHA-256
+    raw_float_included: false
+    byte_order: little
+    serialization_version: 1
+    fields:
+    - name: magic
+      type: bytes[8]
+      value_ascii: ANPCDEC2
+    - name: serialization_version
+      type: uint16
+      value: 1
+    - name: schema_source_sha256
+      type: bytes[32]
+    - name: skill_registry_sha256
+      type: bytes[32]
+    - name: goal_registry_sha256
+      type: bytes[32]
+    - name: model_sha256
+      type: bytes[32]
+    - name: normalization_contract_sha256
+      type: bytes[32]
+    - name: slotter_contract_sha256
+      type: bytes[32]
+    - name: postprocess_contract_sha256
+      type: bytes[32]
+    - name: calibration_ood_asset_sha256
+      type: bytes[32]
+    runtime_binding_required_before_final_freeze: true
+parity:
+  discrete_enum_mask_padding_canonical_bytes:
+    comparison: byte_identical
+  float_feature_tensor:
+    absolute_tolerance: 1.0e-06
+    relative_tolerance: 1.0e-05
+    nan_policy: forbidden
+    negative_zero_policy: normalize_to_positive_zero_before_test
+  fp32_model_output:
+    absolute_tolerance: 0.0001
+    relative_tolerance: 0.0001
+    nan_policy: forbidden
+  hash_inputs:
+    raw_float_forbidden: true
+code_generation:
+  source_of_truth_files:
+  - ai_native_npc_schema_v2_0.yaml
+  - skill_registry_v1.yaml
+  - goal_registry_v1.yaml
+  - test_taxonomy_v1.yaml
+  generator: tools/generate_contracts.py
+  outputs:
+  - generated/python/ai_native_npc_contracts_generated.py
+  - generated/cpp/AINativeNPCContracts.generated.h
+  - generated/docs/schema_reference.md
+  - generated/contract_manifest.json
+  - generated/docs/requirements_kpi_appendix.md
+  - generated/docs/unreal_kpi_section.md
+  generated_files_edit_policy: do_not_edit
+normalizer_semantic_contract:
+  numeric_values_must_be_finite: true
+  valid_range_order: min_lte_max
+  normalizer_output_must_fit_valid_range: true
+  clamp_bounds_order: min_lte_max
+  divisor_and_referenced_scale_must_be_positive: true
+  log1p_input_domain:
+    exclusive_min: -1.0
+    denominator_must_be_positive: true
+  constant_and_sentinel_value_must_fit_valid_range: true
+  missing_contract_must_match_normalizer: true
+  constant_missing_value_must_equal_normalizer_constant: true
+  must_equal_requires_constant_normalizer: true
+  must_equal_requires_singleton_valid_range: true
+  must_equal_requires_matching_missing_value: true
+  padding_zero_value_must_fit_valid_range: true
+  constraint_and_missing_occupied_value_must_match: true
+documentation_contract:
+  marker_begin: <!-- BEGIN AUTO-GENERATED SCHEMA CONTRACT -->
+  marker_end: <!-- END AUTO-GENERATED SCHEMA CONTRACT -->
+  generated_reference: generated/docs/schema_reference.md
+  required_documents:
+  - docs/current/requirements/ai_native_npc_requirements_implementation_plan_v0.4.6.md
+  - docs/current/unreal/ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan_v0.4.6.md
+  strict_policy: marker_content_must_equal_generated_appendix
+  forbid_manual_hash_literal_outside_generated_block: true
+  manual_hash_literal_policy:
+    forbid_magic_value_ascii_json: true
+    forbid_magic_literal_line: true
+    normative_location: Appendix D.3 generated from hash_contract
+    forbid_known_value_ascii_token_anywhere_outside_generated_block: true
+    forbid_general_magic_assignment_sentence: true
+    value_ascii_token_sources:
+    - contracts/current/**/*.{yaml,json}
+    - contracts/archive/**/*.{yaml,json}
+  semantic_markdown_scope:
+    mode: all_locked_non_archive_markdown
+    exclude_prefixes:
+    - docs/archive/
+    - contracts/archive/
+    - manifests/archive/
+    - generated/docs/
+    magic_value_pattern: '[A-Za-z0-9_]{4,64}'
+    current_generated_blocks_may_be_stripped: true

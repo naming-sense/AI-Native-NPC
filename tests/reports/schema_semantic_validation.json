@@ -1,0 +1,15 @@
+{
+  "contract_revision": "2.0.0-rc5",
+  "errors": [],
+  "report_version": 5,
+  "source_hashes": {
+    "goal_registry": "b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2",
+    "schema": "424898ba9e80ff8ac7ad4d48a806f8606d2c595ec892d2753becbdaa3e47b6cc",
+    "skill_registry": "08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8",
+    "test_taxonomy": "7e300d01d148129e0741f8e0c468eeb433d80fe9ef414c7be453c47960927155"
+  },
+  "status": "pass",
+  "tool": "tools/validate_schema.py",
+  "tool_sha256": "8f9533f62fc2c041c46336955eea514f49ac2f8d2e97e206312cb3a9b1ae2ece",
+  "tool_version": "0.4.6"
+}
