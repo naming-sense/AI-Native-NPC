@@ -3,9 +3,11 @@
 
 - 문서 버전: **v0.4.6**
 - Schema 상태: **2.0.0 RC5 / Validation Scope & Catalog Closure / Freeze-ready Candidate**
-- 개정일: 2026-07-26
+- 개정일: 2026-07-30
+- 문서 보강: **ML/NNE Implementation Supplement 1 / Schema 값 변경 없음**
 - 대체 문서: `ai_native_npc_requirements_implementation_plan.md` v0.2 및 별도 v0.3/v0.4 보완 메모
 - 문서 성격: 연구 제안서가 아니라 **Unreal 클라이언트·Python 학습 코드·서버 실행기가 함께 따라야 하는 단일 구현 기준서**
+- ML 구현 프로필: **`policy_arch_v1.0.0` / `policy_train_v1.0.0` / ONNX opset 17**
 - Phase 0 판정: **GO**
 - Schema 2.0 판정: **RC5 Validation Scope & Catalog Closure PASS / Unreal Runtime Gate 통과 전 최종 Freeze 보류**
 
@@ -55,13 +57,19 @@ v0.4.6은 의미 검증을 모든 Lock 대상 non-archive 수기 Markdown으로 
 - 대량 학습 데이터 생성: **HOLD**
 - Schema 2.0 최종 Freeze: Float/ONNX parity와 Runtime Gate 통과 전 **NO-GO / Conditional**
 
-현재 단일 원본은 다음 세 파일이다.
+2026-07-30 ML/NNE 구현 보강은 Schema·Enum·Registry·Tensor Shape·Hash 값을 바꾸지 않는다. 대신 기존에 방향만 있던 신경망을 실제 코드로 옮길 수 있도록 모델 Layer, Dataset Record, Loss, 학습 설정, Calibration/OOD, ONNX Export와 Unreal NNE 적용 절차를 고정한다. Phase 0의 작은 fixture 모델과 end-to-end smoke test는 진행해도 되지만, Feature Capture parity와 split validator가 통과하기 전 V1 대량 데이터 생성은 계속 HOLD다.
+
+고정 태그 `full-harness-v0.4.6-rc5`의 Freeze-ready 증거는 이 보강 전 Schema·기반 문서를 검증한다. 이번 Supplement는 그 Schema 값을 변경하지 않지만 기존 90파일 Lock bundle에는 포함되지 않는다. 최종 Freeze 또는 계약 값 변경 시에는 Supplement를 포함한 새 문서 버전으로 전체 Harness를 다시 baseline해야 한다.
+
+현재 Runtime/학습 Tensor 계약의 단일 원본은 다음 세 파일이다.
 
 ```text
 contracts/current/ai_native_npc_schema_v2_0.yaml
 contracts/current/skill_registry_v1.yaml
 contracts/current/goal_registry_v1.yaml
 ```
+
+평가 family와 KPI 분모의 단일 원본은 별도 `contracts/current/test_taxonomy_v1.yaml`이다.
 
 `archive/`의 JSON Schema와 이전 문서는 구현 입력으로 사용할 수 없다.
 
@@ -631,6 +639,90 @@ concat 128+128+96 = 352
 → fusion 352→256→128 = tactical context h
 ```
 
+### `policy_arch_v1.0.0` 정확한 Layer 계약
+
+아래 Layer와 상수는 V1 Reference Model의 규범 계약이다. 실험 모델은 별도 이름으로 만들 수 있지만, V1 승격 후보는 이 구조를 그대로 사용하거나 architecture version을 올리고 모든 parity·Calibration·성능 Gate를 다시 통과해야 한다.
+
+공통 설정:
+
+| 항목 | 고정값 |
+|---|---|
+| 내부 dtype | FP32 |
+| Linear 초기화 | Xavier uniform, bias 0 |
+| Embedding 초기화 | Normal mean 0, std 0.02 |
+| LayerNorm epsilon | `1e-5` |
+| L2Normalize epsilon | `1e-12` |
+| Activation | ReLU |
+| Training Dropout | `0.10`; `eval()`과 ONNX에서는 비활성 |
+| Candidate index | `skill_id = index // 17`, `target_slot = index % 17` |
+
+Encoder:
+
+```text
+Global
+  [B,128]
+  → Linear(128,256) → LayerNorm(256) → ReLU → Dropout(0.10)
+  → Linear(256,128) → LayerNorm(128) → ReLU
+  = global_embedding [B,128]
+
+Target
+  target_kind_embedding: Embedding(8,8)
+  concat(target_features 48, kind_embedding 8) = 56
+  → Linear(56,128) → LayerNorm(128) → ReLU
+  → Linear(128,64) → LayerNorm(64) → ReLU
+  = target_embedding [B,17,64]
+
+  mean = sum(embedding×mask) / clamp_min(sum(mask),1)
+  max = max(Where(mask,embedding,-1e9))
+  concat(mean,max) = target_context [B,128]
+  slot 16 NoTarget은 항상 valid이므로 all-masked Target 입력은 허용하지 않음
+
+Event
+  event_type_embedding: Embedding(16,8)
+  event_target_slots로 target_embedding 64 gather
+  concat(event_features 24, type_embedding 8, referenced_target 64) = 96
+  → Linear(96,128) → LayerNorm(128) → ReLU
+  → Linear(128,96) → LayerNorm(96) → ReLU
+  = encoded_events [B,12,96]
+
+  attention logits:
+    Linear(96,64) → Tanh → Linear(64,1)
+  event_mask=false logit은 -1e9로 바꾼 뒤 max를 빼고 exp(logit)×mask를 계산
+  denominator는 clamp_min(1), event가 0개이면 context를 정확히 0으로 고정
+  = event_context [B,96]
+
+Fusion
+  concat(global 128,target 128,event 96) = 352
+  → Linear(352,256) → LayerNorm(256) → ReLU → Dropout(0.10)
+  → Linear(256,128) → LayerNorm(128) → ReLU
+  = tactical_context h [B,128]
+```
+
+Scorer와 Parameter Head:
+
+```text
+Query
+  h → Linear(128,64) → LayerNorm(64) → L2Normalize
+
+Candidate Key
+  SkillEmbedding(16,64)[skill_id]
+  + Linear(64,64)(target_embedding[target_slot])
+  + Linear(16,64)(candidate_pair_features)
+  → LayerNorm(64) → L2Normalize
+
+Bias
+  skill_bias: learnable [16], forward에서 [-0.25,0.25] clamp
+  target_kind_bias: learnable [8], forward에서 [-0.25,0.25] clamp
+
+Parameter Head, 모든 Candidate에 weight 공유
+  concat(h 128, skill_embedding 64, target_embedding 64, pair_features 16) = 272
+  → Linear(272,128) → ReLU → Linear(128,4) → Sigmoid
+```
+
+`target_mask`, `event_mask`, `candidate_mask`는 attention·pooling·loss에 사용하지만 모델이 hard constraint를 새로 판단하는 수단은 아니다. Candidate Hard Mask의 소유자는 계속 Candidate Builder다. Candidate가 invalid여도 ONNX 출력 Tensor 크기는 고정 272이며, invalid row 출력은 loss·선택·parameter decode에서 전부 무시한다.
+
+ONNX가 `candidate_mask` 입력을 제거하지 않도록 마지막에 score는 `Where(candidate_mask, score, 0)`, parameter는 `Where(candidate_mask.unsqueeze(-1), parameter, 0)`를 적용한다. Invalid row의 score와 parameter는 정확히 0이지만 의미는 없으며, valid row만 Runtime에서 사용한다.
+
 ### Bounded Factorized Candidate Scorer
 
 고정 Switch Cost가 학습 중 커지는 raw logit에 묻히지 않도록 Query와 Key를 정규화하고 점수 범위를 제한한다.
@@ -985,17 +1077,317 @@ Active Learning 우선순위는 calibrated confidence, OOD, Candidate/Target mis
 - Pending inference는 supersede하고 새 계약으로 재요청한다.
 - rollback 시 해당 버전의 Model, Calibration, Schema/Registry 생성 코드 세트를 함께 복구한다.
 
+## 9.8 ML Training Contract 개요
+
+규범 프로필 ID는 `policy_train_v1.0.0`이다. 학습 코드는 별도 Unreal 구현 저장소의 `ML/`에 두고, 이 저장소의 YAML과 `generated/python/ai_native_npc_contracts_generated.py`를 고정 커밋으로 가져와 사용한다.
+
+학습 파이프라인은 다음 순서를 지킨다.
+
+```text
+Unreal Capture / Procedural Generator
+→ immutable shard 작성
+→ Dataset Contract Validation
+→ family 단위 Split 확정 및 hash
+→ Silver warm start
+→ Gold + DAgger fine-tune
+→ checkpoint 동결
+→ OOD asset fit
+→ Calibrator fit
+→ ONNX export
+→ PyTorch ↔ ONNX Runtime ↔ UE NNE parity
+→ General/OOD/Critical/Performance Gate
+→ Model Bundle 승격
+```
+
+Test, OOD, Critical split은 checkpoint와 Calibration asset이 동결되기 전 학습 코드에서 열 수 없다. Test 결과를 보고 architecture, seed, epoch, threshold를 고르면 새 실험으로 간주하고 Test split을 새 버전으로 교체한다.
+
+## 9.9 Dataset Record v1
+
+저장 형식은 Zstandard 압축 Parquet이며 Tensor는 Arrow fixed-size list로 저장한다. 하나의 row는 한 번의 Decision Snapshot이다. 대용량 runtime handle과 debug payload는 별도 replay shard에 저장하고 학습 shard에는 필요한 hash와 model input만 둔다.
+
+필수 필드:
+
+```text
+record_version = "anpc_decision_record_v1"
+sample_id: sha256
+episode_id: string
+decision_id: uint64
+captured_at_server_time: float64
+
+contract:
+  schema_version / schema_sha256
+  skill_registry_version / skill_registry_sha256
+  goal_registry_version / goal_registry_sha256
+  target_slotter_version
+  postprocess_version
+  generator_or_runtime_build_sha256
+  candidate_set_canonical_bytes
+  candidate_set_hash
+
+group:
+  scenario_family_id
+  map_family
+  occlusion_layout_family
+  goal_sequence_family
+  role_id
+  personality_cluster_id
+  perception_modality_family
+  target_composition_family
+  event_sequence_family
+
+inputs:
+  global_state                float32 [128]
+  target_features             float32 [17,48]
+  target_kind_ids             int64   [17]
+  target_mask                 bool    [17]
+  event_features              float32 [12,24]
+  event_type_ids              int64   [12]
+  event_target_slots          int64   [12]
+  event_mask                  bool    [12]
+  candidate_pair_features     float32 [272,16]
+  candidate_mask              bool    [272]
+
+labels:
+  acceptable_candidate_mask   272 bit
+  preference_pairs            list<(preferred_index,rejected_index)>
+  parameter_target_norm       float32 [272,4]
+  parameter_label_mask        bool    [272,4]
+  selected_is_acceptable      bool | null
+  label_confidence            float32 [0,1]
+  reason_tags                 list<string>
+
+provenance:
+  source_type                 silver | gold | dagger
+  generator_template_version
+  prompt_or_teacher_version
+  annotator_set_hash
+  annotator_agreement
+  map_seed / simulation_seed
+  parent_policy_sha256
+```
+
+규칙:
+
+- `sample_id`는 record version UTF-8, decision contract hash 32 byte, episode ID length-prefixed UTF-8, decision ID little-endian uint64, Schema 순서의 10개 contiguous Tensor byte, label block의 RFC 8949 deterministic CBOR를 순서대로 이어 붙인 SHA-256이다. Float는 IEEE-754 little-endian FP32이며 NaN과 negative zero는 금지한다.
+- `candidate_set_canonical_bytes`는 Target Handle·Target Mask·Candidate Mask의 hash 입력을 보관하는 non-model metadata다. Dataset Validator는 여기서 `candidate_set_hash`를 다시 계산하되 이 byte를 모델에 전달하지 않는다.
+- `acceptable_candidate_mask`와 preference pair의 모든 index는 `candidate_mask=true`의 부분집합이어야 한다.
+- valid acceptable candidate가 0개인 row는 `abstain-only`로 표시하고 Ranking Loss에서는 제외하되 Calibrator negative 사례로 유지한다.
+- Parameter label은 acceptable candidate의 Registry active slot에만 존재할 수 있다.
+- runtime handle, Actor 이름, absolute world position, future event, hidden ground truth를 model input에 넣지 않는다.
+- Ground Truth는 평가·라벨링용 별도 channel에서만 join하며 Dataset Validator가 input column과의 중복·파생 누출을 검사한다.
+
+각 shard는 `dataset_manifest.json`에 파일명, row 수, byte 크기, SHA-256, source/group별 분모, 생성 코드 커밋을 기록한다. Manifest에 없는 shard 또는 hash가 다른 shard는 학습에서 거부한다.
+
+## 9.10 Split과 Dataset Validation
+
+`scenario_family_id` 전체를 한 split에만 배치한다. 동일 episode, map seed, generator template의 근접 변형도 split을 넘지 못한다.
+
+In-distribution family는 사전에 검토한 `split_assignment.csv`로 Train 70%, Validation 10%, Calibration 10%, General Test 10%에 배치한다. OOD 8 family와 Critical 8 family는 `test_taxonomy_v1.yaml`의 명시적 allowlist로만 구성한다. 비율보다 Appendix E의 Role×Goal 최소 분모와 family 격리가 우선한다.
+
+Dataset Validator는 학습 전에 다음을 모두 검사한다.
+
+1. Tensor 이름·dtype·shape·finite·valid range
+2. padding, NoTarget slot 16, Event Target remap
+3. Candidate layout `16×17`, mask, candidate hash 재계산
+4. label index·parameter active mask·confidence 범위
+5. sample/content 중복과 train–validation–calibration–test family 교집합 0
+6. contract/schema/registry/generator hash 단일성
+7. hidden/future/absolute-world 정보의 input column 누출 0
+8. group/source/label 분모와 결측률 보고
+
+하나라도 실패하면 학습을 시작하지 않는다. Split manifest가 바뀌면 Dataset version을 올리고 이전 결과와 직접 비교하지 않는다.
+
+## 9.11 Loss Contract
+
+학습에서도 Runtime과 같은 hard mask와 Switch Cost를 적용한다.
+
+```text
+a_i = clamp(raw_score_i,-2.5,2.5) - switch_cost_i
+P(AcceptableSet) = Σ(i∈A) exp(a_i) / Σ(j∈Valid) exp(a_j)
+L_set = -log(max(P(AcceptableSet), 1e-8))
+```
+
+Preference pair `(p,n)`:
+
+```text
+L_pair = softplus(-(a_p-a_n)/0.5)
+```
+
+Parameter:
+
+```text
+L_param = SmoothL1(
+  predicted_norm,
+  target_norm,
+  beta=0.05
+)
+```
+
+`L_param`은 `parameter_label_mask=true`인 Registry active slot에만 적용한다. 최종 loss:
+
+```text
+L = sample_weight × (
+      1.00 × L_set
+    + 0.25 × mean(L_pair)
+    + 0.10 × mean(L_param)
+)
+```
+
+- `sample_weight = label_confidence × source_weight`
+- source weight: Silver `0.25`, Gold `1.00`, DAgger `1.00`
+- 해당 label이 없는 loss term은 0이며 다른 term의 분모에 포함하지 않는다.
+- valid candidate가 없거나 acceptable label이 mask 밖이면 조용히 보정하지 않고 Dataset Validation 실패로 처리한다.
+- Safety constraint 위반을 loss로 완화하지 않는다. Hard constraint는 Candidate Mask와 Commit 검증이 소유한다.
+
+## 9.12 Training Config
+
+고정 기본값:
+
+| 항목 | Stage A — Silver warm start | Stage B — Gold/DAgger fine-tune |
+|---|---:|---:|
+| 입력 | Silver Train 75% + Gold Train 25% | Gold Train 75% + DAgger Train 25% |
+| 최대 epoch | 40 | 60 |
+| Optimizer | AdamW | AdamW |
+| 시작 learning rate | `3e-4` | `1e-4` |
+| 최소 learning rate | `3e-5` | `1e-5` |
+| warm-up | 전체 update의 5% | 전체 update의 5% |
+| schedule | cosine decay | cosine decay |
+| effective batch | 256 states | 256 states |
+| weight decay | `1e-4` | `1e-4` |
+| betas / epsilon | `0.9, 0.999 / 1e-8` | 동일 |
+| global grad clip | `1.0` | `1.0` |
+| early-stop patience | 8 epoch | 10 epoch |
+
+추가 고정:
+
+- release seed는 `1729` 하나를 사용하고 Python, NumPy, PyTorch, DataLoader worker에 모두 전파한다.
+- Role×Goal group은 epoch 안에서 균등 sampler를 사용한다. source 비율은 위 표를 따른다.
+- mixed precision, TF32, quantized training은 V1 FP32 Reference에서 끈다.
+- PyTorch deterministic algorithms를 켜고 non-deterministic operator 발견 시 실패한다.
+- Stage B는 Stage A best checkpoint에서 시작하며 모든 Layer를 학습한다.
+- Validation은 매 epoch 수행하며 Test/OOD/Critical split은 loader 등록 자체를 금지한다.
+- 정확한 Python/PyTorch/ONNX/ORT/CUDA 버전, OS image digest, GPU/CPU model, driver, code commit은 `train_environment.lock.json`에 고정한다.
+
+서로 다른 hardware/library에서 weight byte가 같다는 보장은 하지 않는다. 동일 release model을 다시 만들 때는 잠긴 환경을 사용한다. 환경이 달라 model hash가 바뀌면 새 Model Bundle로 취급하고 전체 Gate를 다시 실행한다.
+
+## 9.13 Checkpoint 선택과 Training Report
+
+Stage별 best checkpoint는 Validation의 다음 정렬 Key로 자동 선택한다.
+
+```text
+1. macro Role×Goal Any-Acceptable Top-1, post-switch-cost — 큰 값
+2. worst Role×Goal Any-Acceptable Top-1 — 큰 값
+3. annotated active parameter MAE — 작은 값
+4. epoch — 작은 값
+```
+
+Top-1은 raw score가 아니라 Runtime과 동일한 Adjusted Score 선택 결과로 계산한다. 보고서에는 micro/macro/worst-group, source별, Target Kind별, valid candidate count bucket별 결과와 abstain-only 분모를 모두 기록한다.
+
+Checkpoint 파일은 weights만 담는 `model.safetensors`, architecture/config JSON, optimizer state, epoch, RNG state, Dataset/Code/Environment hash로 구성한다. Release Export는 best weights와 architecture/config만 사용하며 optimizer state는 배포하지 않는다.
+
+## 9.14 Calibration과 OOD Asset
+
+Checkpoint를 동결한 뒤 순서대로 수행한다.
+
+### OOD
+
+- in-distribution Gold Train의 유효 Tactical Context `h[128]`만 사용한다.
+- `LedoitWolf(assume_centered=false)`로 mean과 shrinkage covariance를 구하고 precision matrix를 저장한다.
+- Mahalanobis distance의 empirical `q95_train`, `q99_9_train`을 저장한다.
+- `q99_9_train - q95_train < 1e-6`이면 asset fit 실패다.
+- Runtime OOD 공식은 §6.3을 그대로 사용한다.
+
+### Calibrator
+
+- Gold Calibration split만 사용한다.
+- Runtime post-process가 선택한 candidate가 acceptable set 안에 있는지를 binary label로 사용한다.
+- valid candidate가 1개면 second score는 selected score와 같게 두고 gap과 normalized entropy는 0으로 둔다. valid candidate가 0개면 Calibrator를 호출하지 않고 즉시 fallback한다.
+- 22개 입력 중 연속형 6개는 Calibration split mean/std로 표준화하고 std는 최소 `1e-6`으로 clamp한다. one-hot 16개는 그대로 둔다.
+- Logistic Regression: L2, `C=1.0`, solver `lbfgs`, `max_iter=2000`, `tol=1e-8`, class weight 없음.
+- threshold 후보는 `0.75, 0.76, …, 0.95`다. 전체와 표본 400개 이상인 Role×Goal group에서 risk `≤0.10`을 만족하는 가장 낮은 threshold를 사용한다.
+- 만족하는 threshold가 없으면 그 group을 임의로 낮추지 않고 Release Gate를 실패시킨다.
+
+여기서 risk는 threshold 이상으로 accept된 상태 중 선택 candidate가 acceptable set 밖인 비율이다. Capture 당시 source policy의 `selected_is_acceptable` 값은 분석용이며, 최종 Calibrator label은 frozen checkpoint로 다시 선택한 결과와 `acceptable_candidate_mask`에서 재계산한다.
+
+Calibration/OOD asset은 scaler, weights, bias, group thresholds, mean, precision, q95/q99.9, fit dataset hash, checkpoint hash, library version을 포함한다. General Test와 OOD Test는 asset 동결 후 ECE, Brier, risk/coverage, OOD recall/FPR만 평가한다.
+
+## 9.15 Export와 Model Bundle
+
+ONNX 입력 이름·순서·dtype은 Schema 2.0의 다음 10개와 exact-match해야 한다.
+
+```text
+global_state                float32 [B,128]
+target_features             float32 [B,17,48]
+target_kind_ids             int64   [B,17]
+target_mask                 bool    [B,17]
+event_features              float32 [B,12,24]
+event_type_ids              int64   [B,12]
+event_target_slots          int64   [B,12]
+event_mask                  bool    [B,12]
+candidate_pair_features     float32 [B,272,16]
+candidate_mask              bool    [B,272]
+```
+
+출력은 `candidate_raw_scores [B,272]`, `candidate_parameter_proposals [B,272,4]` 두 개다. Batch 축만 dynamic이며 나머지 축은 고정한다.
+
+Export 계약:
+
+- `model.eval()`, FP32, ONNX opset 17
+- constant folding 사용
+- ONNX checker와 shape inference 통과
+- batch `B=1,2,4,8`에서 PyTorch↔ONNX Runtime output tolerance `abs≤1e-4`, `rel≤1e-4`
+- NaN/Inf 0
+- 사용하는 ONNX operator allowlist를 manifest에 기록하고 UE target runtime의 model creation smoke test 통과
+
+Model Bundle:
+
+```text
+policy.onnx
+policy_manifest.json
+calibration_ood_asset.json
+golden_inputs.npz
+golden_outputs_fp32.npz
+model.safetensors
+model_config.json
+train_config.json
+dataset_manifest.json
+split_assignment.csv
+train_environment.lock.json
+train_report.json
+evaluation_report.json
+perf_manifest.json
+```
+
+모든 파일의 SHA-256을 `policy_manifest.json`에 넣고 Model, Schema, Registry, Normalization, Slotter, Post-process, Calibration/OOD hash로 `decision_contract_hash`를 계산한다. 파일 하나라도 바뀌면 기존 Decision Contract Hash를 재사용하지 않는다.
+
+## 9.16 구현 저장소 명령과 Phase 구분
+
+별도 구현 저장소의 CLI는 다음 단일 흐름을 제공한다.
+
+```bash
+python -m anpc_ml.dataset.validate --manifest <dataset_manifest.json>
+python -m anpc_ml.train --config <train_config.json>
+python -m anpc_ml.fit_calibration --checkpoint <best_checkpoint>
+python -m anpc_ml.export_onnx --checkpoint <best_checkpoint>
+python -m anpc_ml.parity --bundle <model_bundle_dir>
+python -m anpc_ml.evaluate --bundle <model_bundle_dir>
+```
+
+Phase 0에서는 작은 deterministic fixture dataset으로 위 명령과 ONNX→Unreal 경로를 끝까지 검증한다. Fixture model은 품질 승격 대상이 아니며 Utility Baseline보다 우수하다고 주장하지 않는다. V1은 Appendix E 최소 데이터와 모든 품질·안전·성능 Gate를 충족한 별도 Model Bundle이다.
+
 # 10. Schema Generator와 Parity
 
 ## 10.1 Single Source와 실행 산출물
 
-단일 원본은 다음 세 YAML이다.
+Runtime/학습 Tensor의 단일 원본은 다음 세 YAML이다.
 
 ```text
 contracts/current/ai_native_npc_schema_v2_0.yaml
 contracts/current/skill_registry_v1.yaml
 contracts/current/goal_registry_v1.yaml
 ```
+
+평가 family·Critical/OOD 분모는 네 번째 YAML인 `contracts/current/test_taxonomy_v1.yaml`이 소유한다.
 
 Schema YAML은 Normalizer, Range, Missing, Padding, Hash byte order, Target Slotter quantization을 구조화된 값으로 가진다. 생성기가 자연어 수식을 해석하거나 별도 상수를 하드코딩해서는 안 된다.
 
@@ -1012,6 +1404,8 @@ tests/golden/discrete_hash_vectors.json
 ```
 
 수동으로 C++/Python Enum, Shape, Index, Parameter 범위를 편집하지 않는다.
+
+정리된 `main`에서는 YAML 4개와 생성 Python/C++ 계약만 유지한다. Generator·Golden·Harness는 `archive/full-harness-v0.4.6`에 보존되어 있다. 계약 변경이 필요하면 보관본의 Generator로 전체 산출물과 증거를 재생성한 뒤 새 버전으로 승격해야 하며, `main`의 생성 파일만 손으로 고쳐서는 안 된다.
 
 ## 10.2 Golden Test 구분
 

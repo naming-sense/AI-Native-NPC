@@ -3,15 +3,17 @@
 
 - 문서 버전: **v0.4.6**
 - 문서 상태: **UE 5.7 Client Implementation Profile / Schema 2.0 RC5 Validation Scope & Catalog Closure**
-- 개정일: 2026-07-26
+- 개정일: 2026-07-30
+- 문서 보강: **ML/NNE Implementation Supplement 1 / Runtime Gate pending**
 - 대체 문서: 기존 `ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan.md` v0.3
 - 상위 기준서: `ai_native_npc_requirements_implementation_plan_v0.4.6.md`
 - Tensor 단일 원본: `ai_native_npc_schema_v2_0.yaml`
-- 상위 기준서 SHA-256: `54025405830135ced7b93987f759aab0a627ad3ad3a50f1012007a37dd090892`
+- 상위 기준서 SHA-256: `da69e31934d7549ab5cb5bce209bfb4e233731d88ddd3fc96318fabed3aa5ac4`
 - Schema YAML SHA-256: `424898ba9e80ff8ac7ad4d48a806f8606d2c595ec892d2753becbdaa3e47b6cc`
 - Skill Registry SHA-256: `08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8`
 - Goal Registry SHA-256: `b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2`
 - Test Taxonomy SHA-256: `7e300d01d148129e0741f8e0c468eeb433d80fe9ef414c7be453c47960927155`
+- ML 구현 프로필: **`policy_arch_v1.0.0` / `policy_train_v1.0.0` / ONNX opset 17**
 - Phase 0 판정: **GO**
 - Schema 2.0 최종 Freeze: **생성 코드와 Unreal–Python Golden Test 통과 후 승인**
 
@@ -58,6 +60,8 @@ v0.4.6까지 누적된 추가 계약:
 - constant/missing/must_equal/padding_zero 의미 교차검증과 동적 mutation probe 추가
 
 Phase 0은 GO다. 다만 Float Tensor/ONNX parity, Target/Candidate Recall, Atomic Commit, Hidden Leakage Runtime 증거가 통과하기 전 대량 학습 데이터와 최종 Freeze는 보류한다.
+
+2026-07-30 보강은 상위 요구사항 §6.1과 §9.8–§9.16의 재현 가능한 ML Training Contract를 Unreal 구현 절차로 연결한다. Schema·Registry 값은 그대로 유지하며, Phase 0에서는 fixture model로 ONNX Import→NNE→Post-process→Commit/Fallback 경로를 먼저 증명한다.
 
 ---
 
@@ -248,58 +252,49 @@ IdleObserve
 # 3. 저장소와 단일 계약 관리
 
 ```text
-/AINativeNPC
-  /Contracts
-    ai_native_npc_schema_v2_0.yaml
-    skill_registry_v1.yaml
-    goal_registry_v1.yaml
-    calibration_manifest.json
-    perf_manifest.json
+AI-Native-NPC                         # 계약 저장소, 현재 main 핵심 9개
+  contracts/current/*.yaml
+  generated/python/ai_native_npc_contracts_generated.py
+  generated/cpp/AINativeNPCContracts.generated.h
+  docs/current/requirements/*.md
+  docs/current/unreal/*.md
 
-  /Generated
-    /Cpp
-      AINPCSchema.generated.h
-      AINPCEnums.generated.h
-      AINPCNormalization.generated.h
-      AINPCHash.generated.h
-    /Python
-      schema_generated.py
-      enums_generated.py
-      normalization_generated.py
-    /Docs
-      schema_2_0_generated.md
-    /Golden
-      discrete_vectors.json
-      float_vectors.npz
-      model_vectors.npz
+AI-Native-NPC-Unreal                  # 실제 구현 저장소
+  External/AI-Native-NPC/             # 위 계약 저장소의 고정 commit snapshot/submodule
+  Config/AINativeNPCContract.lock     # repo URL, commit, YAML/Generated SHA-256
 
-  /ML
-    /src
+  ML/
+    pyproject.toml
+    requirements.lock
+    configs/
+      model_v1.json
+      train_v1.json
+      phase0_fixture.json
+    src/anpc_ml/
       dataset/
-      feature_builder/
-      target_slotter_reference/
       models/
       calibration/
       export/
       evaluation/
-    /tests
+    tests/
 
-  /Unreal
-    /AINativeNPCDemo
-      /Source
-        /AINativeNPCContracts
-        /AINativeNPCRuntime
-        /AINativeNPCEditor
-        /AINativeNPCTests
-      /Content
-        /AINativeNPC
-        /Characters
-        /Maps
+  Unreal/AINativeNPCDemo/
+    AINativeNPCDemo.uproject
+    Source/
+      AINativeNPCContracts/
+      AINativeNPCRuntime/
+      AINativeNPCEditor/
+      AINativeNPCTests/
+    Content/
+      AINativeNPC/Models/
+      AINativeNPC/Policy/
+      Characters/
+      Maps/
 
-  /Docs
-    ai_native_npc_requirements_implementation_plan_v0.4.6.md
-    ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan_v0.4.md
+  Artifacts/ModelBundles/             # Git LFS 또는 artifact registry; manifest는 Git 추적
 ```
+
+Unreal 구현 저장소는 임의의 최신 계약을 따라가지 않는다. `AINativeNPCContract.lock`이 가리키는 정확한 commit과 SHA만 사용하며, 계약 update는 별도 PR에서 Python/C++ parity와 model re-export 여부를 검토한다.
 
 ## 3.1 계약 우선순위
 
@@ -310,13 +305,15 @@ IdleObserve
 
 ## 3.2 Code Generation
 
-단일 원본:
+Runtime/학습 Tensor 단일 원본:
 
 ```text
 contracts/current/ai_native_npc_schema_v2_0.yaml
 contracts/current/skill_registry_v1.yaml
 contracts/current/goal_registry_v1.yaml
 ```
+
+평가 family와 KPI 분모는 `contracts/current/test_taxonomy_v1.yaml`이 소유한다.
 
 생성 명령:
 
@@ -340,6 +337,8 @@ generated/python/ai_native_npc_contracts_generated.py
 
 수동 Enum/Index/Parameter 범위 복제를 금지한다. `--check`가 생성 파일의 byte-identical 재현성을 검증한다.
 
+최소 계약 저장소 `main`에서는 위 Python/C++ 생성 파일 두 개를 모두 유지한다. 학습 코드가 YAML을 직접 임의 해석하지 않고 생성 Python의 Enum·Normalizer·Quantization·Candidate Hash·Parameter Decode를 호출해야 Unreal과 같은 값을 만들 수 있다.
+
 ## 3.3 CI Gate
 
 - YAML schema validation
@@ -360,7 +359,7 @@ generated/python/ai_native_npc_contracts_generated.py
 python tools/doc_harness.py release --output dist/ai_native_npc_document_harness_v0.4.6.zip
 ```
 
-이 명령은 생성 코드와 Golden 갱신, Python/C++17 테스트, Evidence SHA와 Freeze Manifest 갱신, Lock 갱신, strict validation, byte-identical double-pack을 순서대로 수행한다. Compiler 정보와 시간은 `dist/local` 진단에만 남고 규범 JSON에는 들어가지 않는다.
+이 명령과 Generator는 최소 `main`이 아니라 `archive/full-harness-v0.4.6` 보관본에 있다. 계약 자체를 바꿀 때만 보관본에서 생성 코드와 Golden 갱신, Python/C++17 테스트, Evidence SHA와 Freeze Manifest 갱신, Lock 갱신, strict validation, byte-identical double-pack을 실행한다. Compiler 정보와 시간은 `dist/local` 진단에만 남고 규범 JSON에는 들어가지 않는다.
 
 # 4. Unreal Engine 5.7 프로젝트 구성
 
@@ -1468,30 +1467,26 @@ event_age_max_s         = 10.0
 ## 13.5 Generated API
 
 ```cpp
-static_assert(AINPCSchema::GlobalFeatureCount == 128);
-static_assert(AINPCSchema::TotalTargetSlots == 17);
-static_assert(AINPCSchema::CandidateCount == 272);
+using namespace AINativeNPC::SchemaV2;
+static_assert(GlobalFeatureCount == 128);
+static_assert(TotalTargetSlots == 17);
+static_assert(CandidateCount == 272);
 
-AINPCSchema::WriteGlobalFeature(
-    Buffer,
-    EGlobalFeature::SelfHealthNorm,
-    Value);
+const std::size_t Index =
+    static_cast<std::size_t>(EGlobalFeature::self_health_norm);
+Buffer[Index] = static_cast<float>(NormalizeGlobal(Index, Value));
 ```
 
 Feature index를 숫자로 직접 쓰는 코드는 금지한다.
 
-`schema.yaml`에서 최소 다음 산출물을 생성한다.
+현재 최소 `main`에서 직접 소비하는 생성 산출물:
 
 ```text
-AINPCSchema.generated.h
-AINPCEnums.generated.h
-AINPCNormalization.generated.h
-schema_generated.py
-schema_2_0_generated.md
-discrete_vectors.json
-float_vectors.npz
+generated/cpp/AINativeNPCContracts.generated.h
+generated/python/ai_native_npc_contracts_generated.py
 ```
 
+자동 생성 문서와 Golden vector는 전체 하네스 보관본에서 계약 변경 시 함께 재생성한다.
 
 ---
 
@@ -1512,7 +1507,7 @@ Phase 0 CI는 동일 fixture를 Python unittest와 C++17 executable 양쪽에서
 
 ## 14.1 V1 모델
 
-V1은 Event Buffer를 사용하고 GRU를 사용하지 않는다. 감정·관계 값은 `UNPCSocialStateComponent`가 사건 기반으로 갱신하며 모델은 읽기만 한다.
+V1 Reference Model은 `policy_arch_v1.0.0`이다. Event Buffer를 사용하고 GRU를 사용하지 않는다. 감정·관계 값은 `UNPCSocialStateComponent`가 사건 기반으로 갱신하며 모델은 읽기만 한다. 정확한 Layer·초기화·Loss·Optimizer는 상위 요구사항 §6.1과 §9.8–§9.16이 소유한다.
 
 ```text
 global_state [128]
@@ -1642,100 +1637,396 @@ Ground Truth를 Feature Builder에 전달하지 않는다.
 
 Export 전 Python Reference Model과 ONNX Runtime 결과를 비교한다.
 
+고정 Export 설정:
+
+- FP32, `model.eval()`
+- ONNX opset 17
+- batch 축 `B`만 dynamic, 나머지 축 고정
+- 입력 이름과 dtype은 Schema의 10개 Tensor exact-match
+- 출력 이름은 `candidate_raw_scores`, `candidate_parameter_proposals`
+- `B=1,2,4,8` PyTorch↔ONNX Runtime parity
+- ONNX checker, shape inference, operator allowlist 검사
+
 Policy Manifest 필수 필드:
 
 ```json
 {
   "schema_version": "2.0.0",
+  "schema_sha256": "424898ba9e80ff8ac7ad4d48a806f8606d2c595ec892d2753becbdaa3e47b6cc",
   "skill_registry_version": "1.0.0",
+  "skill_registry_sha256": "08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8",
+  "goal_registry_version": "1.0.1",
+  "goal_registry_sha256": "b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2",
   "target_slotter_version": "1.0.0",
+  "slotter_contract_sha256": "...",
   "postprocess_version": "1.0.0",
+  "postprocess_contract_sha256": "...",
   "normalization_version": "2.0.0",
+  "normalization_contract_sha256": "...",
+  "architecture_version": "policy_arch_v1.0.0",
+  "training_profile": "policy_train_v1.0.0",
+  "onnx_opset": 17,
+  "dynamic_axes": ["B"],
+  "tested_batch_sizes": [1, 2, 4, 8],
   "candidate_count": 272,
   "target_slots": 17,
   "event_slots": 12,
   "model_sha256": "...",
+  "calibration_ood_asset_sha256": "...",
+  "input_signature_sha256": "...",
+  "onnx_operator_set_sha256": "...",
   "decision_contract_sha256": "..."
 }
 ```
+
+## 14.7 학습 구현 Handoff
+
+Unreal Capture와 ML 파이프라인의 책임은 다음처럼 분리한다.
+
+```text
+Unreal
+  Belief/Goal/Target/Candidate snapshot
+  → Schema Feature Builder
+  → candidate hash와 contract hash
+  → immutable Capture Record
+
+ML
+  Capture Record 검증
+  → family split 검증
+  → policy_arch_v1.0.0 학습
+  → Calibration/OOD fit
+  → ONNX/Manifest/Golden 생성
+
+Unreal
+  Model Bundle import
+  → descriptor/hash/parity/cook 검증
+  → NNE inference 또는 Utility fallback
+```
+
+Phase 0:
+
+- deterministic fixture dataset으로 train/export CLI smoke
+- 작은 fixture model의 ONNX와 Golden vector 생성
+- Editor와 packaged Development build에서 NNE parity
+- fixture model은 gameplay 품질 판정에 사용하지 않음
+
+Phase 1:
+
+- Appendix E 최소 Silver/Gold/DAgger 데이터 충족
+- `policy_train_v1.0.0` 전체 학습
+- Calibration/OOD asset 동결
+- General/OOD/Critical/Performance Gate 후 V1 bundle 승격
+
+Capture Record는 상위 요구사항 §9.9의 10개 input tensor, label, provenance를 그대로 사용한다. Unreal debug/replay shard의 Actor pointer·이름·absolute transform은 학습 input shard로 복사하지 않는다.
 
 ---
 
 # 15. NNE 추론 Subsystem
 
-## 15.1 구조
+Epic의 [UE 5.7 NNE Overview](https://dev.epicgames.com/documentation/en-us/unreal-engine/neural-network-engine-overview-in-unreal-engine?application_version=5.7)를 API 기준으로 사용한다. NNE는 UE 5.7에서도 Beta이므로 특정 runtime 성공을 전제하지 않고 모든 target platform에서 Utility Baseline을 항상 함께 cook한다.
 
-`UNPCInferenceWorldSubsystem`
+## 15.1 Backend 선택
 
-- ModelData 1회 로드
-- runtime/backend 탐색
-- model instance pool
-- request queue
-- batch assembly
-- worker execution
-- GameThread response enqueue
-- performance counters
-
-NPC마다 모델을 로드하지 않는다.
-
-## 15.2 초기화
+V1 기본:
 
 ```text
-World Begin
-→ Policy Data Asset 읽기
-→ Schema/Model/Registry/Contract Hash 검증
-→ NNE runtime 생성
-→ Model Instance 생성
-→ Tensor descriptor 검증
-→ Golden smoke vector 실행
-→ ready
+Interface: UE::NNE::INNERuntimeCPU
+Runtime name: NNERuntimeORTCpu
+Model format: ONNX opset 17, FP32
+Execution: worker thread의 RunSync
 ```
 
-검증 실패 시 Neural Policy를 비활성화하고 Utility Baseline을 사용한다.
+이 모델은 작은 CPU Tensor를 읽고 결과를 Game Thread 의사결정에 사용하므로 `INNERuntimeRDG`는 사용하지 않는다. `INNERuntimeGPU`도 CPU↔GPU 동기화 비용과 render contention을 별도 측정하기 전에는 사용하지 않는다.
 
-## 15.3 Tensor Binding
+Runtime 선택은 임의 탐색 후 첫 항목을 쓰지 않는다. Policy Manifest의 allowlist와 프로젝트 설정에 있는 정확한 runtime name만 허용한다. backend를 바꾸면 output parity, latency, cook, platform Gate를 다시 통과하고 `perf_manifest.json`을 새로 만든다.
 
-- float32: contiguous `TArray<float>` 또는 static buffer
-- int64: 생성 계약과 동일
-- bool: ONNX BOOL 의미의 0/1 buffer
-- shape를 runtime에서 추론하지 않고 generated constants와 비교
-- 출력 길이가 272/272×4와 다르면 모델 로드 실패
+## 15.2 프로젝트 설정
 
-## 15.4 Batch
+`.uproject`에서 [UE 5.7 NNERuntimeORT plugin](https://dev.epicgames.com/documentation/unreal-engine/API/PluginIndex/NNERuntimeORT?application_version=5.7)을 활성화한다. `NNE` 자체는 아래 `Build.cs`의 Engine module dependency로 연결한다.
 
-Candidate row는 항상 272이므로 NPC batch만 합친다.
+```json
+{
+  "Plugins": [
+    {
+      "Name": "NNERuntimeORT",
+      "Enabled": true
+    }
+  ]
+}
+```
 
-초기 전략:
+`AINativeNPCRuntime.Build.cs`:
 
-- 1~8 NPC micro-batch
-- 1~3ms request collection window
-- deadline 우선 queue
-- 같은 model/contract hash만 같은 batch
-- stale NPC request는 batch 전 제거
+```csharp
+PrivateDependencyModuleNames.AddRange(new string[]
+{
+    "NNE"
+});
+```
 
-## 15.5 Worker 안전
+주요 include:
 
-Worker Request는 immutable POD다.
+```cpp
+#include "NNE.h"
+#include "NNERuntimeCPU.h"
+#include "NNEModelData.h"
+```
 
-금지:
+Runtime module에 ORT 구현 타입을 직접 link하지 않는다. NNE interface와 runtime name으로 찾으며, plugin이 없거나 target platform에서 등록되지 않으면 정상적인 fallback 상태로 처리한다.
 
-- UObject dereference
-- Actor Transform 조회
+## 15.3 Model Asset Import와 Cook
+
+1. 승인된 Model Bundle의 `policy.onnx` SHA-256을 Manifest와 비교한다.
+2. Content Browser로 import해 `UNNEModelData` asset을 만든다.
+3. `DA_AINPCPolicy_<version>` Data Asset에 다음을 저장한다.
+   - `TSoftObjectPtr<UNNEModelData>`
+   - runtime allowlist
+   - Model/Schema/Registry/Post-process/Calibration hash
+   - input/output descriptor snapshot
+   - Golden smoke vector asset
+   - Calibration/OOD JSON에서 검증·변환한 scaler, logistic weights/threshold, OOD mean/precision/quantile
+4. Model Data asset에서 사용하지 않는 runtime 최적화 결과를 끈다.
+5. Policy Data Asset을 Primary Asset 또는 hard-referenced startup asset으로 등록해 cook 누락을 막는다.
+6. `NPCPolicyValidationCommandlet`가 source ONNX, Manifest, Data Asset metadata의 hash를 빌드 전에 대조한다.
+
+Cooked `.uasset`에서 원본 ONNX byte hash를 런타임에 추측하지 않는다. 원본 hash 검증은 import/build commandlet가 소유하고, Runtime은 cook된 Policy Data Asset의 manifest snapshot과 generated contract를 검증한다.
+
+Runtime은 매 판단마다 JSON을 parse하지 않는다. `calibration_ood_asset.json`은 build commandlet가 typed Data Asset 값으로 변환하고 원본 JSON SHA-256을 함께 저장한다.
+
+Editor 성공만으로 완료하지 않는다. 지원 target마다 packaged Development와 Shipping-equivalent configuration에서 runtime 등록, model creation, Golden smoke inference를 실행한다.
+
+## 15.4 World Subsystem과 초기화
+
+`UNPCInferenceWorldSubsystem` 책임:
+
+- Policy Data Asset 1회 로드
+- runtime/backend 확인
+- read-only Model 공유
+- Model Instance pool
+- deadline queue와 batch assembly
+- worker 실행
+- Game Thread response queue
+- latency/failure/fallback counter
+
+NPC마다 Model/ModelData를 만들지 않는다.
+
+초기화 순서:
+
+```text
+World Initialize
+→ Policy Data Asset async load
+→ generated Schema/Registry/Decision Contract 대조
+→ GetAllRuntimeNames<INNERuntimeCPU>() 진단 기록
+→ GetRuntime<INNERuntimeCPU>("NNERuntimeORTCpu")
+→ weak runtime pointer validity 확인
+→ CanCreateModelCPU(ModelData) 성공 확인
+→ CreateModelCPU(ModelData) + shared pointer 확인
+→ CreateModelInstanceCPU() pool 생성
+→ input/output descriptor exact validation
+→ batch bucket별 SetInputTensorShapes
+→ Golden smoke vector RunSync
+→ Ready
+```
+
+Epic API 대응:
+
+| 단계 | UE 5.7 NNE API |
+|---|---|
+| runtime 목록 | `UE::NNE::GetAllRuntimeNames<INNERuntimeCPU>()` |
+| runtime 획득 | `UE::NNE::GetRuntime<INNERuntimeCPU>(Name)` |
+| 호환성 사전검사 | `CanCreateModelCPU(ModelData)` |
+| immutable model | `CreateModelCPU(ModelData)` |
+| session/instance | `CreateModelInstanceCPU()` |
+| dynamic batch shape | `SetInputTensorShapes(...)` |
+| CPU inference | `RunSync(InputBindings, OutputBindings)` |
+
+각 반환 status와 pointer를 확인한다. 초기화 중 어느 단계든 실패하면 subsystem 상태를 `FallbackOnly`로 바꾸고 Utility Baseline을 사용한다.
+
+## 15.5 Descriptor와 Tensor Binding
+
+입력 descriptor는 이름, dtype, rank, 고정 dimension을 전부 비교한다.
+
+| 이름 | dtype | shape |
+|---|---|---|
+| `global_state` | float32 | `[B,128]` |
+| `target_features` | float32 | `[B,17,48]` |
+| `target_kind_ids` | int64 | `[B,17]` |
+| `target_mask` | bool | `[B,17]` |
+| `event_features` | float32 | `[B,12,24]` |
+| `event_type_ids` | int64 | `[B,12]` |
+| `event_target_slots` | int64 | `[B,12]` |
+| `event_mask` | bool | `[B,12]` |
+| `candidate_pair_features` | float32 | `[B,272,16]` |
+| `candidate_mask` | bool | `[B,272]` |
+
+출력:
+
+| 이름 | dtype | shape |
+|---|---|---|
+| `candidate_raw_scores` | float32 | `[B,272]` |
+| `candidate_parameter_proposals` | float32 | `[B,272,4]` |
+
+ONNX descriptor 배열 순서를 하드코딩하지 않는다. 이름으로 descriptor index map을 한 번 만들고, 중복·누락·추가 Tensor가 있으면 load를 실패시킨다.
+
+Buffer:
+
+- float32: contiguous owned `TArray<float>`/aligned buffer
+- int64: contiguous signed 64-bit buffer
+- bool: NNE descriptor가 요구하는 ONNX BOOL 0/1 byte buffer
+- Input/Output memory는 `RunSync`가 끝날 때까지 worker job이 독점 소유
+- byte size는 `element_count × dtype_size`로 계산하고 binding 전 exact-check
+
+Runtime에서 shape를 추측하거나 자동 broadcast에 의존하지 않는다.
+
+## 15.6 Model Instance Pool과 Micro-batch
+
+read-only Model은 World에서 공유하지만 하나의 Model Instance를 동시에 두 worker가 호출하지 않는다. `[1,2,4,8]` batch bucket마다 instance pool과 고정 input/output buffer를 준비하고 초기화 때 `SetInputTensorShapes`를 한 번 호출한다.
+
+실제 요청 수가 bucket보다 작으면 남은 lane을 canonical padding snapshot으로 채우고 `lane_valid=false`로 표시한다. Padding lane은:
+
+- Target slot 16 NoTarget만 valid
+- Event 전부 padding
+- Candidate mask 전부 false
+- 출력은 검증 후 버림
+
+Queue:
+
+- 기본 collection window 1ms, 설정 가능한 상한 3ms
+- deadline이 빠른 요청 우선
+- 같은 model hash와 decision contract hash만 같은 batch
+- superseded/deadline-expired 요청은 batch 구성 전에 제거
+- batch 최대 8 NPC
+
+Instance 수와 bucket 메모리는 target hardware에서 profile해 `perf_manifest.json`에 기록한다. 동시성이 더 필요하면 instance를 늘리되 공유 instance에 lock을 걸어 직렬 병목을 숨기지 않는다.
+
+## 15.7 Worker 실행
+
+Game Thread가 immutable `FInferenceRequestPOD`를 만든다.
+
+```text
+decision_id
+candidate_set_hash
+decision_contract_hash
+deadline
+10 input tensor owned buffers
+lane metadata
+```
+
+Worker:
+
+```text
+instance lease
+→ binding byte-size 검사
+→ RunSync
+→ output validation
+→ immutable response 작성
+→ Game Thread queue에 enqueue
+→ instance 반환
+```
+
+`RunSync`는 worker를 block해도 되지만 Game Thread에서 호출하지 않는다. Worker에서는 다음을 금지한다.
+
+- UObject/Actor dereference
+- Transform/Perception/Goal 조회
 - Nav query
-- Goal 변경
-- Skill Start
-- relationship/emotion update
+- Post-process mutation
+- Skill Start/Cancel
+- 관계·감정 update
 
-## 15.6 Output 검증
+NNE API가 caller-owned memory의 lifetime과 thread safety를 호출자에게 맡기므로 job buffer를 stack temporary나 재사용 중인 NPC component memory에 bind하지 않는다.
 
-- NaN/Inf
-- output shape
-- score finite
-- parameter `[0,1]` clamp
-- response contract hash
-- decision ID
+## 15.8 Output과 Response 검증
 
-NaN/Inf가 하나라도 있으면 전체 응답을 폐기하고 fallback한다.
+Worker 단계:
+
+1. `RunSync` status 성공
+2. output descriptor/element count exact-match
+3. 모든 값 finite
+4. raw score가 tolerance 포함 `[-2.5001,2.5001]`
+5. parameter가 tolerance 포함 `[-1e-5,1.00001]`
+6. 유효 범위 안의 parameter만 최종 `[0,1]` clamp
+
+Game Thread 단계:
+
+1. response decision ID가 아직 commit-eligible
+2. response decision contract hash exact-match
+3. response candidate hash를 pending request hash와 먼저 비교
+4. latest Goal/Target/authority/TTL 재검증
+5. Switch Cost→선택→OOD→Calibration
+6. Accept면 Atomic Commit, 아니면 Utility/Goal fallback
+
+score 하나라도 NaN/Inf이거나 범위를 크게 벗어나면 batch 전체를 폐기한다. 한 lane의 metadata/hash/stale 문제는 다른 lane의 수치 output을 오염시키지 않았으면 해당 lane만 폐기한다.
+
+## 15.9 Fallback과 Health State
+
+다음은 crash가 아니라 명시적인 fallback 원인이다.
+
+- NNE/ORT plugin 또는 runtime 미등록
+- target platform에서 model creation 불가
+- Model/Schema/Registry/Decision Contract mismatch
+- descriptor, dtype, shape, byte-size mismatch
+- `SetInputTensorShapes` 또는 `RunSync` 실패
+- Golden smoke parity 실패
+- NaN/Inf/range violation
+- queue deadline 초과
+- stale/superseded response
+
+상태:
+
+```text
+Loading → Ready
+Loading → FallbackOnly
+Ready → Degraded → Ready
+Ready/Degraded → FallbackOnly
+```
+
+연속 NNE 실패 3회 또는 60초 sliding window 실패율 1% 초과 시 `Degraded`, 5% 초과 시 `FallbackOnly`로 전환한다. 여기에는 init/run/descriptor/numeric failure만 포함하고 stale discard나 정상 deadline cancellation은 포함하지 않는다. 자동 재시도는 30초 cooldown 뒤 Golden smoke 1회만 수행한다. Shipping에서 무한 reload loop를 만들지 않는다.
+
+Metric:
+
+- runtime/model name과 hash
+- queue/batch 크기
+- inference p50/p95/p99
+- deadline miss
+- init/run/descriptor/numeric failure
+- stale discard
+- Neural accept/abstain
+- Utility fallback reason
+
+## 15.10 Parity와 Packaging Gate
+
+Golden set은 최소 다음을 포함한다.
+
+- batch `1,2,4,8`
+- no-event
+- Target slot 16만 존재
+- 각 Target Kind 최소 1개
+- sparse/dense candidate mask
+- 모든 normalizer boundary
+- Event Target remap 성공/실패
+- Continue candidate
+
+비교:
+
+```text
+generated Python input ↔ Unreal Feature Builder
+  float: abs≤1e-6 또는 rel≤1e-5
+  discrete/mask/hash bytes: byte-identical
+
+PyTorch ↔ ONNX Runtime ↔ UE Editor NNE ↔ packaged NNE
+  FP32 output: abs≤1e-4 또는 rel≤1e-4
+```
+
+지원 platform별 Gate:
+
+1. runtime 이름 등록
+2. `CanCreateModelCPU`/model/instance 생성
+3. Golden smoke
+4. packaged Development 자동화 테스트
+5. Shipping-equivalent cook asset 포함 검사
+6. §24 Typical/Burst latency
+
+NNE가 Beta라는 이유로 Gate를 생략하지 않는다. 반대로 특정 platform에서 NNE가 불가능해도 Utility Baseline만으로 기능적으로 안전하게 실행할 수 있으면 그 platform의 Neural 기능을 명시적으로 비활성화할 수 있다.
 
 ---
 
@@ -2403,6 +2694,7 @@ NPC별 주요 상태:
 ## 25.1 Schema/Parity
 
 - generated enum/static assert
+- generated Python import와 YAML/Registry SHA exact-match
 - Tensor shape
 - padding/mask
 - Candidate index
@@ -2411,6 +2703,10 @@ NPC별 주요 상태:
 - Target payload
 - Python–Unreal float tolerance
 - ONNX–NNE output tolerance
+- NNE descriptor name/dtype/rank/dimension exact-match
+- `B=1,2,4,8` model instance shape/binding
+- Editor와 packaged build Golden smoke
+- target platform cook에 ModelData/ORT runtime 포함
 
 Tolerance:
 
@@ -2564,6 +2860,8 @@ OOD family:
 - Target Handle/Feature
 - 17 Slot/272 Candidate
 - Golden vectors
+- Dataset Record/Validator 골격
+- `phase0_fixture.json` 학습·Export smoke
 
 ### Stream B — Manny/Perception, Gameplay
 
@@ -2593,6 +2891,9 @@ OOD family:
 
 - NNE adapter
 - World subsystem
+- ONNX import와 Policy Data Asset
+- ORT CPU descriptor/binding/instance pool
+- Editor + packaged `B=1,2,4,8` parity
 - in-flight lifecycle
 - Validate/StartCommit
 - Phase 0에서는 Resource Kind가 mask되어 있어 예약 경로는 mock transaction으로 검증
@@ -2604,6 +2905,8 @@ OOD family:
 - Goal FSM 성공
 - stale response Commit 0
 - Utility fallback
+- fixture model PyTorch↔ORT↔UE NNE parity
+- NNE 누락/실패 packaged build에서 Utility fallback
 - Manny 수직 슬라이스 5개 재현
 
 ## Phase 1 — V1, Phase 0 후 12~16주
@@ -2615,6 +2918,8 @@ OOD family:
 - 3 Role×4 Goal
 - multiplayer
 - Gold/DAgger
+- `policy_train_v1.0.0` 학습과 frozen Model Bundle
+- Calibration/OOD asset과 General/OOD/Critical 평가
 - KPI/성능 Gate
 
 ## Owner·기간·의존성
@@ -2635,14 +2940,33 @@ OOD family:
 
 # 27. 파일 단위 구현 목록
 
+## ML
+
+```text
+ML/pyproject.toml
+ML/requirements.lock
+ML/configs/model_v1.json
+ML/configs/train_v1.json
+ML/configs/phase0_fixture.json
+ML/src/anpc_ml/dataset/record_v1.py
+ML/src/anpc_ml/dataset/validate.py
+ML/src/anpc_ml/models/policy_v1.py
+ML/src/anpc_ml/losses.py
+ML/src/anpc_ml/train.py
+ML/src/anpc_ml/calibration.py
+ML/src/anpc_ml/export_onnx.py
+ML/src/anpc_ml/parity.py
+ML/tests/
+```
+
 ## Contracts
 
 ```text
-Source/AINativeNPCContracts/Public/Generated/AINPCSchema.generated.h
-Source/AINativeNPCContracts/Public/Generated/AINPCEnums.generated.h
-Source/AINativeNPCContracts/Public/Generated/AINPCNormalization.generated.h
-Source/AINativeNPCContracts/Public/Generated/AINPCHash.generated.h
+External/AI-Native-NPC/generated/cpp/AINativeNPCContracts.generated.h
+Source/AINativeNPCContracts/Public/AINPCContracts.h
 ```
+
+`AINPCContracts.h`는 Unreal type adapter와 static assert만 소유하고 Enum·Index·Normalizer·Hash 상수를 복제하지 않는다.
 
 ## Runtime Public
 
@@ -2662,6 +2986,8 @@ Decision/NPCDecisionComponent.h
 Decision/NPCPostProcessComponent.h
 Decision/NPCUtilityBaselineComponent.h
 Inference/NPCInferenceWorldSubsystem.h
+Inference/NPCPolicyDataAsset.h
+Inference/NPCInferenceTypes.h
 Execution/NPCCommitCoordinatorComponent.h
 Execution/NPCSkillExecutorComponent.h
 Execution/NPCResourceReservationSubsystem.h
@@ -2681,6 +3007,8 @@ Decision/NPCCandidateBuilderComponent.cpp
 Decision/NPCFeatureBuilderComponent.cpp
 Decision/NPCPostProcessComponent.cpp
 Inference/NPCInferenceNNEBackend.cpp
+Inference/NPCInferenceWorldSubsystem.cpp
+Inference/NPCPolicyDataAsset.cpp
 Execution/NPCCommitCoordinatorComponent.cpp
 Execution/NPCSkillExecutorComponent.cpp
 Skills/NPCSkill_Idle.cpp
@@ -2697,6 +3025,7 @@ Inspector/SNPCDecisionInspector.cpp
 Replay/NPCDecisionReplayAsset.cpp
 Labeling/SNPCPreferenceTool.cpp
 Schema/NPCSchemaValidationCommandlet.cpp
+Inference/NPCPolicyValidationCommandlet.cpp
 ```
 
 ## Tests
@@ -2704,6 +3033,8 @@ Schema/NPCSchemaValidationCommandlet.cpp
 ```text
 Schema/NPCSchemaGoldenTest.cpp
 Feature/NPCFeatureParityTest.cpp
+Inference/NPCNNEGoldenParityTest.cpp
+Inference/NPCNNEPackagingSmokeTest.cpp
 Targets/NPCTargetSlotterTest.cpp
 Decision/NPCCandidateHashTest.cpp
 Goals/NPCGoalFSMTest.cpp
@@ -2728,10 +3059,13 @@ Scenarios/NPCMannyQuinnScenarioTest.cpp
 - 5 Skill + Continue
 - Utility Baseline
 - NNE raw scorer
+- fixture model train/export 재현
+- ORT CPU descriptor·binding·`B=1,2,4,8` Golden parity
 - dirty/urgent lifecycle
 - short atomic Commit
 - Inspector와 Replay
 - packaged build model load
+- packaged build NNE 실패 시 Utility fallback
 
 ## 28.2 계약
 
@@ -2742,6 +3076,9 @@ Scenarios/NPCMannyQuinnScenarioTest.cpp
 - Target payload
 - Decision Contract Hash
 - Skill Registry Hash
+- generated Python 계약 import와 Schema/Registry SHA 일치
+- Dataset Validator와 split family 교집합 0
+- ONNX input/output descriptor와 opset 17
 
 ## 28.3 안전
 
