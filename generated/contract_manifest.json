@@ -3,16 +3,16 @@
   "generator": "tools/generate_contracts.py",
   "generator_version": "0.4.6",
   "output_hashes": {
-    "generated/cpp/AINativeNPCContracts.generated.h": "f36dfaa2b725883825abba70492c97e9025bfce0cac5f6a0be3b6a298f685257",
+    "generated/cpp/AINativeNPCContracts.generated.h": "3202e660cbfe2980f2a0debb1452b8d47cde253361f31bdce5a8429e7f2969c3",
     "generated/docs/requirements_kpi_appendix.md": "0d0db488b1463479ebcd3f8aef23692288f44f6df84fa4322408feb355d07d89",
-    "generated/docs/schema_reference.md": "4fca6c2673b4d304ddc0cec0b1d8ebf84e07f7261da3deb6ec9319899889c3fb",
+    "generated/docs/schema_reference.md": "b31c50177015854030aea95483d9c4bacf637f1a95659642562728e2904792c5",
     "generated/docs/unreal_kpi_section.md": "01b3ca92e8fd94e8e6a1b176ec8174c3fb7eb5ef71081904e51d1e9fea3dd3ee",
-    "generated/python/ai_native_npc_contracts_generated.py": "9ee7451d5fe8a86f4a0947fc982cc21f80c20af25ff7d2fde23ffb954747a63e"
+    "generated/python/ai_native_npc_contracts_generated.py": "95d72de27a497ad138638181840f1652feaaec38ac0103045bd7fa8698fefb6c"
   },
   "source_hashes": {
     "goal_registry": "b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2",
-    "schema": "424898ba9e80ff8ac7ad4d48a806f8606d2c595ec892d2753becbdaa3e47b6cc",
+    "schema": "8c72e1a6aa94399b5748c3ec7bfdaf31beb7148cc5f228eb86c88cee60b67baf",
     "skill_registry": "08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8",
-    "test_taxonomy": "7e300d01d148129e0741f8e0c468eeb433d80fe9ef414c7be453c47960927155"
+    "test_taxonomy": "52abbec52ff6b057b28e89d54c5f9dd9407977e9a8e45f7dfd0e419af57a4286"
   }
 }

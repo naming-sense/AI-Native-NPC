@@ -4,9 +4,9 @@
   "report_version": 5,
   "source_hashes": {
     "goal_registry": "b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2",
-    "schema": "424898ba9e80ff8ac7ad4d48a806f8606d2c595ec892d2753becbdaa3e47b6cc",
+    "schema": "8c72e1a6aa94399b5748c3ec7bfdaf31beb7148cc5f228eb86c88cee60b67baf",
     "skill_registry": "08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8",
-    "test_taxonomy": "7e300d01d148129e0741f8e0c468eeb433d80fe9ef414c7be453c47960927155"
+    "test_taxonomy": "52abbec52ff6b057b28e89d54c5f9dd9407977e9a8e45f7dfd0e419af57a4286"
   },
   "status": "pass",
   "tool": "tools/validate_schema.py",

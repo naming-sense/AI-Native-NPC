@@ -37,7 +37,9 @@ INTEGRITY_EVIDENCE_PATH = ROOT / "tests/reports/harness_integrity_evidence.json"
 RELEASE_MUTATION_REPORT_PATH = ROOT / "tests/reports/release_mutation_report.json"
 SOURCE_FILE_MAP_PATH = ROOT / "reports/SOURCE_FILE_MAP.md"
 LOCAL_DIAGNOSTICS_PATH = ROOT / "dist/local/contract_test_diagnostics.json"
-CURRENT_REQUIREMENTS_PATH = ROOT / "docs/current/requirements/ai_native_npc_requirements_implementation_plan_v0.4.6.md"
+CURRENT_REQUIREMENTS_PATH = ROOT / "docs/current/requirements/ai_native_npc_requirements_v0.4.6.md"
+CURRENT_IMPLEMENTATION_PATH = ROOT / "docs/current/implementation/ai_native_npc_implementation_plan_v0.4.6.md"
+CURRENT_REFERENCE_PATH = ROOT / "docs/current/reference/ai_native_npc_contract_appendices_v0.4.6.md"
 CURRENT_UNREAL_PATH = ROOT / "docs/current/unreal/ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan_v0.4.6.md"
 GENERATED_SCHEMA_REFERENCE_PATH = ROOT / "generated/docs/schema_reference.md"
 GENERATED_REQUIREMENTS_KPI_PATH = ROOT / "generated/docs/requirements_kpi_appendix.md"
@@ -358,18 +360,18 @@ def _replace_marked_block(text: str, begin: str, end: str, block: str, label: st
 
 def sync_document_appendices() -> None:
     contract = documentation_contract()
-    expected_paths = {rel(CURRENT_REQUIREMENTS_PATH), rel(CURRENT_UNREAL_PATH)}
+    expected_paths = {rel(CURRENT_REFERENCE_PATH)}
     declared_paths = set(contract["required_documents"])
     if declared_paths != expected_paths:
         raise SystemExit(f"documentation_contract required_documents mismatch: {sorted(declared_paths)}")
     schema_block = generated_appendix_block()
-    for path in [CURRENT_REQUIREMENTS_PATH, CURRENT_UNREAL_PATH]:
+    for path in [CURRENT_REFERENCE_PATH]:
         text = path.read_text(encoding="utf-8")
         text = _replace_marked_block(text, contract["marker_begin"], contract["marker_end"], schema_block, rel(path))
         path.write_text(text, encoding="utf-8")
 
     taxonomy_contract = taxonomy_documentation_contract()
-    role_paths = {"requirements": CURRENT_REQUIREMENTS_PATH, "unreal": CURRENT_UNREAL_PATH}
+    role_paths = {"requirements": CURRENT_REFERENCE_PATH, "unreal": CURRENT_UNREAL_PATH}
     for role, path in role_paths.items():
         spec = taxonomy_contract[role]
         if spec["path"] != rel(path):
@@ -400,7 +402,7 @@ def validate_document_appendices() -> list[str]:
     schema_block = generated_appendix_block()
     taxonomy = load_yaml(default_paths(ROOT).test_taxonomy)
     taxonomy_contract = taxonomy["documentation_contract"]
-    role_paths = {"requirements": CURRENT_REQUIREMENTS_PATH, "unreal": CURRENT_UNREAL_PATH}
+    role_paths = {"requirements": CURRENT_REFERENCE_PATH, "unreal": CURRENT_UNREAL_PATH}
 
     for declared in contract["required_documents"]:
         path = ROOT / declared
@@ -426,8 +428,7 @@ def update_ue_dependency_hashes() -> None:
     ue = CURRENT_UNREAL_PATH
     paths = default_paths(ROOT)
     text = ue.read_text(encoding="utf-8")
-    text = replace_markdown_value(text, "상위 기준서", req.name)
-    text = replace_markdown_value(text, "상위 기준서 SHA-256", sha256_file(req))
+    text = replace_markdown_value(text, "Requirements SHA-256", sha256_file(req))
     text = replace_markdown_value(text, "Schema YAML SHA-256", sha256_file(paths.schema))
     text = replace_markdown_value(text, "Skill Registry SHA-256", sha256_file(paths.skill_registry))
     text = replace_markdown_value(text, "Goal Registry SHA-256", sha256_file(paths.goal_registry))
@@ -436,7 +437,7 @@ def update_ue_dependency_hashes() -> None:
 
 
 def _strip_allowed_generated_blocks(path: Path, text: str) -> str:
-    if path not in {CURRENT_REQUIREMENTS_PATH, CURRENT_UNREAL_PATH}:
+    if path not in {CURRENT_REFERENCE_PATH, CURRENT_UNREAL_PATH}:
         return text
     schema_contract = documentation_contract()
     taxonomy_contract = taxonomy_documentation_contract()
@@ -461,7 +462,7 @@ def validate_all_markdown_semantics() -> list[str]:
     errors: list[str] = []
     for path in semantic_markdown_files():
         text = path.read_text(encoding="utf-8")
-        if path in {CURRENT_REQUIREMENTS_PATH, CURRENT_UNREAL_PATH}:
+        if path in {CURRENT_REFERENCE_PATH, CURRENT_UNREAL_PATH}:
             taxonomy_blocks = [
                 (spec["marker_begin"], spec["marker_end"])
                 for spec in taxonomy_documentation_contract().values()
@@ -488,6 +489,8 @@ def source_file_map_text() -> str:
         "| 역할 | 경로 |",
         "|---|---|",
         f"| Requirements | `{rel(CURRENT_REQUIREMENTS_PATH)}` |",
+        f"| Implementation Plan | `{rel(CURRENT_IMPLEMENTATION_PATH)}` |",
+        f"| Contract Appendices | `{rel(CURRENT_REFERENCE_PATH)}` |",
         f"| Unreal Profile | `{rel(CURRENT_UNREAL_PATH)}` |",
         "| Schema | `contracts/current/ai_native_npc_schema_v2_0.yaml` |",
         "| Skill Registry | `contracts/current/skill_registry_v1.yaml` |",
@@ -901,7 +904,7 @@ def run_validation(strict: bool = False, check_lock: bool = True, local_checks: 
     if extract_markdown_value(ue_text, "문서 버전") != "v0.4.6":
         errors.append("UE profile version must be v0.4.6")
     dependencies = [
-        ("상위 기준서 SHA-256", req),
+        ("Requirements SHA-256", req),
         ("Schema YAML SHA-256", paths.schema),
         ("Skill Registry SHA-256", paths.skill_registry),
         ("Goal Registry SHA-256", paths.goal_registry),

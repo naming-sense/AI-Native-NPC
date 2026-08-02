@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 import math
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -88,6 +89,15 @@ class ContractGoldenTests(unittest.TestCase):
                 math.isclose(actual, row["expected"], abs_tol=abs_tol, rel_tol=rel_tol),
                 (row, actual),
             )
+
+    def test_schema_reference_d_headings_are_unique_and_contiguous(self) -> None:
+        reference = (ROOT / "generated/docs/schema_reference.md").read_text(encoding="utf-8")
+        section_numbers = re.findall(r"^### D\.(\d+) ", reference, flags=re.MULTILINE)
+        self.assertEqual(section_numbers, [str(value) for value in range(1, len(section_numbers) + 1)])
+        self.assertEqual(len(section_numbers), len(set(section_numbers)))
+        self.assertIn("### D.3 Hash: candidate_set_hash", reference)
+        self.assertIn("### D.4 Hash: decision_contract_hash", reference)
+        self.assertIn("### D.5 Normalizer 의미 규칙", reference)
 
 
 if __name__ == "__main__":

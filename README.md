@@ -1,59 +1,48 @@
-# AI Native NPC 실행형 문서·계약 하네스 v0.4.6
+# AI Native NPC
 
-v0.4.6은 **Validation Scope & Catalog Closure / Schema 2.0 RC5** 패키지다. v0.4.5의 계약을 유지하면서 문서 의미 검증 범위와 Archive Catalog의 양방향 정합성을 닫는다.
+AI Native NPC는 NPC가 알고 있는 정보와 현재 Goal을 바탕으로 실행 가능한 행동 후보의 순위를 정하고, 서버 검증 후 Skill을 실행하는 의사결정 시스템입니다.
 
-## 이번 릴리스에서 닫은 범위
+이 저장소는 공통 요구사항, 구현 계획, Unreal Engine 5.7 계약과 기계 판독 Schema를 제공합니다.
 
-1. 현재 Requirements와 UE 문서뿐 아니라, Lock 대상인 모든 non-archive 수기 Markdown을 Hash 계약과 Critical Suite 분모 검사 대상으로 포함한다.
-2. `docs/archive/`, `contracts/archive/`, `manifests/archive/`, `generated/docs/`는 전역 수기 문서 검사에서 제외한다.
-3. 현재 Requirements와 UE 문서에서만 승인된 자동 생성 블록을 제거한 뒤 수기 영역을 검사한다.
-4. 대문자·소문자·숫자·밑줄을 포함한 일반 Hash magic 배정문을 차단한다.
-5. README를 실제로 변조한 전체 `release` 회귀 테스트를 규범 증거로 포함한다.
-6. Catalog의 Archive 항목과 실제 Archive 파일 집합을 양방향 exact-match로 검증한다.
-7. Source File Map을 실제 Current/Archive 경로에서 자동 생성한다.
-8. Missing/Ghost Archive 회귀 테스트를 포함한다.
+## 현재 상태
 
-## 현재 기준선
+- 문서·Schema 계약: **v0.4.6 / Schema 2.0 RC5**
+- 기반 문서·Schema 하네스 검증: **보관 태그 기준 Freeze-ready**
+- 현재 ML/NNE 구현 보강: **문서 반영 완료 / Runtime 증거 대기**
+- 실제 Unreal Runtime Gate: **구현 및 검증 대기**
 
-| 역할 | 현재 기준 |
-|---|---|
-| 요구사항·구현 계약 | `docs/current/requirements/ai_native_npc_requirements_implementation_plan_v0.4.6.md` |
-| UE 5.7 Manny/Quinn 구현 프로필 | `docs/current/unreal/ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan_v0.4.6.md` |
-| Tensor·Enum·Normalization 단일 원본 | `contracts/current/ai_native_npc_schema_v2_0.yaml` |
-| Skill 계약 | `contracts/current/skill_registry_v1.yaml` |
-| Goal 계약 | `contracts/current/goal_registry_v1.yaml` |
-| Test Taxonomy | `contracts/current/test_taxonomy_v1.yaml` |
+## 먼저 읽을 문서
 
-## 판정
+1. [AI Native NPC 요구사항](docs/current/requirements/ai_native_npc_requirements_v0.4.6.md)
+   - 시스템 목적, Runtime 동작, 권한, 입출력, 안전, 데이터·평가 요구사항을 정의합니다.
+2. [AI Native NPC 구현 계획](docs/current/implementation/ai_native_npc_implementation_plan_v0.4.6.md)
+   - Phase·Owner·완료 조건, Reference Model, Teacher LLM, 학습·릴리스 Pipeline을 정의합니다.
+3. [AI Native NPC Contract Appendices](docs/current/reference/ai_native_npc_contract_appendices_v0.4.6.md)
+   - Schema·Registry의 생성 표와 품질·안전·성능 승인 기준을 제공합니다.
+4. [UE5.7 Manny 공간·시야·청각 구현 계획](docs/current/unreal/ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan_v0.4.6.md)
+   - 요구사항을 Unreal에서 구현하고 시험하는 절차를 정의합니다.
 
-- Phase 0: **GO**
-- 문서·Schema 하네스: **Freeze-ready / Runtime Gate pending**
-- Schema 설계 RC5: **Conditional GO**
-- 대량 학습 데이터: **HOLD**
-- 최종 Schema Freeze: **NO-GO / Unreal Runtime Gate pending**
+Requirements가 공통 규범을 소유합니다. Implementation Plan과 UE Plan은 실행 절차를, Contract Appendices는 생성된 정확한 값과 승인 Gate를 제공합니다.
 
-## 검증과 릴리스
+## 구현 기준 파일
 
-```bash
-python tools/doc_harness.py validate --strict
-python tools/doc_harness.py release \
-  --output ../ai_native_npc_document_harness_v0.4.6.zip
-```
+- [Schema 2.0](contracts/current/ai_native_npc_schema_v2_0.yaml)
+- [Skill Registry](contracts/current/skill_registry_v1.yaml)
+- [Goal Registry](contracts/current/goal_registry_v1.yaml)
+- [Test Taxonomy](contracts/current/test_taxonomy_v1.yaml)
+- [생성 Python 계약](generated/python/ai_native_npc_contracts_generated.py)
+- [생성 C++ 계약 Header](generated/cpp/AINativeNPCContracts.generated.h)
 
-`release`는 계약 생성, 문서 동기화, 전역 Markdown mutation, C++/Python Golden, Manifest, Source File Map, Catalog, Lock, strict validation과 deterministic double-pack을 하나의 절차로 수행한다.
+YAML 4개가 기계 판독 가능한 기준 계약입니다. 생성 Python 계약은 Dataset Builder·학습·ONNX Export에서, 생성 C++ Header는 Unreal Runtime에서 사용합니다. 두 생성 파일은 수동 수정하지 않습니다.
 
-## 폴더 구조
+현재 `main`은 현행 문서, 계약 YAML, 생성 계약과 감사·계획 문서만 유지합니다.
 
-```text
-docs/current/       현재 기준 문서
-docs/archive/       과거 문서
-contracts/current/  코드 생성 단일 원본
-contracts/archive/  과거 계약
-generated/          YAML 기반 생성 코드와 표
-tests/              Golden·semantic·release mutation 회귀 테스트
-manifest/           Catalog·Freeze 상태·Lock·Checksum
-reports/            Validation 및 Source File Map
-tools/              생성·검증·릴리스 도구
-```
+## 전체 하네스 보관본
 
-Archive와 Legacy 계약은 현재 구현 입력으로 사용할 수 없다.
+검증 도구, Golden Vector, mutation test, Manifest, 과거 문서·계약을 포함한 전체 하네스는 다음 위치에 보존되어 있습니다.
+
+- [보관 브랜치: archive/full-harness-v0.4.6](https://github.com/naming-sense/AI-Native-NPC/tree/archive/full-harness-v0.4.6)
+- [고정 태그: full-harness-v0.4.6-rc5](https://github.com/naming-sense/AI-Native-NPC/tree/full-harness-v0.4.6-rc5)
+- 보관 커밋: `62dec4334671cb6dfb455b12f7c0e1b251ebc1d0`
+
+일상적인 Unreal 구현에서는 현재 `main`의 핵심 파일만 보면 됩니다. 전체 하네스는 계약 변경 검증이나 감사가 필요할 때 사용합니다.

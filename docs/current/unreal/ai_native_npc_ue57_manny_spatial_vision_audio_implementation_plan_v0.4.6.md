@@ -2,18 +2,23 @@
 ## UE 클라이언트·신경망·Goal·Typed Target·Schema 2.0 통합 기준
 
 - 문서 버전: **v0.4.6**
-- 문서 상태: **UE 5.7 Client Implementation Profile / Schema 2.0 RC5 Validation Scope & Catalog Closure**
-- 개정일: 2026-07-26
+- 문서 상태: **UE 5.7 RC5 Active Companion / Requirements Remediation Runtime Binding pending**
+- 개정일: 2026-08-03
+- 문서 보강: **ML/NNE Implementation Supplement 1 + Requirements Review Remediation Binding Notice**
 - 대체 문서: 기존 `ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan.md` v0.3
-- 상위 기준서: `ai_native_npc_requirements_implementation_plan_v0.4.6.md`
+- 상위 요구사항: `../requirements/ai_native_npc_requirements_v0.4.6.md`
+- 공통 구현 계획: `../implementation/ai_native_npc_implementation_plan_v0.4.6.md`
+- 계약 부록: `../reference/ai_native_npc_contract_appendices_v0.4.6.md`
 - Tensor 단일 원본: `ai_native_npc_schema_v2_0.yaml`
-- 상위 기준서 SHA-256: `54025405830135ced7b93987f759aab0a627ad3ad3a50f1012007a37dd090892`
-- Schema YAML SHA-256: `424898ba9e80ff8ac7ad4d48a806f8606d2c595ec892d2753becbdaa3e47b6cc`
+- Requirements SHA-256: `84745e04e3f96b00b7f32b592d1006bf95fd569fa5595cf602a6463df1780c5a`
+- Schema YAML SHA-256: `8c72e1a6aa94399b5748c3ec7bfdaf31beb7148cc5f228eb86c88cee60b67baf`
 - Skill Registry SHA-256: `08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8`
 - Goal Registry SHA-256: `b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2`
-- Test Taxonomy SHA-256: `7e300d01d148129e0741f8e0c468eeb433d80fe9ef414c7be453c47960927155`
-- Phase 0 판정: **GO**
-- Schema 2.0 최종 Freeze: **생성 코드와 Unreal–Python Golden Test 통과 후 승인**
+- Test Taxonomy SHA-256: `52abbec52ff6b057b28e89d54c5f9dd9407977e9a8e45f7dfd0e419af57a4286`
+- ML 구현 프로필: **`policy_arch_v1.0.0` / `policy_train_v1.0.0` / ONNX opset 17**
+- Phase 0 판정: **조건부 GO — Utility Baseline/RC5 smoke 한정**
+- V1 Neural/OOD 판정: **HOLD — Schema/Goal/Dataset remediation patch 필요**
+- Schema 2.0 최종 Freeze: **NO-GO — 생성 계약과 Unreal Runtime Gate 재승격 필요**
 
 > 이 문서는 Unreal Engine 5.7 Third Person 프로젝트에서 Quinn을 플레이어로 유지하고, Manny를 학습 기반 NPC로 적용하기 위한 엔진 구현 기준서다.  
 > Tensor·Enum·Padding·Normalization·Hash가 충돌하면 본문보다 `ai_native_npc_schema_v2_0.yaml`이 우선하고, Goal·Target·Commit 책임이 충돌하면 상위 v0.4.6 요구사항이 우선한다.
@@ -50,14 +55,34 @@ v0.4.6까지 누적된 추가 계약:
 - `tests/generated_cpp_golden_test.cpp`가 Python fixture와 동일한 bytes/hash/float 결과를 검증
 - Harness integrity evidence의 tree digest와 file count를 strict validator가 재계산
 
-- Requirements/UE Appendix A~D를 YAML·Registry에서 자동 생성하고 strict parity 검사
+- 공유 Contract Appendices의 A~D를 YAML·Registry에서 자동 생성하고 strict parity 검사
 - Normalizer의 역전 범위, 0 이하 divisor, log1p 정의역, sentinel/valid-range 충돌을 release 전에 hard reject
-- Candidate/Decision Hash field order·magic·endianness를 YAML에서 Python/C++ 및 Appendix D.3으로 생성
+- Candidate/Decision Hash field order·magic·endianness를 YAML에서 Python/C++ 및 Appendix D.3·D.4로 생성
 - Decision Contract Hash Golden parity와 semantic mutation regression test 추가
 - 자동 생성 Appendix 밖의 manual hash literal을 strict validation에서 거부
 - constant/missing/must_equal/padding_zero 의미 교차검증과 동적 mutation probe 추가
 
-Phase 0은 GO다. 다만 Float Tensor/ONNX parity, Target/Candidate Recall, Atomic Commit, Hidden Leakage Runtime 증거가 통과하기 전 대량 학습 데이터와 최종 Freeze는 보류한다.
+Phase 0은 조건부 GO다.
+
+- 진행 가능: Utility Baseline, Capture, fallback, atomic Commit, 현 RC5 2-output score/parameter smoke
+- 보류: 대량 학습 데이터, 최종 Freeze
+- 보류 해제 조건: Float Tensor/ONNX parity, Target/Candidate Recall, Atomic Commit, Hidden Leakage Runtime 증거, Requirements Remediation 통과
+
+2026-07-30 보강은 [공통 구현 계획 §3~§6](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#reference-model)의 Reference Model·ML Training Contract를 Unreal 구현 절차로 연결했다.
+
+현 RC5 Schema·Registry 값은 유지한다. Phase 0은 fixture model로 ONNX Import→NNE→score/parameter Post-process→Commit/Fallback 경로를 먼저 증명한다.
+
+## 0.1 Requirements Review Remediation Binding Notice
+
+2026-08-02 상위 기준서는 다음 목표 계약을 추가했으나 현재 RC5 YAML/Generated/UE Appendix에는 아직 반영되지 않았다.
+
+- 세 번째 ONNX output `tactical_context [B,128]`과 binary64/quantized OOD parity
+- Dataset Record v2 Switch Cost component와 feature/content/sample hash
+- Goal typed trigger·phase timer·revision/arbitration 계약
+- `IdentityKey` same-target 비교와 non-material stale 50ms contract
+- 실제 OOD/Critical case catalog와 non-vacuous Calibration group Gate
+
+따라서 이 문서의 기존 2-output descriptor, Goal Phase 표, latest-request-only 표현은 **RC5 active 구현 참고**일 뿐 새 목표 계약의 완료 증거가 아니다. 구조화된 Schema/Registry와 Generator를 patch하기 전 수기로 descriptor를 바꾸지 않는다. Requirements §10.6 backlog를 닫고 새 Decision Contract Hash가 발급되면 UE Runtime 절차와 공유 Contract Appendices를 함께 재생성·검증한다.
 
 ---
 
@@ -248,58 +273,49 @@ IdleObserve
 # 3. 저장소와 단일 계약 관리
 
 ```text
-/AINativeNPC
-  /Contracts
-    ai_native_npc_schema_v2_0.yaml
-    skill_registry_v1.yaml
-    goal_registry_v1.yaml
-    calibration_manifest.json
-    perf_manifest.json
+AI-Native-NPC                         # 계약 저장소, 현재 main 핵심 9개
+  contracts/current/*.yaml
+  generated/python/ai_native_npc_contracts_generated.py
+  generated/cpp/AINativeNPCContracts.generated.h
+  docs/current/requirements/*.md
+  docs/current/unreal/*.md
 
-  /Generated
-    /Cpp
-      AINPCSchema.generated.h
-      AINPCEnums.generated.h
-      AINPCNormalization.generated.h
-      AINPCHash.generated.h
-    /Python
-      schema_generated.py
-      enums_generated.py
-      normalization_generated.py
-    /Docs
-      schema_2_0_generated.md
-    /Golden
-      discrete_vectors.json
-      float_vectors.npz
-      model_vectors.npz
+AI-Native-NPC-Unreal                  # 실제 구현 저장소
+  External/AI-Native-NPC/             # 위 계약 저장소의 고정 commit snapshot/submodule
+  Config/AINativeNPCContract.lock     # repo URL, commit, YAML/Generated SHA-256
 
-  /ML
-    /src
+  ML/
+    pyproject.toml
+    requirements.lock
+    configs/
+      model_v1.json
+      train_v1.json
+      phase0_fixture.json
+    src/anpc_ml/
       dataset/
-      feature_builder/
-      target_slotter_reference/
       models/
       calibration/
       export/
       evaluation/
-    /tests
+    tests/
 
-  /Unreal
-    /AINativeNPCDemo
-      /Source
-        /AINativeNPCContracts
-        /AINativeNPCRuntime
-        /AINativeNPCEditor
-        /AINativeNPCTests
-      /Content
-        /AINativeNPC
-        /Characters
-        /Maps
+  Unreal/AINativeNPCDemo/
+    AINativeNPCDemo.uproject
+    Source/
+      AINativeNPCContracts/
+      AINativeNPCRuntime/
+      AINativeNPCEditor/
+      AINativeNPCTests/
+    Content/
+      AINativeNPC/Models/
+      AINativeNPC/Policy/
+      Characters/
+      Maps/
 
-  /Docs
-    ai_native_npc_requirements_implementation_plan_v0.4.6.md
-    ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan_v0.4.md
+  Artifacts/ModelBundles/             # Git LFS 또는 artifact registry; manifest는 Git 추적
 ```
+
+Unreal 구현 저장소는 임의의 최신 계약을 따라가지 않는다. `AINativeNPCContract.lock`이 가리키는 정확한 commit과 SHA만 사용하며, 계약 update는 별도 PR에서 Python/C++ parity와 model re-export 여부를 검토한다.
 
 ## 3.1 계약 우선순위
 
@@ -310,13 +326,15 @@ IdleObserve
 
 ## 3.2 Code Generation
 
-단일 원본:
+Runtime/학습 Tensor 단일 원본:
 
 ```text
 contracts/current/ai_native_npc_schema_v2_0.yaml
 contracts/current/skill_registry_v1.yaml
 contracts/current/goal_registry_v1.yaml
 ```
+
+평가 family와 KPI 분모는 `contracts/current/test_taxonomy_v1.yaml`이 소유한다.
 
 생성 명령:
 
@@ -340,6 +358,8 @@ generated/python/ai_native_npc_contracts_generated.py
 
 수동 Enum/Index/Parameter 범위 복제를 금지한다. `--check`가 생성 파일의 byte-identical 재현성을 검증한다.
 
+최소 계약 저장소 `main`에서는 위 Python/C++ 생성 파일 두 개를 모두 유지한다. 학습 코드가 YAML을 직접 임의 해석하지 않고 생성 Python의 Enum·Normalizer·Quantization·Candidate Hash·Parameter Decode를 호출해야 Unreal과 같은 값을 만들 수 있다.
+
 ## 3.3 CI Gate
 
 - YAML schema validation
@@ -360,7 +380,7 @@ generated/python/ai_native_npc_contracts_generated.py
 python tools/doc_harness.py release --output dist/ai_native_npc_document_harness_v0.4.6.zip
 ```
 
-이 명령은 생성 코드와 Golden 갱신, Python/C++17 테스트, Evidence SHA와 Freeze Manifest 갱신, Lock 갱신, strict validation, byte-identical double-pack을 순서대로 수행한다. Compiler 정보와 시간은 `dist/local` 진단에만 남고 규범 JSON에는 들어가지 않는다.
+이 명령과 Generator는 최소 `main`이 아니라 `archive/full-harness-v0.4.6` 보관본에 있다. 계약 자체를 바꿀 때만 보관본에서 생성 코드와 Golden 갱신, Python/C++17 테스트, Evidence SHA와 Freeze Manifest 갱신, Lock 갱신, strict validation, byte-identical double-pack을 실행한다. Compiler 정보와 시간은 `dist/local` 진단에만 남고 규범 JSON에는 들어가지 않는다.
 
 # 4. Unreal Engine 5.7 프로젝트 구성
 
@@ -1468,30 +1488,26 @@ event_age_max_s         = 10.0
 ## 13.5 Generated API
 
 ```cpp
-static_assert(AINPCSchema::GlobalFeatureCount == 128);
-static_assert(AINPCSchema::TotalTargetSlots == 17);
-static_assert(AINPCSchema::CandidateCount == 272);
+using namespace AINativeNPC::SchemaV2;
+static_assert(GlobalFeatureCount == 128);
+static_assert(TotalTargetSlots == 17);
+static_assert(CandidateCount == 272);
 
-AINPCSchema::WriteGlobalFeature(
-    Buffer,
-    EGlobalFeature::SelfHealthNorm,
-    Value);
+const std::size_t Index =
+    static_cast<std::size_t>(EGlobalFeature::self_health_norm);
+Buffer[Index] = static_cast<float>(NormalizeGlobal(Index, Value));
 ```
 
 Feature index를 숫자로 직접 쓰는 코드는 금지한다.
 
-`schema.yaml`에서 최소 다음 산출물을 생성한다.
+현재 최소 `main`에서 직접 소비하는 생성 산출물:
 
 ```text
-AINPCSchema.generated.h
-AINPCEnums.generated.h
-AINPCNormalization.generated.h
-schema_generated.py
-schema_2_0_generated.md
-discrete_vectors.json
-float_vectors.npz
+generated/cpp/AINativeNPCContracts.generated.h
+generated/python/ai_native_npc_contracts_generated.py
 ```
 
+자동 생성 문서와 Golden vector는 전체 하네스 보관본에서 계약 변경 시 함께 재생성한다.
 
 ---
 
@@ -1506,13 +1522,21 @@ Generated Header는 상수와 Enum만 제공하지 않고 다음 실행 함수�
 - portable SHA-256와 `CandidateSetHashHex`
 - `DecodeParameter`와 Skill별 Commit Clamp
 
-Phase 0 CI는 동일 fixture를 Python unittest와 C++17 executable 양쪽에서 실행한다. 이것은 Unreal Runtime parity의 선행 증거이며, 실제 UE `FMath`/NNE parity Gate는 별도로 pending 상태를 유지한다.
+Phase 0 CI는 동일 fixture를 Python unittest와 C++17 executable 양쪽에서 실행한다.
+
+이 결과는 Unreal Runtime parity의 선행 증거다. 실제 UE `FMath`/NNE parity Gate는 별도로 pending 상태를 유지한다.
 
 # 14. Neural Policy와 오프라인 학습
 
 ## 14.1 V1 모델
 
-V1은 Event Buffer를 사용하고 GRU를 사용하지 않는다. 감정·관계 값은 `UNPCSocialStateComponent`가 사건 기반으로 갱신하며 모델은 읽기만 한다.
+V1 Reference Model은 `policy_arch_v1.0.0`이다. Event Buffer를 사용하고 GRU를 사용하지 않는다.
+
+`UNPCSocialStateComponent`는 감정·관계 값을 사건 기반으로 갱신한다. 모델은 해당 값을 읽는다.
+
+- Layer·초기화: [공통 구현 계획 §3](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#reference-model)
+- Optimizer: [공통 구현 계획 §5](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#training-config)
+- Loss: [Requirements §9.11](../requirements/ai_native_npc_requirements_v0.4.6.md#911-loss-contract)
 
 ```text
 global_state [128]
@@ -1642,100 +1666,396 @@ Ground Truth를 Feature Builder에 전달하지 않는다.
 
 Export 전 Python Reference Model과 ONNX Runtime 결과를 비교한다.
 
+고정 Export 설정:
+
+- FP32, `model.eval()`
+- ONNX opset 17
+- batch 축 `B`만 dynamic, 나머지 축 고정
+- 입력 이름과 dtype은 Schema의 10개 Tensor exact-match
+- 출력 이름은 `candidate_raw_scores`, `candidate_parameter_proposals`
+- `B=1,2,4,8` PyTorch↔ONNX Runtime parity
+- ONNX checker, shape inference, operator allowlist 검사
+
 Policy Manifest 필수 필드:
 
 ```json
 {
   "schema_version": "2.0.0",
+  "schema_sha256": "424898ba9e80ff8ac7ad4d48a806f8606d2c595ec892d2753becbdaa3e47b6cc",
   "skill_registry_version": "1.0.0",
+  "skill_registry_sha256": "08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8",
+  "goal_registry_version": "1.0.1",
+  "goal_registry_sha256": "b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2",
   "target_slotter_version": "1.0.0",
+  "slotter_contract_sha256": "...",
   "postprocess_version": "1.0.0",
+  "postprocess_contract_sha256": "...",
   "normalization_version": "2.0.0",
+  "normalization_contract_sha256": "...",
+  "architecture_version": "policy_arch_v1.0.0",
+  "training_profile": "policy_train_v1.0.0",
+  "onnx_opset": 17,
+  "dynamic_axes": ["B"],
+  "tested_batch_sizes": [1, 2, 4, 8],
   "candidate_count": 272,
   "target_slots": 17,
   "event_slots": 12,
   "model_sha256": "...",
+  "calibration_ood_asset_sha256": "...",
+  "input_signature_sha256": "...",
+  "onnx_operator_set_sha256": "...",
   "decision_contract_sha256": "..."
 }
 ```
+
+## 14.7 학습 구현 Handoff
+
+Unreal Capture와 ML 파이프라인의 책임은 다음처럼 분리한다.
+
+```text
+Unreal
+  Belief/Goal/Target/Candidate snapshot
+  → Schema Feature Builder
+  → candidate hash와 contract hash
+  → immutable Capture Record
+
+ML
+  Capture Record 검증
+  → family split 검증
+  → policy_arch_v1.0.0 학습
+  → Calibration/OOD fit
+  → ONNX/Manifest/Golden 생성
+
+Unreal
+  Model Bundle import
+  → descriptor/hash/parity/cook 검증
+  → NNE inference 또는 Utility fallback
+```
+
+Phase 0:
+
+- deterministic fixture dataset으로 train/export CLI smoke
+- 작은 fixture model의 ONNX와 Golden vector 생성
+- Editor와 packaged Development build에서 NNE parity
+- fixture model은 gameplay 품질 판정에 사용하지 않음
+
+Phase 1:
+
+- [Contract Appendices E.6](../reference/ai_native_npc_contract_appendices_v0.4.6.md#e6-dataset-최소량)의 최소 Silver/Gold/DAgger 데이터 충족
+- `policy_train_v1.0.0` 전체 학습
+- Calibration/OOD asset 동결
+- General/OOD/Critical/Performance Gate 후 V1 bundle 승격
+
+Capture Record는 상위 요구사항 §9.9의 10개 input tensor, label, provenance를 그대로 사용한다. Unreal debug/replay shard의 Actor pointer·이름·absolute transform은 학습 input shard로 복사하지 않는다.
 
 ---
 
 # 15. NNE 추론 Subsystem
 
-## 15.1 구조
+Epic의 [UE 5.7 NNE Overview](https://dev.epicgames.com/documentation/en-us/unreal-engine/neural-network-engine-overview-in-unreal-engine?application_version=5.7)를 API 기준으로 사용한다. NNE는 UE 5.7에서도 Beta이므로 특정 runtime 성공을 전제하지 않고 모든 target platform에서 Utility Baseline을 항상 함께 cook한다.
 
-`UNPCInferenceWorldSubsystem`
+## 15.1 Backend 선택
 
-- ModelData 1회 로드
-- runtime/backend 탐색
-- model instance pool
-- request queue
-- batch assembly
-- worker execution
-- GameThread response enqueue
-- performance counters
-
-NPC마다 모델을 로드하지 않는다.
-
-## 15.2 초기화
+V1 기본:
 
 ```text
-World Begin
-→ Policy Data Asset 읽기
-→ Schema/Model/Registry/Contract Hash 검증
-→ NNE runtime 생성
-→ Model Instance 생성
-→ Tensor descriptor 검증
-→ Golden smoke vector 실행
-→ ready
+Interface: UE::NNE::INNERuntimeCPU
+Runtime name: NNERuntimeORTCpu
+Model format: ONNX opset 17, FP32
+Execution: worker thread의 RunSync
 ```
 
-검증 실패 시 Neural Policy를 비활성화하고 Utility Baseline을 사용한다.
+이 모델은 작은 CPU Tensor를 읽고 결과를 Game Thread 의사결정에 사용하므로 `INNERuntimeRDG`는 사용하지 않는다. `INNERuntimeGPU`도 CPU↔GPU 동기화 비용과 render contention을 별도 측정하기 전에는 사용하지 않는다.
 
-## 15.3 Tensor Binding
+Runtime 선택은 임의 탐색 후 첫 항목을 쓰지 않는다. Policy Manifest의 allowlist와 프로젝트 설정에 있는 정확한 runtime name만 허용한다. backend를 바꾸면 output parity, latency, cook, platform Gate를 다시 통과하고 `perf_manifest.json`을 새로 만든다.
 
-- float32: contiguous `TArray<float>` 또는 static buffer
-- int64: 생성 계약과 동일
-- bool: ONNX BOOL 의미의 0/1 buffer
-- shape를 runtime에서 추론하지 않고 generated constants와 비교
-- 출력 길이가 272/272×4와 다르면 모델 로드 실패
+## 15.2 프로젝트 설정
 
-## 15.4 Batch
+`.uproject`에서 [UE 5.7 NNERuntimeORT plugin](https://dev.epicgames.com/documentation/unreal-engine/API/PluginIndex/NNERuntimeORT?application_version=5.7)을 활성화한다. `NNE` 자체는 아래 `Build.cs`의 Engine module dependency로 연결한다.
 
-Candidate row는 항상 272이므로 NPC batch만 합친다.
+```json
+{
+  "Plugins": [
+    {
+      "Name": "NNERuntimeORT",
+      "Enabled": true
+    }
+  ]
+}
+```
 
-초기 전략:
+`AINativeNPCRuntime.Build.cs`:
 
-- 1~8 NPC micro-batch
-- 1~3ms request collection window
-- deadline 우선 queue
-- 같은 model/contract hash만 같은 batch
-- stale NPC request는 batch 전 제거
+```csharp
+PrivateDependencyModuleNames.AddRange(new string[]
+{
+    "NNE"
+});
+```
 
-## 15.5 Worker 안전
+주요 include:
 
-Worker Request는 immutable POD다.
+```cpp
+#include "NNE.h"
+#include "NNERuntimeCPU.h"
+#include "NNEModelData.h"
+```
 
-금지:
+Runtime module에 ORT 구현 타입을 직접 link하지 않는다. NNE interface와 runtime name으로 찾으며, plugin이 없거나 target platform에서 등록되지 않으면 정상적인 fallback 상태로 처리한다.
 
-- UObject dereference
-- Actor Transform 조회
+## 15.3 Model Asset Import와 Cook
+
+1. 승인된 Model Bundle의 `policy.onnx` SHA-256을 Manifest와 비교한다.
+2. Content Browser로 import해 `UNNEModelData` asset을 만든다.
+3. `DA_AINPCPolicy_<version>` Data Asset에 다음을 저장한다.
+   - `TSoftObjectPtr<UNNEModelData>`
+   - runtime allowlist
+   - Model/Schema/Registry/Post-process/Calibration hash
+   - input/output descriptor snapshot
+   - Golden smoke vector asset
+   - Calibration/OOD JSON에서 검증·변환한 scaler, logistic weights/threshold, OOD mean/precision/quantile
+4. Model Data asset에서 사용하지 않는 runtime 최적화 결과를 끈다.
+5. Policy Data Asset을 Primary Asset 또는 hard-referenced startup asset으로 등록해 cook 누락을 막는다.
+6. `NPCPolicyValidationCommandlet`가 source ONNX, Manifest, Data Asset metadata의 hash를 빌드 전에 대조한다.
+
+Cooked `.uasset`에서 원본 ONNX byte hash를 런타임에 추측하지 않는다. 원본 hash 검증은 import/build commandlet가 소유하고, Runtime은 cook된 Policy Data Asset의 manifest snapshot과 generated contract를 검증한다.
+
+Runtime은 매 판단마다 JSON을 parse하지 않는다. `calibration_ood_asset.json`은 build commandlet가 typed Data Asset 값으로 변환하고 원본 JSON SHA-256을 함께 저장한다.
+
+Editor 성공만으로 완료하지 않는다. 지원 target마다 packaged Development와 Shipping-equivalent configuration에서 runtime 등록, model creation, Golden smoke inference를 실행한다.
+
+## 15.4 World Subsystem과 초기화
+
+`UNPCInferenceWorldSubsystem` 책임:
+
+- Policy Data Asset 1회 로드
+- runtime/backend 확인
+- read-only Model 공유
+- Model Instance pool
+- deadline queue와 batch assembly
+- worker 실행
+- Game Thread response queue
+- latency/failure/fallback counter
+
+NPC마다 Model/ModelData를 만들지 않는다.
+
+초기화 순서:
+
+```text
+World Initialize
+→ Policy Data Asset async load
+→ generated Schema/Registry/Decision Contract 대조
+→ GetAllRuntimeNames<INNERuntimeCPU>() 진단 기록
+→ GetRuntime<INNERuntimeCPU>("NNERuntimeORTCpu")
+→ weak runtime pointer validity 확인
+→ CanCreateModelCPU(ModelData) 성공 확인
+→ CreateModelCPU(ModelData) + shared pointer 확인
+→ CreateModelInstanceCPU() pool 생성
+→ input/output descriptor exact validation
+→ batch bucket별 SetInputTensorShapes
+→ Golden smoke vector RunSync
+→ Ready
+```
+
+Epic API 대응:
+
+| 단계 | UE 5.7 NNE API |
+|---|---|
+| runtime 목록 | `UE::NNE::GetAllRuntimeNames<INNERuntimeCPU>()` |
+| runtime 획득 | `UE::NNE::GetRuntime<INNERuntimeCPU>(Name)` |
+| 호환성 사전검사 | `CanCreateModelCPU(ModelData)` |
+| immutable model | `CreateModelCPU(ModelData)` |
+| session/instance | `CreateModelInstanceCPU()` |
+| dynamic batch shape | `SetInputTensorShapes(...)` |
+| CPU inference | `RunSync(InputBindings, OutputBindings)` |
+
+각 반환 status와 pointer를 확인한다. 초기화 중 어느 단계든 실패하면 subsystem 상태를 `FallbackOnly`로 바꾸고 Utility Baseline을 사용한다.
+
+## 15.5 Descriptor와 Tensor Binding
+
+입력 descriptor는 이름, dtype, rank, 고정 dimension을 전부 비교한다.
+
+| 이름 | dtype | shape |
+|---|---|---|
+| `global_state` | float32 | `[B,128]` |
+| `target_features` | float32 | `[B,17,48]` |
+| `target_kind_ids` | int64 | `[B,17]` |
+| `target_mask` | bool | `[B,17]` |
+| `event_features` | float32 | `[B,12,24]` |
+| `event_type_ids` | int64 | `[B,12]` |
+| `event_target_slots` | int64 | `[B,12]` |
+| `event_mask` | bool | `[B,12]` |
+| `candidate_pair_features` | float32 | `[B,272,16]` |
+| `candidate_mask` | bool | `[B,272]` |
+
+출력:
+
+| 이름 | dtype | shape |
+|---|---|---|
+| `candidate_raw_scores` | float32 | `[B,272]` |
+| `candidate_parameter_proposals` | float32 | `[B,272,4]` |
+
+ONNX descriptor 배열 순서를 하드코딩하지 않는다. 이름으로 descriptor index map을 한 번 만들고, 중복·누락·추가 Tensor가 있으면 load를 실패시킨다.
+
+Buffer:
+
+- float32: contiguous owned `TArray<float>`/aligned buffer
+- int64: contiguous signed 64-bit buffer
+- bool: NNE descriptor가 요구하는 ONNX BOOL 0/1 byte buffer
+- Input/Output memory는 `RunSync`가 끝날 때까지 worker job이 독점 소유
+- byte size는 `element_count × dtype_size`로 계산하고 binding 전 exact-check
+
+Runtime에서 shape를 추측하거나 자동 broadcast에 의존하지 않는다.
+
+## 15.6 Model Instance Pool과 Micro-batch
+
+read-only Model은 World에서 공유하지만 하나의 Model Instance를 동시에 두 worker가 호출하지 않는다. `[1,2,4,8]` batch bucket마다 instance pool과 고정 input/output buffer를 준비하고 초기화 때 `SetInputTensorShapes`를 한 번 호출한다.
+
+실제 요청 수가 bucket보다 작으면 남은 lane을 canonical padding snapshot으로 채우고 `lane_valid=false`로 표시한다. Padding lane은:
+
+- Target slot 16 NoTarget만 valid
+- Event 전부 padding
+- Candidate mask 전부 false
+- 출력은 검증 후 버림
+
+Queue:
+
+- 기본 collection window 1ms, 설정 가능한 상한 3ms
+- deadline이 빠른 요청 우선
+- 같은 model hash와 decision contract hash만 같은 batch
+- superseded/deadline-expired 요청은 batch 구성 전에 제거
+- batch 최대 8 NPC
+
+Instance 수와 bucket 메모리는 target hardware에서 profile해 `perf_manifest.json`에 기록한다. 동시성이 더 필요하면 instance를 늘리되 공유 instance에 lock을 걸어 직렬 병목을 숨기지 않는다.
+
+## 15.7 Worker 실행
+
+Game Thread가 immutable `FInferenceRequestPOD`를 만든다.
+
+```text
+decision_id
+candidate_set_hash
+decision_contract_hash
+deadline
+10 input tensor owned buffers
+lane metadata
+```
+
+Worker:
+
+```text
+instance lease
+→ binding byte-size 검사
+→ RunSync
+→ output validation
+→ immutable response 작성
+→ Game Thread queue에 enqueue
+→ instance 반환
+```
+
+`RunSync`는 worker를 block해도 되지만 Game Thread에서 호출하지 않는다. Worker에서는 다음을 금지한다.
+
+- UObject/Actor dereference
+- Transform/Perception/Goal 조회
 - Nav query
-- Goal 변경
-- Skill Start
-- relationship/emotion update
+- Post-process mutation
+- Skill Start/Cancel
+- 관계·감정 update
 
-## 15.6 Output 검증
+NNE API가 caller-owned memory의 lifetime과 thread safety를 호출자에게 맡기므로 job buffer를 stack temporary나 재사용 중인 NPC component memory에 bind하지 않는다.
 
-- NaN/Inf
-- output shape
-- score finite
-- parameter `[0,1]` clamp
-- response contract hash
-- decision ID
+## 15.8 Output과 Response 검증
 
-NaN/Inf가 하나라도 있으면 전체 응답을 폐기하고 fallback한다.
+Worker 단계:
+
+1. `RunSync` status 성공
+2. output descriptor/element count exact-match
+3. 모든 값 finite
+4. raw score가 tolerance 포함 `[-2.5001,2.5001]`
+5. parameter가 tolerance 포함 `[-1e-5,1.00001]`
+6. 유효 범위 안의 parameter만 최종 `[0,1]` clamp
+
+Game Thread 단계:
+
+1. response decision ID가 아직 commit-eligible
+2. response decision contract hash exact-match
+3. response candidate hash를 pending request hash와 먼저 비교
+4. latest Goal/Target/authority/TTL 재검증
+5. Switch Cost→선택→OOD→Calibration
+6. Accept면 Atomic Commit, 아니면 Utility/Goal fallback
+
+score 하나라도 NaN/Inf이거나 범위를 크게 벗어나면 batch 전체를 폐기한다. 한 lane의 metadata/hash/stale 문제는 다른 lane의 수치 output을 오염시키지 않았으면 해당 lane만 폐기한다.
+
+## 15.9 Fallback과 Health State
+
+다음은 crash가 아니라 명시적인 fallback 원인이다.
+
+- NNE/ORT plugin 또는 runtime 미등록
+- target platform에서 model creation 불가
+- Model/Schema/Registry/Decision Contract mismatch
+- descriptor, dtype, shape, byte-size mismatch
+- `SetInputTensorShapes` 또는 `RunSync` 실패
+- Golden smoke parity 실패
+- NaN/Inf/range violation
+- queue deadline 초과
+- stale/superseded response
+
+상태:
+
+```text
+Loading → Ready
+Loading → FallbackOnly
+Ready → Degraded → Ready
+Ready/Degraded → FallbackOnly
+```
+
+연속 NNE 실패 3회 또는 60초 sliding window 실패율 1% 초과 시 `Degraded`, 5% 초과 시 `FallbackOnly`로 전환한다. 여기에는 init/run/descriptor/numeric failure만 포함하고 stale discard나 정상 deadline cancellation은 포함하지 않는다. 자동 재시도는 30초 cooldown 뒤 Golden smoke 1회만 수행한다. Shipping에서 무한 reload loop를 만들지 않는다.
+
+Metric:
+
+- runtime/model name과 hash
+- queue/batch 크기
+- inference p50/p95/p99
+- deadline miss
+- init/run/descriptor/numeric failure
+- stale discard
+- Neural accept/abstain
+- Utility fallback reason
+
+## 15.10 Parity와 Packaging Gate
+
+Golden set은 최소 다음을 포함한다.
+
+- batch `1,2,4,8`
+- no-event
+- Target slot 16만 존재
+- 각 Target Kind 최소 1개
+- sparse/dense candidate mask
+- 모든 normalizer boundary
+- Event Target remap 성공/실패
+- Continue candidate
+
+비교:
+
+```text
+generated Python input ↔ Unreal Feature Builder
+  float: abs≤1e-6 또는 rel≤1e-5
+  discrete/mask/hash bytes: byte-identical
+
+PyTorch ↔ ONNX Runtime ↔ UE Editor NNE ↔ packaged NNE
+  FP32 output: abs≤1e-4 또는 rel≤1e-4
+```
+
+지원 platform별 Gate:
+
+1. runtime 이름 등록
+2. `CanCreateModelCPU`/model/instance 생성
+3. Golden smoke
+4. packaged Development 자동화 테스트
+5. Shipping-equivalent cook asset 포함 검사
+6. §24 Typical/Burst latency
+
+NNE가 Beta라는 이유로 Gate를 생략하지 않는다. 반대로 특정 platform에서 NNE가 불가능해도 Utility Baseline만으로 기능적으로 안전하게 실행할 수 있으면 그 platform의 Neural 기능을 명시적으로 비활성화할 수 있다.
 
 ---
 
@@ -2403,6 +2723,7 @@ NPC별 주요 상태:
 ## 25.1 Schema/Parity
 
 - generated enum/static assert
+- generated Python import와 YAML/Registry SHA exact-match
 - Tensor shape
 - padding/mask
 - Candidate index
@@ -2411,6 +2732,10 @@ NPC별 주요 상태:
 - Target payload
 - Python–Unreal float tolerance
 - ONNX–NNE output tolerance
+- NNE descriptor name/dtype/rank/dimension exact-match
+- `B=1,2,4,8` model instance shape/binding
+- Editor와 packaged build Golden smoke
+- target platform cook에 ModelData/ORT runtime 포함
 
 Tolerance:
 
@@ -2564,6 +2889,8 @@ OOD family:
 - Target Handle/Feature
 - 17 Slot/272 Candidate
 - Golden vectors
+- Dataset Record/Validator 골격
+- `phase0_fixture.json` 학습·Export smoke
 
 ### Stream B — Manny/Perception, Gameplay
 
@@ -2593,6 +2920,9 @@ OOD family:
 
 - NNE adapter
 - World subsystem
+- ONNX import와 Policy Data Asset
+- ORT CPU descriptor/binding/instance pool
+- Editor + packaged `B=1,2,4,8` parity
 - in-flight lifecycle
 - Validate/StartCommit
 - Phase 0에서는 Resource Kind가 mask되어 있어 예약 경로는 mock transaction으로 검증
@@ -2604,6 +2934,8 @@ OOD family:
 - Goal FSM 성공
 - stale response Commit 0
 - Utility fallback
+- fixture model PyTorch↔ORT↔UE NNE parity
+- NNE 누락/실패 packaged build에서 Utility fallback
 - Manny 수직 슬라이스 5개 재현
 
 ## Phase 1 — V1, Phase 0 후 12~16주
@@ -2615,6 +2947,8 @@ OOD family:
 - 3 Role×4 Goal
 - multiplayer
 - Gold/DAgger
+- `policy_train_v1.0.0` 학습과 frozen Model Bundle
+- Calibration/OOD asset과 General/OOD/Critical 평가
 - KPI/성능 Gate
 
 ## Owner·기간·의존성
@@ -2635,14 +2969,33 @@ OOD family:
 
 # 27. 파일 단위 구현 목록
 
+## ML
+
+```text
+ML/pyproject.toml
+ML/requirements.lock
+ML/configs/model_v1.json
+ML/configs/train_v1.json
+ML/configs/phase0_fixture.json
+ML/src/anpc_ml/dataset/record_v1.py
+ML/src/anpc_ml/dataset/validate.py
+ML/src/anpc_ml/models/policy_v1.py
+ML/src/anpc_ml/losses.py
+ML/src/anpc_ml/train.py
+ML/src/anpc_ml/calibration.py
+ML/src/anpc_ml/export_onnx.py
+ML/src/anpc_ml/parity.py
+ML/tests/
+```
+
 ## Contracts
 
 ```text
-Source/AINativeNPCContracts/Public/Generated/AINPCSchema.generated.h
-Source/AINativeNPCContracts/Public/Generated/AINPCEnums.generated.h
-Source/AINativeNPCContracts/Public/Generated/AINPCNormalization.generated.h
-Source/AINativeNPCContracts/Public/Generated/AINPCHash.generated.h
+External/AI-Native-NPC/generated/cpp/AINativeNPCContracts.generated.h
+Source/AINativeNPCContracts/Public/AINPCContracts.h
 ```
+
+`AINPCContracts.h`는 Unreal type adapter와 static assert만 소유하고 Enum·Index·Normalizer·Hash 상수를 복제하지 않는다.
 
 ## Runtime Public
 
@@ -2662,6 +3015,8 @@ Decision/NPCDecisionComponent.h
 Decision/NPCPostProcessComponent.h
 Decision/NPCUtilityBaselineComponent.h
 Inference/NPCInferenceWorldSubsystem.h
+Inference/NPCPolicyDataAsset.h
+Inference/NPCInferenceTypes.h
 Execution/NPCCommitCoordinatorComponent.h
 Execution/NPCSkillExecutorComponent.h
 Execution/NPCResourceReservationSubsystem.h
@@ -2681,6 +3036,8 @@ Decision/NPCCandidateBuilderComponent.cpp
 Decision/NPCFeatureBuilderComponent.cpp
 Decision/NPCPostProcessComponent.cpp
 Inference/NPCInferenceNNEBackend.cpp
+Inference/NPCInferenceWorldSubsystem.cpp
+Inference/NPCPolicyDataAsset.cpp
 Execution/NPCCommitCoordinatorComponent.cpp
 Execution/NPCSkillExecutorComponent.cpp
 Skills/NPCSkill_Idle.cpp
@@ -2697,6 +3054,7 @@ Inspector/SNPCDecisionInspector.cpp
 Replay/NPCDecisionReplayAsset.cpp
 Labeling/SNPCPreferenceTool.cpp
 Schema/NPCSchemaValidationCommandlet.cpp
+Inference/NPCPolicyValidationCommandlet.cpp
 ```
 
 ## Tests
@@ -2704,6 +3062,8 @@ Schema/NPCSchemaValidationCommandlet.cpp
 ```text
 Schema/NPCSchemaGoldenTest.cpp
 Feature/NPCFeatureParityTest.cpp
+Inference/NPCNNEGoldenParityTest.cpp
+Inference/NPCNNEPackagingSmokeTest.cpp
 Targets/NPCTargetSlotterTest.cpp
 Decision/NPCCandidateHashTest.cpp
 Goals/NPCGoalFSMTest.cpp
@@ -2728,10 +3088,13 @@ Scenarios/NPCMannyQuinnScenarioTest.cpp
 - 5 Skill + Continue
 - Utility Baseline
 - NNE raw scorer
+- fixture model train/export 재현
+- ORT CPU descriptor·binding·`B=1,2,4,8` Golden parity
 - dirty/urgent lifecycle
 - short atomic Commit
 - Inspector와 Replay
 - packaged build model load
+- packaged build NNE 실패 시 Utility fallback
 
 ## 28.2 계약
 
@@ -2742,6 +3105,9 @@ Scenarios/NPCMannyQuinnScenarioTest.cpp
 - Target payload
 - Decision Contract Hash
 - Skill Registry Hash
+- generated Python 계약 import와 Schema/Registry SHA 일치
+- Dataset Validator와 split family 교집합 0
+- ONNX input/output descriptor와 opset 17
 
 ## 28.3 안전
 
@@ -2818,737 +3184,7 @@ Scenarios/NPCMannyQuinnScenarioTest.cpp
 
 ---
 
-<!-- BEGIN AUTO-GENERATED SCHEMA CONTRACT -->
+## 공유 계약 부록
 
-# Appendix A–D. AUTO-GENERATED Schema·Registry 계약
-
-> 이 구간은 `contracts/current/*.yaml`에서 자동 생성된다. 수동 편집하지 않는다.
-
-- Generator: `0.4.6`
-- Contract revision: `2.0.0-rc5`
-- Schema SHA-256: `424898ba9e80ff8ac7ad4d48a806f8606d2c595ec892d2753becbdaa3e47b6cc`
-- Skill Registry SHA-256: `08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8`
-- Goal Registry SHA-256: `b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2`
-- Test Taxonomy SHA-256: `7e300d01d148129e0741f8e0c468eeb433d80fe9ef414c7be453c47960927155`
-
-## A. Constants와 Enum
-
-### A.1 Constants
-
-| Name | Value |
-|---|---:|
-| `schema_version` | `2.0.0` |
-| `skill_registry_version` | `1.0.0` |
-| `target_slotter_version` | `1.0.0` |
-| `postprocess_version` | `1.0.0` |
-| `normalization_version` | `2.0.0` |
-| `regular_target_slots` | `16` |
-| `no_target_slot` | `16` |
-| `total_target_slots` | `17` |
-| `skill_count` | `16` |
-| `candidate_count` | `272` |
-| `event_slots` | `12` |
-| `global_feature_count` | `128` |
-| `target_feature_count` | `48` |
-| `event_feature_count` | `24` |
-| `candidate_pair_feature_count` | `16` |
-| `parameter_count` | `4` |
-| `spatial_max_cm` | `5000.0` |
-| `path_distance_max_cm` | `10000.0` |
-| `speed_max_cm_s` | `1200.0` |
-| `acceleration_max_cm_s2` | `4000.0` |
-| `yaw_rate_max_deg_s` | `720.0` |
-| `target_age_max_s` | `10.0` |
-| `event_age_max_s` | `10.0` |
-| `visible_duration_max_s` | `10.0` |
-| `skill_time_max_s` | `10.0` |
-| `goal_phase_time_max_s` | `30.0` |
-| `goal_deadline_max_s` | `120.0` |
-| `count_max` | `8.0` |
-| `schema_contract_revision` | `2.0.0-rc5` |
-| `goal_registry_version` | `1.0.1` |
-| `goal_priority_max` | `255.0` |
-| `long_duration_max_s` | `30.0` |
-| `slotter_confidence_scale` | `1000` |
-| `slotter_age_centisecond_scale` | `100` |
-| `slotter_distance_bin_cm` | `10` |
-| `slotter_loudness_scale` | `1000` |
-
-### A.target_kind
-
-| ID | Name |
-|---:|---|
-| 0 | `NoTarget` |
-| 1 | `Entity` |
-| 2 | `SoundEvent` |
-| 3 | `LastKnownPosition` |
-| 4 | `CoverSlot` |
-| 5 | `SmartObject` |
-| 6 | `Waypoint` |
-| 7 | `WorldPosition` |
-
-### A.skill
-
-| ID | Name |
-|---:|---|
-| 0 | `Idle` |
-| 1 | `ContinueCurrentAction` |
-| 2 | `LookAt` |
-| 3 | `TurnTo` |
-| 4 | `Approach` |
-| 5 | `KeepDistance` |
-| 6 | `RetreatFrom` |
-| 7 | `Follow` |
-| 8 | `Investigate` |
-| 9 | `SearchArea` |
-| 10 | `Greet` |
-| 11 | `Warn` |
-| 12 | `CallForHelp` |
-| 13 | `TakeCover` |
-| 14 | `Flee` |
-| 15 | `Attack` |
-
-### A.goal_type
-
-| ID | Name |
-|---:|---|
-| 0 | `None` |
-| 1 | `IdleObserve` |
-| 2 | `InvestigateDisturbance` |
-| 3 | `EnforceBoundary` |
-| 4 | `CombatEngage` |
-| 5 | `Disengage` |
-| 6 | `Escort` |
-| 7 | `Reserved` |
-
-### A.goal_phase
-
-| ID | Name |
-|---:|---|
-| 0 | `None` |
-| 1 | `Observe` |
-| 2 | `Orient` |
-| 3 | `Navigate` |
-| 4 | `Interact` |
-| 5 | `Search` |
-| 6 | `Resolve` |
-| 7 | `Return` |
-
-### A.event_type
-
-| ID | Name |
-|---:|---|
-| 0 | `NoneOrPadding` |
-| 1 | `SightAcquired` |
-| 2 | `SightLost` |
-| 3 | `SoundHeard` |
-| 4 | `Damaged` |
-| 5 | `SkillSucceeded` |
-| 6 | `SkillFailed` |
-| 7 | `SkillInterrupted` |
-| 8 | `WarningIssued` |
-| 9 | `WarningIgnored` |
-| 10 | `TargetMovedSignificantly` |
-| 11 | `TargetInvalidated` |
-| 12 | `GoalChanged` |
-| 13 | `ReservationLost` |
-| 14 | `SharedKnowledgeReceived` |
-| 15 | `Other` |
-
-### A.goal_source_priority
-
-| ID | Name |
-|---:|---|
-| 0 | `Routine` |
-| 1 | `Social` |
-| 2 | `Combat` |
-| 3 | `Quest` |
-| 4 | `Emergency` |
-
-## B. Tensor 계약
-
-### B.1 Tensor Summary
-
-| Name | Shape | dtype |
-|---|---|---|
-| `global_state` | `["B",128]` | `float32` |
-| `target_features` | `["B",17,48]` | `float32` |
-| `target_kind_ids` | `["B",17]` | `int64` |
-| `target_mask` | `["B",17]` | `bool` |
-| `event_features` | `["B",12,24]` | `float32` |
-| `event_type_ids` | `["B",12]` | `int64` |
-| `event_target_slots` | `["B",12]` | `int64` |
-| `event_mask` | `["B",12]` | `bool` |
-| `candidate_pair_features` | `["B",272,16]` | `float32` |
-| `candidate_mask` | `["B",272]` | `bool` |
-| `candidate_raw_scores` | `["B",272]` | `float32` |
-| `candidate_parameter_proposals` | `["B",272,4]` | `float32` |
-
-### B.2 global_state
-
-| Index | Name | Source | Unit | Normalizer | Valid range | Missing | Constraints |
-|---:|---|---|---|---|---|---|---|
-| 0 | `self_health_norm` | self authoritative health ratio | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 1 | `self_stamina_norm` | self authoritative stamina ratio | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 2 | `self_speed_norm` | self speed | `cm/s` | `{"divisor_ref":"speed_max_cm_s","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 3 | `self_local_velocity_x` | self velocity in NPC-local frame | `cm/s` | `{"divisor_ref":"speed_max_cm_s","max":1.0,"min":-1.0,"type":"divide_clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 4 | `self_local_velocity_y` | self velocity in NPC-local frame | `cm/s` | `{"divisor_ref":"speed_max_cm_s","max":1.0,"min":-1.0,"type":"divide_clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 5 | `self_local_velocity_z` | self velocity in NPC-local frame | `cm/s` | `{"divisor_ref":"speed_max_cm_s","max":1.0,"min":-1.0,"type":"divide_clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 6 | `self_local_acceleration_x` | self acceleration in NPC-local frame | `cm/s²` | `{"divisor_ref":"acceleration_max_cm_s2","max":1.0,"min":-1.0,"type":"divide_clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 7 | `self_local_acceleration_y` | self acceleration in NPC-local frame | `cm/s²` | `{"divisor_ref":"acceleration_max_cm_s2","max":1.0,"min":-1.0,"type":"divide_clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 8 | `self_local_acceleration_z` | self acceleration in NPC-local frame | `cm/s²` | `{"divisor_ref":"acceleration_max_cm_s2","max":1.0,"min":-1.0,"type":"divide_clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 9 | `self_yaw_rate_norm` | self yaw angular speed | `deg/s` | `{"divisor_ref":"yaw_rate_max_deg_s","max":1.0,"min":-1.0,"type":"divide_clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 10 | `self_grounded` | self movement state | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 11 | `self_crouched` | self movement state | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 12 | `self_sprinting` | self movement state | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 13 | `self_in_combat` | authoritative self combat state | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 14 | `self_damaged_recently` | damage event within 3 seconds | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 15 | `self_recent_damage_norm` | damage received in 3-second window / max health | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 16 | `current_skill_Idle` | current skill one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 17 | `current_skill_ContinueCurrentAction_reserved_zero` | control candidate is never an executing skill | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-| 18 | `current_skill_LookAt` | current skill one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 19 | `current_skill_TurnTo` | current skill one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 20 | `current_skill_Approach` | current skill one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 21 | `current_skill_KeepDistance` | current skill one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 22 | `current_skill_RetreatFrom` | current skill one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 23 | `current_skill_Follow` | current skill one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 24 | `current_skill_Investigate` | current skill one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 25 | `current_skill_SearchArea` | current skill one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 26 | `current_skill_Greet` | current skill one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 27 | `current_skill_Warn` | current skill one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 28 | `current_skill_CallForHelp` | current skill one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 29 | `current_skill_TakeCover` | current skill one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 30 | `current_skill_Flee` | current skill one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 31 | `current_skill_Attack` | current skill one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 32 | `skill_elapsed_norm` | elapsed time in current skill | `s` | `{"divisor_ref":"skill_time_max_s","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 33 | `skill_progress_norm` | skill-defined progress | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 34 | `skill_min_duration_remaining_norm` | remaining minimum hold time | `s` | `{"divisor_ref":"skill_time_max_s","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 35 | `skill_interruptible_now` | current skill may be interrupted | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 36 | `skill_has_target` | current skill has typed target | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 37 | `skill_target_still_believed_valid` | current target remains valid in Belief | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 38 | `last_skill_result_success` | last terminal result | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 39 | `last_skill_result_failure` | last terminal result | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 40 | `personality_aggression` | NPC profile | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 41 | `personality_courage` | NPC profile | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 42 | `personality_curiosity` | NPC profile | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 43 | `personality_loyalty` | NPC profile | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 44 | `personality_sociability` | NPC profile | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 45 | `personality_impulsivity` | NPC profile | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 46 | `personality_patience` | NPC profile | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 47 | `personality_vigilance` | NPC profile | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 48 | `personality_altruism` | NPC profile | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 49 | `personality_rule_adherence` | NPC profile | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 50 | `emotion_fear` | authoritative event-driven state, read-only to policy | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 51 | `emotion_anger` | authoritative event-driven state, read-only to policy | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 52 | `emotion_suspicion` | authoritative event-driven state, read-only to policy | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 53 | `emotion_curiosity` | authoritative event-driven state, read-only to policy | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 54 | `emotion_tension` | authoritative event-driven state, read-only to policy | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 55 | `emotion_affection` | authoritative event-driven state, read-only to policy | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 56 | `emotion_confusion` | authoritative event-driven state, read-only to policy | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 57 | `emotion_confidence` | authoritative event-driven state, read-only to policy | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 58 | `relationship_affinity` | relationship to primary social subject | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 59 | `relationship_trust` | relationship to primary social subject | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 60 | `relationship_respect` | relationship to primary social subject | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 61 | `relationship_fear` | relationship to primary social subject | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 62 | `relationship_debt` | relationship to primary social subject | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 63 | `relationship_suspicion` | relationship to primary social subject | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 64 | `relationship_loyalty` | relationship to primary social subject | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 65 | `relationship_hostility` | relationship to primary social subject | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 66 | `role_combatant` | role attribute, not unseen Role ID | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 67 | `role_guard` | role attribute | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 68 | `role_civilian` | role attribute | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 69 | `role_companion` | role attribute | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 70 | `role_support` | role attribute | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 71 | `role_authority_level` | role attribute | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 72 | `role_social_authority` | role attribute | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 73 | `role_territory_ownership` | role attribute | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 74 | `role_mission_importance` | role attribute | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 75 | `role_risk_tolerance` | role attribute | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 76 | `goal_type_None` | active goal type one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 77 | `goal_type_IdleObserve` | active goal type one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 78 | `goal_type_InvestigateDisturbance` | active goal type one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 79 | `goal_type_EnforceBoundary` | active goal type one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 80 | `goal_type_CombatEngage` | active goal type one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 81 | `goal_type_Disengage` | active goal type one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 82 | `goal_type_Escort` | active goal type one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 83 | `goal_type_Reserved` | active goal type one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 84 | `goal_phase_None` | active goal phase one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 85 | `goal_phase_Observe` | active goal phase one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 86 | `goal_phase_Orient` | active goal phase one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 87 | `goal_phase_Navigate` | active goal phase one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 88 | `goal_phase_Interact` | active goal phase one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 89 | `goal_phase_Search` | active goal phase one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 90 | `goal_phase_Resolve` | active goal phase one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 91 | `goal_phase_Return` | active goal phase one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 92 | `goal_priority_norm` | active goal priority uint8 / 255 | `ratio` | `{"divisor_ref":"goal_priority_max","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 93 | `goal_time_in_phase_norm` | time since phase entry | `s` | `{"divisor_ref":"goal_phase_time_max_s","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 94 | `goal_deadline_remaining_norm` | remaining authoritative deadline; 1 when no deadline | `s` | `{"divisor_ref":"goal_deadline_max_s","max":1.0,"min":0.0,"sentinel":"no_deadline","sentinel_value":1.0,"type":"sentinel_divide_clamp"}` | `[0.0,1.0]` | `{"encoded_value":1.0,"policy":"sentinel","sentinel":"no_deadline"}` | `{}` |
-| 95 | `goal_progress_norm` | goal-defined non-revision progress | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 96 | `goal_interruptible` | active phase interruptibility permits ordinary preemption | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 97 | `goal_has_primary_target` | active goal owns a typed target | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 98 | `allowed_skill_fraction` | allowed skill count / 16 | `ratio` | `{"divisor_ref":"skill_count","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 99 | `forbidden_skill_fraction` | forbidden skill count / 16 | `ratio` | `{"divisor_ref":"skill_count","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 100 | `world_safe_zone` | authoritative zone flag | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 101 | `world_restricted_zone` | authoritative zone flag | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 102 | `world_indoors` | environment flag | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 103 | `world_combat_allowed` | authoritative rule flag | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 104 | `world_perceived_ally_count_norm` | count from Belief | `count` | `{"divisor_ref":"count_max","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 105 | `world_perceived_hostile_count_norm` | count from Belief | `count` | `{"divisor_ref":"count_max","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 106 | `world_light_level_norm` | environment sample available to NPC | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 107 | `world_crowd_density_norm` | perceived local density | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 108 | `recent_sound_count_norm` | valid events in 10-second buffer | `count` | `{"divisor_ref":"count_max","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 109 | `recent_sight_change_count_norm` | valid events in 10-second buffer | `count` | `{"divisor_ref":"count_max","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 110 | `recent_damage_count_norm` | valid events in 10-second buffer | `count` | `{"divisor_ref":"count_max","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 111 | `recent_skill_failure_count_norm` | valid events in 10-second buffer | `count` | `{"divisor_ref":"count_max","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 112 | `recent_target_switch_count_norm` | valid events in 10-second buffer | `count` | `{"divisor_ref":"count_max","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 113 | `recent_warning_count_norm` | valid events in 10-second buffer | `count` | `{"divisor_ref":"count_max","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 114 | `recent_reservation_conflict_count_norm` | valid events in 10-second buffer | `count` | `{"divisor_ref":"count_max","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 115 | `event_buffer_fill_ratio` | valid event slots / 12 | `ratio` | `{"divisor_ref":"event_slots","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 116 | `reserved_116` | reserved; must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 117 | `reserved_117` | reserved; must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 118 | `reserved_118` | reserved; must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 119 | `reserved_119` | reserved; must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 120 | `reserved_120` | reserved; must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 121 | `reserved_121` | reserved; must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 122 | `reserved_122` | reserved; must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 123 | `reserved_123` | reserved; must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 124 | `reserved_124` | reserved; must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 125 | `reserved_125` | reserved; must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 126 | `reserved_126` | reserved; must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 127 | `reserved_127` | reserved; must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-
-### B.3 target_features common
-
-| Index | Name | Source | Unit | Normalizer | Valid range | Missing | Constraints |
-|---:|---|---|---|---|---|---|---|
-| 0 | `relative_position_x` | perceived target position in NPC-local frame | `cm` | `{"divisor_ref":"spatial_max_cm","max":1.0,"min":-1.0,"type":"divide_clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 1 | `relative_position_y` | perceived target position in NPC-local frame | `cm` | `{"divisor_ref":"spatial_max_cm","max":1.0,"min":-1.0,"type":"divide_clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 2 | `relative_position_z` | perceived target position in NPC-local frame | `cm` | `{"divisor_ref":"spatial_max_cm","max":1.0,"min":-1.0,"type":"divide_clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 3 | `distance_3d_norm` | distance to perceived position | `cm` | `{"divisor_ref":"spatial_max_cm","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 4 | `distance_planar_norm` | planar distance to perceived position | `cm` | `{"divisor_ref":"spatial_max_cm","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 5 | `log_distance_norm` | log distance | `cm` | `{"denominator_ref":"spatial_max_cm","input_max_ref":"spatial_max_cm","input_min":0.0,"type":"log1p_ratio"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 6 | `bearing_sin` | NPC-local bearing | `rad` | `{"function":"sin","input_unit":"radian","type":"trigonometric"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 7 | `bearing_cos` | NPC-local bearing | `rad` | `{"function":"cos","input_unit":"radian","type":"trigonometric"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 8 | `elevation_sin` | NPC-local elevation | `rad` | `{"function":"sin","input_unit":"radian","type":"trigonometric"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 9 | `elevation_cos` | NPC-local elevation | `rad` | `{"function":"cos","input_unit":"radian","type":"trigonometric"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 10 | `relative_velocity_x` | belief-derived velocity, never hidden Actor velocity | `cm/s` | `{"divisor_ref":"speed_max_cm_s","max":1.0,"min":-1.0,"type":"divide_clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 11 | `relative_velocity_y` | belief-derived velocity, never hidden Actor velocity | `cm/s` | `{"divisor_ref":"speed_max_cm_s","max":1.0,"min":-1.0,"type":"divide_clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 12 | `relative_velocity_z` | belief-derived velocity, never hidden Actor velocity | `cm/s` | `{"divisor_ref":"speed_max_cm_s","max":1.0,"min":-1.0,"type":"divide_clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 13 | `closing_speed_norm` | positive means approaching | `cm/s` | `{"divisor_ref":"speed_max_cm_s","max":1.0,"min":-1.0,"type":"divide_clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 14 | `path_distance_norm` | navigation estimate to believed position | `cm` | `{"divisor_ref":"path_distance_max_cm","max":1.0,"min":0.0,"sentinel":"invalid","sentinel_value":0.0,"type":"sentinel_divide_clamp"}` | `[0.0,1.0]` | `{"encoded_value":0.0,"policy":"sentinel","sentinel":"invalid"}` | `{}` |
-| 15 | `path_reachable_belief` | path query to believed snapshot position | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 16 | `belief_age_norm` | now - observed_at | `s` | `{"divisor_ref":"target_age_max_s","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 17 | `belief_confidence` | position/state confidence | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 18 | `source_sight` | Belief source one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 19 | `source_hearing` | Belief source one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 20 | `source_last_known` | Belief source one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 21 | `source_shared` | Belief source one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 22 | `source_scripted` | Belief source one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 23 | `position_valid` | perceived/snapshot position is valid | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 24 | `visible_now` | currently perceived by sight | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 25 | `line_of_sight_belief` | LOS query against believed/currently perceived target | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 26 | `sight_strength` | sensor strength | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 27 | `visible_duration_norm` | continuous visibility duration | `s` | `{"divisor_ref":"visible_duration_max_s","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 28 | `heard_recently` | valid hearing event associated with target | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 29 | `hearing_strength` | normalized loudness/strength | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 30 | `time_since_seen_norm` | time since last sight; 1 if never | `s` | `{"divisor_ref":"target_age_max_s","max":1.0,"min":0.0,"sentinel":"never","sentinel_value":1.0,"type":"sentinel_divide_clamp"}` | `[0.0,1.0]` | `{"encoded_value":1.0,"policy":"sentinel","sentinel":"never"}` | `{}` |
-| 31 | `time_since_heard_norm` | time since last hearing; 1 if never | `s` | `{"divisor_ref":"target_age_max_s","max":1.0,"min":0.0,"sentinel":"never","sentinel_value":1.0,"type":"sentinel_divide_clamp"}` | `[0.0,1.0]` | `{"encoded_value":1.0,"policy":"sentinel","sentinel":"never"}` | `{}` |
-
-### B.4 event_features
-
-| Index | Name | Source | Unit | Normalizer | Valid range | Missing | Constraints |
-|---:|---|---|---|---|---|---|---|
-| 0 | `age_norm` | now - event time | `s` | `{"divisor_ref":"event_age_max_s","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 1 | `strength` | event strength | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 2 | `confidence` | event confidence | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 3 | `relative_position_x` | event snapshot in NPC-local frame | `cm` | `{"divisor_ref":"spatial_max_cm","max":1.0,"min":-1.0,"type":"divide_clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 4 | `relative_position_y` | event snapshot in NPC-local frame | `cm` | `{"divisor_ref":"spatial_max_cm","max":1.0,"min":-1.0,"type":"divide_clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 5 | `relative_position_z` | event snapshot in NPC-local frame | `cm` | `{"divisor_ref":"spatial_max_cm","max":1.0,"min":-1.0,"type":"divide_clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 6 | `distance_norm` | distance to event snapshot | `cm` | `{"divisor_ref":"spatial_max_cm","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 7 | `bearing_sin` | event bearing | `rad` | `{"function":"sin","input_unit":"radian","type":"trigonometric"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 8 | `bearing_cos` | event bearing | `rad` | `{"function":"cos","input_unit":"radian","type":"trigonometric"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 9 | `source_sight` | event source one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 10 | `source_hearing` | event source one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 11 | `source_damage` | event source one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 12 | `source_scripted` | event source one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 13 | `result_success` | skill result one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 14 | `result_failure` | skill result one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 15 | `result_interrupted` | skill result one-hot | `one-hot` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 16 | `urgent` | event urgency | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 17 | `target_present_in_current_slots` | stable handle remapped to current slot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 18 | `same_as_current_skill_target` | handle equality | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 19 | `same_goal_revision` | event goal revision equals current | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 20 | `magnitude_norm` | event-specific magnitude | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 21 | `duration_norm` | event-specific duration | `s` | `{"divisor_ref":"event_age_max_s","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 22 | `reserved_22` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 23 | `reserved_23` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-
-### B.5 candidate_pair_features
-
-| Index | Name | Source | Unit | Normalizer | Valid range | Missing | Constraints |
-|---:|---|---|---|---|---|---|---|
-| 0 | `same_as_current_skill` | candidate skill equals running skill | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 1 | `same_as_current_target` | typed handle equals running target | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 2 | `target_present` | target slot is valid; NoTarget is valid | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 3 | `target_visible_now` | copied from target belief | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 4 | `target_position_confidence` | copied from target belief | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 5 | `target_age_norm` | copied from target belief | `s` | `{"divisor_ref":"target_age_max_s","max":1.0,"min":0.0,"type":"divide_clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 6 | `distance_norm` | copied from target feature | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 7 | `path_distance_norm` | computed to believed snapshot | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 8 | `path_reachable_belief` | computed to believed snapshot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 9 | `skill_requires_los` | Skill Registry metadata | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 10 | `los_satisfied_belief` | computed against currently permitted belief | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 11 | `skill_requires_resource` | Skill Registry metadata | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 12 | `resource_available_belief` | latest allowed availability snapshot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 13 | `skill_allowed_by_goal` | Goal contract | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 14 | `target_kind_allowed` | Skill Registry matrix | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 15 | `default_parameter_norm` | Skill Registry default primary parameter | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-
-## C. Target Payload [32:47]
-
-### C.NoTarget
-
-| Index | Name | Source | Unit | Normalizer | Valid range | Missing | Constraints |
-|---:|---|---|---|---|---|---|---|
-| 0 | `zero_0` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-| 1 | `zero_1` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-| 2 | `zero_2` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-| 3 | `zero_3` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-| 4 | `zero_4` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-| 5 | `zero_5` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-| 6 | `zero_6` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-| 7 | `zero_7` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-| 8 | `zero_8` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-| 9 | `zero_9` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-| 10 | `zero_10` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-| 11 | `zero_11` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-| 12 | `zero_12` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-| 13 | `zero_13` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-| 14 | `zero_14` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-| 15 | `zero_15` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-
-### C.Entity
-
-| Index | Name | Source | Unit | Normalizer | Valid range | Missing | Constraints |
-|---:|---|---|---|---|---|---|---|
-| 0 | `alive_probability` | Belief estimate | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 1 | `armed_probability` | Belief estimate | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 2 | `attacking_probability` | Belief estimate | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 3 | `health_estimate` | Belief estimate | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 4 | `health_uncertainty` | estimate interval width | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 5 | `threat_estimate` | perception/classifier estimate | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 6 | `interactable` | observed/known affordance | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 7 | `same_faction_probability` | Belief estimate | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 8 | `affinity` | relationship [-1,1] | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 9 | `trust` | relationship [-1,1] | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 10 | `fear` | relationship [0,1] | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 11 | `hostility` | relationship [0,1] | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 12 | `debt` | relationship [-1,1] | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 13 | `suspicion` | relationship [0,1] | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 14 | `current_action_confidence` | observed action classifier confidence | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 15 | `identity_confidence` | entity attribution confidence | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-
-### C.SoundEvent
-
-| Index | Name | Source | Unit | Normalizer | Valid range | Missing | Constraints |
-|---:|---|---|---|---|---|---|---|
-| 0 | `loudness` | normalized loudness | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 1 | `danger_estimate` | sensor/event semantic estimate | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 2 | `attribution_confidence` | confidence in source attribution | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 3 | `repetition_norm` | repeat count / 8 | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 4 | `class_footstep` | sound class one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 5 | `class_weapon` | sound class one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 6 | `class_explosion` | sound class one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 7 | `class_voice` | sound class one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 8 | `class_impact` | sound class one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 9 | `class_door` | sound class one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 10 | `class_vehicle` | sound class one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 11 | `class_other` | sound class one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 12 | `source_moving_probability` | event inference | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 13 | `occluded_probability` | hearing propagation estimate | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 14 | `ttl_remaining_norm` | remaining TTL / event max TTL | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 15 | `reserved` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-
-### C.LastKnownPosition
-
-| Index | Name | Source | Unit | Normalizer | Valid range | Missing | Constraints |
-|---:|---|---|---|---|---|---|---|
-| 0 | `subject_is_player` | Belief semantic flag | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 1 | `subject_hostile_probability` | snapshot belief | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 2 | `subject_armed_probability` | snapshot belief | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 3 | `subject_alive_probability_at_observation` | snapshot belief; not updated from hidden truth | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 4 | `motion_direction_sin` | last observed motion | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 5 | `motion_direction_cos` | last observed motion | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 6 | `observed_speed_norm` | last observed speed / 1200 | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 7 | `reason_sight_lost` | snapshot reason one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 8 | `reason_shared` | snapshot reason one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 9 | `reason_scripted` | snapshot reason one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 10 | `goal_primary_target` | owned by active goal | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 11 | `search_radius_norm` | search radius / 5000 | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 12 | `confidence_decay_rate_norm` | configured decay rate | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 13 | `ttl_remaining_norm` | remaining snapshot TTL | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 14 | `subject_identity_confidence` | snapshot attribution confidence | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 15 | `reserved` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-
-### C.CoverSlot
-
-| Index | Name | Source | Unit | Normalizer | Valid range | Missing | Constraints |
-|---:|---|---|---|---|---|---|---|
-| 0 | `cover_quality` | [0,1] | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 1 | `exposure_reduction` | [0,1] | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 2 | `flank_risk` | [0,1] | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 3 | `distance_to_peek_norm` | cm / 5000 | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 4 | `occupancy_ratio` | [0,1] | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 5 | `available_belief` | latest known availability | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 6 | `reserved_by_self` | 0 or 1 | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 7 | `resource_generation_valid` | 0 or 1 | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 8 | `low_cover` | one-hot/flag | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 9 | `high_cover` | one-hot/flag | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 10 | `left_peek` | 0 or 1 | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 11 | `right_peek` | 0 or 1 | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 12 | `destructible_probability` | [0,1] | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 13 | `hazard_norm` | [0,1] | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 14 | `lease_required` | 0 or 1 | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 15 | `resource_age_norm` | availability revision age / 10s | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-
-### C.SmartObject
-
-| Index | Name | Source | Unit | Normalizer | Valid range | Missing | Constraints |
-|---:|---|---|---|---|---|---|---|
-| 0 | `availability_belief` | [0,1] | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 1 | `capacity_norm` | capacity / configured max | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 2 | `occupancy_ratio` | [0,1] | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 3 | `interaction_duration_norm` | seconds / 30 | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 4 | `requires_item` | 0 or 1 | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 5 | `hazard_norm` | [0,1] | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 6 | `use_type_door` | one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 7 | `use_type_console` | one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 8 | `use_type_pickup` | one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 9 | `use_type_heal` | one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 10 | `use_type_vehicle` | one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 11 | `use_type_social` | one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 12 | `use_type_traversal` | one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 13 | `use_type_other` | one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 14 | `resource_generation_valid` | 0 or 1 | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 15 | `resource_age_norm` | availability revision age / 10s | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-
-### C.Waypoint
-
-| Index | Name | Source | Unit | Normalizer | Valid range | Missing | Constraints |
-|---:|---|---|---|---|---|---|---|
-| 0 | `goal_primary` | 0 or 1 | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 1 | `goal_secondary` | 0 or 1 | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 2 | `sequence_progress` | [0,1] | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 3 | `wait_duration_norm` | seconds / 30 | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 4 | `desired_facing_sin` | [-1,1] | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 5 | `desired_facing_cos` | [-1,1] | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 6 | `patrol_waypoint` | semantic flag | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 7 | `return_point` | semantic flag | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 8 | `search_point` | semantic flag | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 9 | `escape_point` | semantic flag | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 10 | `formation_point` | semantic flag | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 11 | `scripted_point` | semantic flag | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 12 | `path_index_norm` | index / configured max | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 13 | `loop_flag` | 0 or 1 | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 14 | `arrival_radius_norm` | cm / 5000 | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 15 | `reserved` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-
-### C.WorldPosition
-
-| Index | Name | Source | Unit | Normalizer | Valid range | Missing | Constraints |
-|---:|---|---|---|---|---|---|---|
-| 0 | `goal_primary` | 0 or 1 | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 1 | `goal_secondary` | 0 or 1 | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 2 | `safe_zone_probability` | [0,1] | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 3 | `hazard_norm` | [0,1] | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 4 | `search_radius_norm` | cm / 5000 | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 5 | `arrival_radius_norm` | cm / 5000 | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 6 | `desired_facing_sin` | [-1,1] | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 7 | `desired_facing_cos` | [-1,1] | `ratio` | `{"max":1.0,"min":-1.0,"type":"clamp"}` | `[-1.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 8 | `source_goal` | one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 9 | `source_script` | one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 10 | `source_shared_knowledge` | one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 11 | `source_player_ping` | one-hot | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 12 | `immutable_flag` | must be 1 in V1 | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"occupied_required_value":1.0,"policy":"padding_zero","value":0.0}` | `{"occupied_required_value":1.0}` |
-| 13 | `ttl_remaining_norm` | remaining TTL / configured max | `ratio` | `{"max":1.0,"min":0.0,"type":"clamp"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 14 | `authority_valid` | 0 or 1 | `bool` | `{"type":"boolean"}` | `[0.0,1.0]` | `{"policy":"constant","value":0.0}` | `{}` |
-| 15 | `reserved` | must be zero | `none` | `{"type":"constant","value":0.0}` | `[0.0,0.0]` | `{"policy":"constant","value":0.0}` | `{"must_equal":0.0}` |
-
-## D. Skill·Goal·Hash 계약
-
-### D.1 Skill Parameter
-
-| Skill ID | Skill | Slot | Parameter | Active | Unit | Min | Max | Default |
-|---:|---|---:|---|---:|---|---:|---:|---:|
-| 0 | `Idle` | 0 | `duration` | 1 | `second` | 0.5 | 5.0 | 1.0 |
-| 0 | `Idle` | 1 | `speed` | 0 | `none` | 0.0 | 0.0 | 0.0 |
-| 0 | `Idle` | 2 | `preferred_distance` | 0 | `none` | 0.0 | 0.0 | 0.0 |
-| 0 | `Idle` | 3 | `intensity` | 0 | `none` | 0.0 | 0.0 | 0.0 |
-| 1 | `ContinueCurrentAction` | 0 | `duration` | 0 | `none` | 0.0 | 0.0 | 0.0 |
-| 1 | `ContinueCurrentAction` | 1 | `speed` | 0 | `none` | 0.0 | 0.0 | 0.0 |
-| 1 | `ContinueCurrentAction` | 2 | `preferred_distance` | 0 | `none` | 0.0 | 0.0 | 0.0 |
-| 1 | `ContinueCurrentAction` | 3 | `intensity` | 0 | `none` | 0.0 | 0.0 | 0.0 |
-| 2 | `LookAt` | 0 | `duration` | 1 | `second` | 0.25 | 3.0 | 1.0 |
-| 2 | `LookAt` | 1 | `speed` | 0 | `none` | 0.0 | 0.0 | 0.0 |
-| 2 | `LookAt` | 2 | `preferred_distance` | 0 | `none` | 0.0 | 0.0 | 0.0 |
-| 2 | `LookAt` | 3 | `intensity` | 1 | `ratio` | 0.0 | 1.0 | 0.5 |
-| 3 | `TurnTo` | 0 | `duration` | 1 | `second` | 0.25 | 2.0 | 0.75 |
-| 3 | `TurnTo` | 1 | `speed` | 1 | `degree_per_second` | 90.0 | 720.0 | 360.0 |
-| 3 | `TurnTo` | 2 | `preferred_distance` | 0 | `none` | 0.0 | 0.0 | 0.0 |
-| 3 | `TurnTo` | 3 | `intensity` | 1 | `ratio` | 0.0 | 1.0 | 0.5 |
-| 4 | `Approach` | 0 | `duration` | 1 | `second` | 0.5 | 10.0 | 3.0 |
-| 4 | `Approach` | 1 | `speed` | 1 | `centimeter_per_second` | 150.0 | 600.0 | 350.0 |
-| 4 | `Approach` | 2 | `preferred_distance` | 1 | `centimeter` | 100.0 | 500.0 | 200.0 |
-| 4 | `Approach` | 3 | `intensity` | 1 | `ratio` | 0.0 | 1.0 | 0.5 |
-| 5 | `KeepDistance` | 0 | `duration` | 1 | `second` | 0.5 | 10.0 | 3.0 |
-| 5 | `KeepDistance` | 1 | `speed` | 1 | `centimeter_per_second` | 150.0 | 600.0 | 300.0 |
-| 5 | `KeepDistance` | 2 | `preferred_distance` | 1 | `centimeter` | 200.0 | 1000.0 | 500.0 |
-| 5 | `KeepDistance` | 3 | `intensity` | 1 | `ratio` | 0.0 | 1.0 | 0.5 |
-| 6 | `RetreatFrom` | 0 | `duration` | 1 | `second` | 0.5 | 10.0 | 3.0 |
-| 6 | `RetreatFrom` | 1 | `speed` | 1 | `centimeter_per_second` | 150.0 | 650.0 | 400.0 |
-| 6 | `RetreatFrom` | 2 | `preferred_distance` | 1 | `centimeter` | 300.0 | 1500.0 | 700.0 |
-| 6 | `RetreatFrom` | 3 | `intensity` | 1 | `ratio` | 0.0 | 1.0 | 0.7 |
-| 7 | `Follow` | 0 | `duration` | 1 | `second` | 0.5 | 10.0 | 4.0 |
-| 7 | `Follow` | 1 | `speed` | 1 | `centimeter_per_second` | 150.0 | 600.0 | 350.0 |
-| 7 | `Follow` | 2 | `preferred_distance` | 1 | `centimeter` | 150.0 | 700.0 | 350.0 |
-| 7 | `Follow` | 3 | `intensity` | 1 | `ratio` | 0.0 | 1.0 | 0.5 |
-| 8 | `Investigate` | 0 | `duration` | 1 | `second` | 1.0 | 12.0 | 5.0 |
-| 8 | `Investigate` | 1 | `speed` | 1 | `centimeter_per_second` | 100.0 | 500.0 | 280.0 |
-| 8 | `Investigate` | 2 | `preferred_distance` | 1 | `centimeter` | 100.0 | 1200.0 | 400.0 |
-| 8 | `Investigate` | 3 | `intensity` | 1 | `ratio` | 0.0 | 1.0 | 0.6 |
-| 9 | `SearchArea` | 0 | `duration` | 1 | `second` | 3.0 | 20.0 | 8.0 |
-| 9 | `SearchArea` | 1 | `speed` | 1 | `centimeter_per_second` | 80.0 | 400.0 | 220.0 |
-| 9 | `SearchArea` | 2 | `preferred_distance` | 1 | `centimeter` | 200.0 | 2000.0 | 700.0 |
-| 9 | `SearchArea` | 3 | `intensity` | 1 | `ratio` | 0.0 | 1.0 | 0.6 |
-| 10 | `Greet` | 0 | `duration` | 1 | `second` | 1.0 | 5.0 | 2.0 |
-| 10 | `Greet` | 1 | `speed` | 0 | `none` | 0.0 | 0.0 | 0.0 |
-| 10 | `Greet` | 2 | `preferred_distance` | 0 | `none` | 0.0 | 0.0 | 0.0 |
-| 10 | `Greet` | 3 | `intensity` | 1 | `ratio` | 0.0 | 1.0 | 0.5 |
-| 11 | `Warn` | 0 | `duration` | 1 | `second` | 1.0 | 5.0 | 2.0 |
-| 11 | `Warn` | 1 | `speed` | 0 | `none` | 0.0 | 0.0 | 0.0 |
-| 11 | `Warn` | 2 | `preferred_distance` | 0 | `none` | 0.0 | 0.0 | 0.0 |
-| 11 | `Warn` | 3 | `intensity` | 1 | `ratio` | 0.0 | 1.0 | 0.7 |
-| 12 | `CallForHelp` | 0 | `duration` | 1 | `second` | 1.0 | 4.0 | 2.0 |
-| 12 | `CallForHelp` | 1 | `speed` | 0 | `none` | 0.0 | 0.0 | 0.0 |
-| 12 | `CallForHelp` | 2 | `preferred_distance` | 0 | `none` | 0.0 | 0.0 | 0.0 |
-| 12 | `CallForHelp` | 3 | `intensity` | 1 | `ratio` | 0.0 | 1.0 | 0.8 |
-| 13 | `TakeCover` | 0 | `duration` | 1 | `second` | 1.0 | 10.0 | 4.0 |
-| 13 | `TakeCover` | 1 | `speed` | 1 | `centimeter_per_second` | 150.0 | 650.0 | 400.0 |
-| 13 | `TakeCover` | 2 | `preferred_distance` | 0 | `none` | 0.0 | 0.0 | 0.0 |
-| 13 | `TakeCover` | 3 | `intensity` | 1 | `ratio` | 0.0 | 1.0 | 0.7 |
-| 14 | `Flee` | 0 | `duration` | 1 | `second` | 1.0 | 15.0 | 6.0 |
-| 14 | `Flee` | 1 | `speed` | 1 | `centimeter_per_second` | 200.0 | 700.0 | 500.0 |
-| 14 | `Flee` | 2 | `preferred_distance` | 1 | `centimeter` | 500.0 | 3000.0 | 1500.0 |
-| 14 | `Flee` | 3 | `intensity` | 1 | `ratio` | 0.0 | 1.0 | 0.9 |
-| 15 | `Attack` | 0 | `duration` | 1 | `second` | 0.2 | 5.0 | 1.0 |
-| 15 | `Attack` | 1 | `speed` | 0 | `none` | 0.0 | 0.0 | 0.0 |
-| 15 | `Attack` | 2 | `preferred_distance` | 1 | `centimeter` | 100.0 | 2000.0 | 600.0 |
-| 15 | `Attack` | 3 | `intensity` | 1 | `ratio` | 0.0 | 1.0 | 0.7 |
-
-### D.2 Goal Registry
-
-| Goal ID | Goal | Initial phase | Priority | Source | Interruptibility | Resume |
-|---:|---|---|---:|---|---|---|
-| 1 | `IdleObserve` | `Observe` | 10 | `Routine` | `Always` | `ResumeSamePhase` |
-| 2 | `InvestigateDisturbance` | `Orient` | 120 | `Social` | `PhaseBoundary` | `ResumeSamePhase` |
-| 3 | `EnforceBoundary` | `Observe` | 160 | `Quest` | `PhaseBoundary` | `ResumeSamePhase` |
-| 4 | `CombatEngage` | `Orient` | 220 | `Combat` | `EmergencyOnly` | `RestartPhase` |
-| 5 | `Disengage` | `-` | - | `-` | `-` | `-` |
-| 6 | `Escort` | `-` | - | `-` | `-` | `-` |
-| 7 | `Reserved` | `-` | - | `-` | `-` | `-` |
-
-### D.3 Hash: candidate_set_hash
-
-- Algorithm: `SHA-256`
-- Byte order: `little`
-
-| Order | Name | Type | Contract |
-|---:|---|---|---|
-| 0 | `magic` | `bytes[8]` | `{"value_ascii":"ANPCSET2"}` |
-| 1 | `serialization_version` | `uint16` | `{"value":1}` |
-| 2 | `schema_source_sha256` | `bytes[32]` | `{}` |
-| 3 | `target_slot_count` | `uint8` | `{"value_ref":"total_target_slots"}` |
-| 4 | `target_handles` | `target_handle[17]` | `{"field_order":["kind:uint8","stable_id:uint64","generation:uint32","revision:uint64"]}` |
-| 5 | `target_mask` | `bitset` | `{"bit_count":17,"bit_order":"LSB-first","byte_count":3,"unused_high_bits":"zero"}` |
-| 6 | `candidate_mask` | `bitset` | `{"bit_count":272,"bit_order":"LSB-first","byte_count":34,"unused_high_bits":"none"}` |
-
-### D.3 Hash: decision_contract_hash
-
-- Algorithm: `SHA-256`
-- Byte order: `little`
-
-| Order | Name | Type | Contract |
-|---:|---|---|---|
-| 0 | `magic` | `bytes[8]` | `{"value_ascii":"ANPCDEC2"}` |
-| 1 | `serialization_version` | `uint16` | `{"value":1}` |
-| 2 | `schema_source_sha256` | `bytes[32]` | `{}` |
-| 3 | `skill_registry_sha256` | `bytes[32]` | `{}` |
-| 4 | `goal_registry_sha256` | `bytes[32]` | `{}` |
-| 5 | `model_sha256` | `bytes[32]` | `{}` |
-| 6 | `normalization_contract_sha256` | `bytes[32]` | `{}` |
-| 7 | `slotter_contract_sha256` | `bytes[32]` | `{}` |
-| 8 | `postprocess_contract_sha256` | `bytes[32]` | `{}` |
-| 9 | `calibration_ood_asset_sha256` | `bytes[32]` | `{}` |
-
-### D.4 Normalizer 의미 규칙
-
-```json
-{
-  "clamp_bounds_order": "min_lte_max",
-  "constant_and_sentinel_value_must_fit_valid_range": true,
-  "constant_missing_value_must_equal_normalizer_constant": true,
-  "constraint_and_missing_occupied_value_must_match": true,
-  "divisor_and_referenced_scale_must_be_positive": true,
-  "log1p_input_domain": {
-    "denominator_must_be_positive": true,
-    "exclusive_min": -1.0
-  },
-  "missing_contract_must_match_normalizer": true,
-  "must_equal_requires_constant_normalizer": true,
-  "must_equal_requires_matching_missing_value": true,
-  "must_equal_requires_singleton_valid_range": true,
-  "normalizer_output_must_fit_valid_range": true,
-  "numeric_values_must_be_finite": true,
-  "padding_zero_value_must_fit_valid_range": true,
-  "valid_range_order": "min_lte_max"
-}
-```
-
-<!-- END AUTO-GENERATED SCHEMA CONTRACT -->
-
-# Appendix E. 승인 체크리스트
-
-## Schema Freeze
-
-- [x] PyYAML 전체 semantic validation
-- [x] C++/Python generated code
-- [x] Discrete/Hash Golden fixture
-- [ ] 17 Slot/272 Candidate parity
-- [ ] Float Feature parity
-- [ ] NNE output parity
-- [ ] Candidate Set Hash parity
-- [ ] Decision Contract Hash
-- [ ] Target Kind payload 구현
-- [x] Skill/Goal Registry semantic validation
-
-## Phase 0
-
-- [ ] Manny/Quinn 수직 슬라이스
-- [ ] Belief/Ground Truth 분리
-- [ ] Goal FSM
-- [ ] Target Recall Critical 100%
-- [ ] Candidate Recall Critical 100%
-- [ ] stale Commit 0
-- [ ] Hidden Leakage 0
-- [ ] Utility fallback
-- [ ] packaged build
-
-## Phase 1
-
-- [ ] all Target Kind
-- [ ] 16 Skill
-- [ ] Reservation
-- [ ] Calibration/OOD
-- [ ] multiplayer
-- [ ] Gold/DAgger
-- [ ] Safety/KPI/Latency Gate
+- [Schema·Registry Appendix A–D](../reference/ai_native_npc_contract_appendices_v0.4.6.md#appendix-ad-auto-generated-schemaregistry-계약)
+- [UE 구현 승인 체크리스트](../reference/ai_native_npc_contract_appendices_v0.4.6.md#ue-구현-승인-체크리스트)

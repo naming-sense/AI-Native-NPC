@@ -686,11 +686,13 @@ def generate_markdown(schema: dict[str, Any], skills: dict[str, Any], goals: dic
             f"{goal.get('default_priority', '-')} | `{goal.get('source_priority', '-')}` | "
             f"`{goal.get('interruptibility', '-')}` | `{goal.get('resume_policy', '-')}` |"
         )
-    for contract_name, contract in schema["hash_contract"].items():
-        lines.extend(["", f"### D.3 Hash: {contract_name}", "", f"- Algorithm: `{contract['algorithm']}`", f"- Byte order: `{contract['byte_order']}`", "", "| Order | Name | Type | Contract |", "|---:|---|---|---|"])
+    hash_contracts = list(schema["hash_contract"].items())
+    for section_number, (contract_name, contract) in enumerate(hash_contracts, start=3):
+        lines.extend(["", f"### D.{section_number} Hash: {contract_name}", "", f"- Algorithm: `{contract['algorithm']}`", f"- Byte order: `{contract['byte_order']}`", "", "| Order | Name | Type | Contract |", "|---:|---|---|---|"])
         for order, field in enumerate(contract["fields"]):
             lines.append(f"| {order} | `{field['name']}` | `{field['type']}` | `{compact_json({k:v for k,v in field.items() if k not in {'name','type'}})}` |")
-    lines.extend(["", "### D.4 Normalizer 의미 규칙", "", f"```json\n{json.dumps(schema['normalizer_semantic_contract'], ensure_ascii=False, sort_keys=True, indent=2)}\n```", ""])
+    normalizer_section_number = 3 + len(hash_contracts)
+    lines.extend(["", f"### D.{normalizer_section_number} Normalizer 의미 규칙", "", f"```json\n{json.dumps(schema['normalizer_semantic_contract'], ensure_ascii=False, sort_keys=True, indent=2)}\n```", ""])
     return "\n".join(lines)
 
 

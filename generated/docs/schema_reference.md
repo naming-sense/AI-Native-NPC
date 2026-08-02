@@ -4,10 +4,10 @@
 
 - Generator: `0.4.6`
 - Contract revision: `2.0.0-rc5`
-- Schema SHA-256: `424898ba9e80ff8ac7ad4d48a806f8606d2c595ec892d2753becbdaa3e47b6cc`
+- Schema SHA-256: `8c72e1a6aa94399b5748c3ec7bfdaf31beb7148cc5f228eb86c88cee60b67baf`
 - Skill Registry SHA-256: `08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8`
 - Goal Registry SHA-256: `b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2`
-- Test Taxonomy SHA-256: `7e300d01d148129e0741f8e0c468eeb433d80fe9ef414c7be453c47960927155`
+- Test Taxonomy SHA-256: `52abbec52ff6b057b28e89d54c5f9dd9407977e9a8e45f7dfd0e419af57a4286`
 
 ## A. Constants와 Enum
 
@@ -650,7 +650,7 @@
 | 5 | `target_mask` | `bitset` | `{"bit_count":17,"bit_order":"LSB-first","byte_count":3,"unused_high_bits":"zero"}` |
 | 6 | `candidate_mask` | `bitset` | `{"bit_count":272,"bit_order":"LSB-first","byte_count":34,"unused_high_bits":"none"}` |
 
-### D.3 Hash: decision_contract_hash
+### D.4 Hash: decision_contract_hash
 
 - Algorithm: `SHA-256`
 - Byte order: `little`
@@ -668,7 +668,7 @@
 | 8 | `postprocess_contract_sha256` | `bytes[32]` | `{}` |
 | 9 | `calibration_ood_asset_sha256` | `bytes[32]` | `{}` |
 
-### D.4 Normalizer 의미 규칙
+### D.5 Normalizer 의미 규칙
 
 ```json
 {

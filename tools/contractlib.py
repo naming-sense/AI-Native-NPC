@@ -426,7 +426,7 @@ def validate_manual_hash_literal_policy(
     tokens = set(known_magic_tokens or _walk_value_ascii(schema))
     for token in sorted(tokens):
         if re.search(rf"(?<![A-Za-z0-9_]){re.escape(token)}(?![A-Za-z0-9_])", outside):
-            errors.append(f"{label}: known hash magic token {token!r} outside generated Appendix D.3")
+            errors.append(f"{label}: known hash magic token {token!r} outside generated Appendix D.3-D.4")
 
     # Strip formatting quotes/backticks so Markdown, prose, JSON, and inline code share one parser.
     normalized = outside.replace("`", "").replace('"', "").replace("'", "")
@@ -436,11 +436,11 @@ def validate_manual_hash_literal_policy(
     )
     for match in assignment.finditer(normalized):
         value = match.group(1)
-        errors.append(f"{label}: manual hash magic assignment {value!r} outside generated Appendix D.3")
+        errors.append(f"{label}: manual hash magic assignment {value!r} outside generated Appendix D.3-D.4")
 
     value_ascii = re.compile(r"(?m)(?i:\bvalue_ascii\b)\s*:\s*([A-Za-z0-9_]{4,64})")
     for match in value_ascii.finditer(normalized):
-        errors.append(f"{label}: manual hash value_ascii {match.group(1)!r} outside generated Appendix D.3")
+        errors.append(f"{label}: manual hash value_ascii {match.group(1)!r} outside generated Appendix D.3-D.4")
     return sorted(set(errors))
 
 def _validate_field(field: Any, expected_index: int, constants: dict[str, Any], path: str, errors: list[str]) -> None:

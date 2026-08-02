@@ -4,7 +4,9 @@
 
 | 역할 | 버전 | 문서 |
 |---|---:|---|
-| 요구사항·구현 계약 | v0.4.6 | [열기](docs/current/requirements/ai_native_npc_requirements_implementation_plan_v0.4.6.md) |
+| 요구사항 | v0.4.6 | [열기](docs/current/requirements/ai_native_npc_requirements_v0.4.6.md) |
+| 구현 계획 | v0.4.6 | [열기](docs/current/implementation/ai_native_npc_implementation_plan_v0.4.6.md) |
+| 계약 부록 | v0.4.6 | [열기](docs/current/reference/ai_native_npc_contract_appendices_v0.4.6.md) |
 | UE 5.7 Manny/Quinn 구현 | v0.4.6 | [열기](docs/current/unreal/ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan_v0.4.6.md) |
 | Schema | 2.0.0 RC5 | [열기](contracts/current/ai_native_npc_schema_v2_0.yaml) |
 | Skill Registry | v1 | [열기](contracts/current/skill_registry_v1.yaml) |
