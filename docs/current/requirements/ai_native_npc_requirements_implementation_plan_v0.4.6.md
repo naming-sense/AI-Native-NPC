@@ -1,155 +1,209 @@
-# AI Native NPC 의사결정 시스템
-## 요구사항·구현 계약·Schema 2.0 명세서
+# AI Native NPC 의사결정 시스템 요구사항
+## 처음 읽는 사람을 위한 개요와 구현 계약
 
 - 문서 버전: **v0.4.6**
-- Schema 상태: **2.0.0 RC5 Harness PASS / Requirements Remediation pending / Not Freeze-ready**
 - 개정일: 2026-08-02
-- 문서 보강: **ML/NNE Implementation Supplement 1 + Requirements Review Remediation 1**
-- 검토 근거: `docs/current/reviews/ai_native_npc_requirements_review_v0.4.6.md`
-- 대체 문서: `ai_native_npc_requirements_implementation_plan.md` v0.2 및 별도 v0.3/v0.4 보완 메모
-- 문서 성격: 연구 제안서가 아니라 **Unreal 클라이언트·Python 학습 코드·서버 실행기가 함께 따라야 하는 단일 구현 기준서**
-- ML 구현 프로필: **`policy_arch_v1.0.0` / `policy_train_v1.0.0` / ONNX opset 17**
-- Phase 0 판정: **조건부 GO — Utility Baseline 중심 수직 슬라이스 착수 가능**
-- V1 ML/NNE 판정: **HOLD — OOD output·Dataset Switch Cost·Goal Registry remediation 필요**
-- Schema 2.0 판정: **RC5 Harness PASS / 새 remediation 미반영 / Unreal Runtime Gate 통과 전 최종 Freeze 보류**
+- 적용 범위: **Unreal 클라이언트, 서버 Gameplay AI, Python 학습·평가 코드**
+- 현재 요약: **RC5 정적 계약과 Utility Baseline 구현은 진행 가능. V1 Neural·OOD·대량 데이터·최종 Freeze는 보류**
+- 기계 판독 계약: **Schema 2.0.0 RC5**
+- 상세 검토: `docs/current/reviews/ai_native_npc_requirements_review_v0.4.6.md`
+- 검증·개정 이력: `docs/current/history/ai_native_npc_requirements_history_v0.4.6.md`
 
 ---
 
-# 0. v0.4.6 Validation Scope & Catalog Closure 판정
+# 0. 문서 안내
 
-최신 리뷰는 타당하다. v0.4.2는 cross-environment release와 Python↔C++ Golden parity를 해결했지만, YAML 필드 변경이 문서 Appendix에 자동 반영되지 않았고, Normalizer의 역전 범위·0 이하 divisor 같은 의미 오류를 충분히 차단하지 못했으며, Hash serializer 일부가 YAML이 아니라 생성기 코드에 하드코딩되어 있었다.
+## 0.1 한 문장으로 설명하면
 
-v0.4.6는 기존 v0.4.2 계약에 다음 Semantic Closure를 추가한다.
+AI Native NPC는 **NPC가 현재 알고 있는 정보만으로 장기 목표 안에서 다음 행동과 대상을 고르고, 서버가 그 선택을 다시 검증한 뒤 실행하는 의사결정 시스템**이다.
 
-이번 RC5는 수기 Hash magic 전면 차단, Critical Suite 최소 분모의 Taxonomy 자동 파생·문서 동기화, RC5 릴리스 승격을 최종 고정 범위로 추가한다.
+신경망이 퀘스트를 만들거나 게임 월드를 직접 바꾸는 구조가 아니다. 게임 로직이 목표와 안전 범위를 정하고, 신경망은 그 안에서 실행 가능한 행동 후보의 순위를 매긴다. 모델이 불확실하거나 응답이 늦으면 기존 Utility 규칙으로 돌아간다.
 
-v0.4.6은 의미 검증을 모든 Lock 대상 non-archive 수기 Markdown으로 확장하고, Catalog Archive 목록과 실제 Archive 파일 집합을 양방향 exact-match로 고정한다. README 기반 전체 release mutation과 Missing/Ghost Archive 회귀 테스트를 규범 증거로 포함한다.
+## 0.2 현재 상태
 
-1. PyYAML `safe_load` 기반 전체 Schema 의미 검증
-2. Enum ID·Tensor Shape·Field Index·Target Payload·Output·Normalizer·Hash 계약 검증
-3. `skill_registry_v1.yaml`, `goal_registry_v1.yaml`
-4. YAML에서 생성한 C++/Python 코드와 생성 Manifest
-5. Candidate Set canonical bytes와 정수 Slotter quantization Golden fixture
-6. Lock 등록 파일과 실제 ZIP 파일 집합의 역방향 일치 검사
-7. 모든 normative Freeze Gate의 상태·증거·도구 버전을 기록하는 통합 Manifest
-8. Contract mismatch와 OOD 분리
-9. Slotter 정렬용 정수 quantization
-10. bounded cosine scorer와 Skill별 Parameter 계약
-
-11. 규범 테스트 리포트에서 Compiler Version·실행시간·stdout/stderr 제거
-12. 환경 진단은 `dist/local/`의 비규범 파일로 분리하고 ZIP에서 제외
-13. `release` 단일 명령으로 생성→테스트→Manifest→Lock→Strict Validate→Double Pack 실행
-14. 생성 C++에 quantization·normalizer·canonical serialization·bit packing·SHA-256·parameter clamp 구현
-15. 동일 Golden vector를 Python과 C++ 양쪽에서 실행
-16. Harness tree digest와 file count를 Validator가 직접 재계산
-
-17. Schema·Registry에서 Appendix A~D를 자동 생성하고 Requirements/UE 문서의 marker block과 byte 단위 비교
-18. 모든 Normalizer에 finite·min≤max·positive divisor·log1p domain·missing/sentinel/valid-range 정합성 강제
-19. Candidate/Decision Hash serializer를 YAML의 ordered field contract에서 Python/C++로 생성
-20. Candidate Hash magic 변경, field rename, reversed clamp를 검출하는 mutation regression test
-21. Decision Contract Hash의 Python↔C++ Golden vector 추가
-22. Hash magic literal은 자동 생성 Appendix D.3 밖에서 수기 중복할 수 없도록 strict guard 추가
-23. constant normalizer·missing·must_equal·valid range·padding_zero의 교차 정합성 검증 추가
-24. Mutation probe는 현재 Schema 값에서 동적으로 다른 값을 생성해 probe 충돌을 방지
-
-2026-07-30 RC5 보관 Harness 시점의 역사적 판정:
-
-- Phase 0: **GO**
-- Schema 코드 생성: **GO**
-- 대량 학습 데이터 생성: **HOLD**
-- Schema 2.0 최종 Freeze: Float/ONNX parity와 Runtime Gate 통과 전 **NO-GO / Conditional**
-
-위 GO는 2026-08-02 Requirements Review Remediation 이전 RC5 artifact에 대한 기록이다. 현재 작업 판정은 문서 상단과 §0.1의 조건부 GO/HOLD/NO-GO가 대체한다.
-
-2026-07-30 ML/NNE 구현 보강은 Schema·Enum·Registry·Tensor Shape·Hash 값을 바꾸지 않는다. 대신 기존에 방향만 있던 신경망을 실제 코드로 옮길 수 있도록 모델 Layer, Dataset Record, Loss, 학습 설정, Calibration/OOD, ONNX Export와 Unreal NNE 적용 절차를 고정한다. Phase 0의 작은 fixture 모델과 end-to-end smoke test는 진행해도 되지만, Feature Capture parity와 split validator가 통과하기 전 V1 대량 데이터 생성은 계속 HOLD다.
-
-고정 태그 `full-harness-v0.4.6-rc5`의 Freeze-ready 증거는 이 보강 전 Schema·기반 문서를 검증한다. 이번 Supplement는 그 Schema 값을 변경하지 않지만 기존 90파일 Lock bundle에는 포함되지 않는다. 최종 Freeze 또는 계약 값 변경 시에는 Supplement를 포함한 새 문서 버전으로 전체 Harness를 다시 baseline해야 한다.
-
-## 0.1 Requirements Review Remediation 1 판정
-
-2026-08-02 검토는 RC5 Harness PASS와 Runtime/ML 계약 승인을 분리한다. 기존 YAML·생성 코드의 byte parity와 문서 하네스는 유효하지만, 새 ML/NNE 구현 계약은 다음 네 항목이 닫히기 전 V1 구현·대량 학습·최종 Freeze의 규범 입력으로 승격할 수 없다.
-
-1. Unreal Runtime OOD 계산을 위한 `tactical_context [B,128]` ONNX output
-2. 학습·평가에서 Runtime Switch Cost를 재현하는 Candidate별 component record
-3. Goal arbitration의 `preemption_margin`, 생성시간 quantization, suspended resume, revision 단일 계약
-4. Event/Timer/Lifecycle을 분리한 Typed Goal Trigger와 phase timeout Registry
-
-판정은 다음과 같다.
-
-| 범위 | 판정 | 허용 범위 |
+| 항목 | 현재 상태 | 지금 할 수 있는 일 |
 |---|---|---|
-| 기존 RC5 Schema/Generated Harness | PASS | 현 RC5 계약의 생성·Golden·문서 parity 증거로 사용 |
-| Phase 0 Utility Baseline 수직 슬라이스 | 조건부 GO | OOD/Calibration 품질 승격 주장을 하지 않고 fallback·capture·commit 경로 검증 |
-| Phase 0 fixture Neural smoke | 조건부 GO | 현 2-output model은 score/parameter smoke에만 사용하며 OOD Runtime Gate 증거로 사용 금지 |
-| V1 Neural Training/Calibration | HOLD | Dataset Switch Cost와 output/Goal 계약 patch 후 재개 |
-| 대량 학습 데이터 생성 | HOLD | feature/content hash와 split case catalog validator 통과 후 재개 |
-| Schema 2.0 최종 Freeze | NO-GO | 새 Schema/Registry 생성·Golden·Runtime Gate·Formal Approval 필요 |
+| RC5 Schema·Registry·Generated contract | 정적 검증과 Python↔C++ Golden 통과 | Utility Baseline 수직 슬라이스, 데이터 Capture, Commit 경로 구현 |
+| RC5 2-output Neural 연결 | 제한적 smoke 가능 | score와 parameter가 Unreal NNE까지 연결되는지만 확인 |
+| V1 Neural·OOD·Calibration | 구현 계약 보강 중 | 후속 Schema/Registry/Generator patch 전 품질 승격 금지 |
+| 대량 학습 데이터와 최종 Freeze | 준비되지 않음 | Runtime Gate와 Dataset Validator가 닫힐 때까지 보류 |
 
-이번 Remediation은 Requirements의 목표 계약을 고정하지만 현재 RC5 YAML·Generated output을 수동 수정하지 않는다. Tensor shape, output, Registry 값 변경은 후속 patch release에서 Generator로 재생성하고 새 Decision Contract Hash를 발급해야 한다.
+여기서 `정적 검증 통과`는 실제 게임 Runtime이 완성됐다는 뜻이 아니다. 현재 YAML과 생성 코드에 아직 없는 목표 계약은 본문에서 `후속 patch`로 표시한다.
 
-## 0.2 독자·Runtime·집행 경계
+## 0.3 이 문서가 정하는 것
 
-| 규칙군 | 주 독자 | 적용 Runtime/단계 | 집행 위치 |
+이 문서는 Unreal 클라이언트, 서버 Gameplay AI, Python 학습 코드가 서로 다르게 해석하면 안 되는 공통 규칙을 정한다.
+
+- NPC가 어떤 정보를 알고 있다고 볼 것인가
+- 장기 목표와 현재 행동을 누가 결정하는가
+- 행동 대상과 실행 가능한 행동 후보를 어떻게 표현하는가
+- 신경망이 무엇을 입력받고 무엇을 출력하는가
+- 늦거나 잘못된 모델 응답을 어떻게 차단하는가
+- 같은 데이터를 Python과 Unreal에서 어떻게 동일하게 해석하는가
+- 모델을 어떤 데이터와 기준으로 학습·평가·승격하는가
+
+세부 Unreal class 구성과 작업 순서는 별도 UE 구현 계획서가 다룬다.
+
+`docs/current/unreal/ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan_v0.4.6.md`
+
+## 0.4 읽는 순서
+
+| 독자 | 먼저 읽을 곳 | 필요할 때 볼 곳 |
+|---|---|---|
+| 기획·Gameplay Designer | §0, §1, §5 | Appendix E 품질 기준 |
+| Gameplay AI·Server | §1~§5, §7~§8 | Appendix A~D 정확한 값 |
+| ML·Data | §1, §3~§6, §9 | Appendix B·E |
+| Unreal NNE | §1, §6~§8, §10 | UE 구현 계획서 |
+| QA·승인자 | §0, §8~§10 | Appendix E와 §12 |
+
+본문은 먼저 `왜 필요한가`와 전체 흐름을 설명하고, 그 다음에 구현자가 그대로 따라야 하는 수치·타입·Hash 규칙을 적는다. `Appendix A~E`는 사람이 처음 읽는 설명이 아니라 생성 코드와 테스트가 참조하는 정확한 계약표다.
+
+## 0.5 규칙의 소유자와 집행 위치
+
+| 규칙 | 주 독자 | 적용 단계 | 실제 집행 위치 |
 |---|---|---|---|
-| Tensor/ONNX/OOD | ML·Unreal NNE | Export, Import, NNE binding, Post-process | Schema output, Bundle Validator, UE descriptor validation, parity test |
-| Dataset/Switch Cost | Data·ML | Capture, Dataset Validation, Train/Evaluate | Dataset schema, Validator, loss/evaluation code |
-| Goal arbitration/trigger | Gameplay AI·Server | Goal Manager, Save/Load, async invalidation | Goal Registry, generated FSM, Runtime tests |
-| Snapshot/Commit | Gameplay AI·Server | inference envelope, GameThread Commit | Commit Coordinator, stale/rollback tests |
-| KPI/승격 | QA·ML·승인자 | General/OOD/Critical/Performance evaluation | Taxonomy, case catalog, release report, formal approval |
+| Tensor·ONNX·OOD | ML·Unreal NNE | Export, Import, NNE 실행 | Schema, Bundle Validator, UE descriptor validation, parity test |
+| Dataset·Switch Cost | Data·ML | Capture, Validation, Train/Evaluate | Dataset schema, Validator, loss/evaluation code |
+| Goal·Trigger | Gameplay AI·Server | Goal Manager, Save/Load | Goal Registry, generated FSM, Runtime test |
+| Snapshot·Commit | Gameplay AI·Server | 비동기 응답 처리, GameThread 실행 | Commit Coordinator, stale/rollback test |
+| KPI·승격 | QA·ML·승인자 | General/OOD/Critical 평가 | Taxonomy, case catalog, release report, formal approval |
 
-이 Markdown의 문장만으로 Runtime enforcement가 생기지 않는다. 각 규칙은 표의 집행 위치에 구현되고 해당 evidence가 Freeze Manifest에 잠긴 뒤에만 완료로 판정한다.
-
-현재 Runtime/학습 Tensor 계약의 단일 원본은 다음 세 파일이다.
+현재 기계 판독 계약의 단일 원본은 다음 파일이다.
 
 ```text
 contracts/current/ai_native_npc_schema_v2_0.yaml
 contracts/current/skill_registry_v1.yaml
 contracts/current/goal_registry_v1.yaml
+contracts/current/test_taxonomy_v1.yaml
 ```
 
-평가 family와 KPI 분모의 단일 원본은 별도 `contracts/current/test_taxonomy_v1.yaml`이다.
-
-`archive/`의 JSON Schema와 이전 문서는 구현 입력으로 사용할 수 없다.
+이 Markdown만 고쳐서는 Runtime 규칙이 적용되지 않는다. 구조화된 원본, 생성 코드, Runtime 집행, 검증 증거가 함께 갱신돼야 완료다. `archive/`는 감사용이며 현재 구현 입력으로 사용하지 않는다.
 
 ---
 
-# 1. 목표와 책임 경계
+# 1. 만들려는 시스템과 전체 구조
 
+## 1.1 왜 이 시스템을 만드는가
 
-## 1.1 목표
+NPC 행동을 전부 조건문과 Behavior Tree branch로 작성하면 `목표 × 행동 × 대상 × 상황` 조합이 늘어날수록 규칙도 빠르게 늘어난다. 반대로 신경망에 모든 결정을 맡기면 퀘스트 규칙, 서버 권한, 숨은 정보, 자원 예약 같은 게임 안전 경계를 지키기 어렵다.
 
-- 상황별 행동 선호 조건문의 수를 줄인다.
-- 장기 Mission/Goal은 명시적으로 유지하면서 현재 Goal 안의 전술 행동 Ranking을 학습한다.
-- NPC가 실제로 관측하거나 전달받은 정보만 사용한다.
-- Candidate 누락, 모델 Ranking 오류, Calibration 오류, Skill 실행 오류를 각각 분리해 측정한다.
-- Utility Baseline보다 안전·성능은 나빠지지 않으면서 사전 정의된 핵심 품질 지표에서 우월함을 증명한다.
+이 시스템은 두 방식을 나눈다.
 
-## 1.2 비목표
+- **게임 로직**은 NPC의 장기 Goal, 실행 가능한 Skill, 안전 조건과 월드 변경 권한을 가진다.
+- **Utility Baseline 또는 Neural Policy**는 안전하다고 확인된 후보 중 현재 상황에 더 어울리는 행동을 고른다.
+- **Commit Coordinator**는 선택 결과를 최신 월드 상태로 다시 검사한 뒤에만 실행한다.
 
-- 퀘스트와 장기 Goal을 신경망이 임의로 생성·완료하는 것
+목표는 규칙을 없애는 것이 아니다. 반드시 지켜야 하는 규칙은 코드와 데이터 계약으로 남기고, 상황에 따른 전술적 선호만 학습 가능하게 만드는 것이다.
+
+## 1.2 Runtime에서 한 번의 의사결정이 흐르는 순서
+
+```text
+Authoritative World
+    └─ 실제 Actor, 피해, 퀘스트, 자원 상태
+         ↓
+Perception → Belief Runtime
+    └─ 이 NPC가 실제로 알 수 있는 정보만 보관
+         ↓
+Goal Manager
+    └─ 지금 달성하려는 목표와 현재 phase 결정
+         ↓
+Typed Target Universe → Target Slotter
+    └─ Entity, 소리, 엄폐물, 위치 등을 공통 Target으로 만들고 17 slot에 배치
+         ↓
+Candidate Builder
+    └─ Skill 16개 × Target slot 17개 = 272개 후보와 실행 가능 mask 생성
+         ↓
+Feature Builder
+    └─ 같은 순서와 정규화로 신경망 입력 Tensor 생성
+         ↓
+Utility Baseline 또는 Neural Policy
+    └─ 후보 점수와 제한된 parameter 제안
+         ↓
+Post-process
+    └─ 행동 전환 비용, OOD, Calibration을 적용하고 필요하면 abstain
+         ↓
+Commit Coordinator
+    └─ Goal·Target·자원·기한을 최신 상태로 재검증하고 원자적으로 시작
+         ↓
+Skill Executor
+    └─ 이동, 시선, 대화, 엄폐, 전투를 실제로 실행
+```
+
+예를 들어 NPC가 소리를 들으면 Hearing이 `SoundEvent`를 만들고 Belief Runtime이 그 위치와 발생 시각을 기억한다. Goal Manager가 `InvestigateDisturbance`를 활성화하면 Target Slotter가 그 소리를 모델이 볼 수 있는 slot에 넣는다. Candidate Builder는 `LookAt(SoundEvent)`, `Investigate(SoundEvent)`처럼 실행 가능한 조합만 남긴다. Policy가 하나를 골라도 바로 실행하지는 않는다. Commit Coordinator가 소리의 TTL, 현재 Goal, 이동 가능 여부를 다시 확인한 뒤 Skill Executor를 시작한다.
+
+## 1.3 학습한 모델이 Runtime에 들어오는 순서
+
+```text
+Runtime Snapshot과 Candidate
+→ Dataset Record와 provenance 저장
+→ split/누출/Switch Cost 검증
+→ Python 학습과 Calibration/OOD fitting
+→ ONNX export와 Model Bundle 생성
+→ Python↔ONNX Runtime parity
+→ Unreal NNE import와 descriptor 검사
+→ Unreal Runtime Golden·Safety Gate
+```
+
+학습과 Runtime은 같은 Schema, Skill/Goal Registry, Target 순서, Candidate Mask, 정규화와 Post-process 버전을 사용한다. 어느 하나라도 다르면 모델 실행 전에 계약 불일치로 거부한다.
+
+## 1.4 계층별 책임
+
+| 계층 | 하는 일 | 다음 계층에 넘기는 것 | 하지 않는 일 |
+|---|---|---|---|
+| Authoritative World | 실제 Actor·물리·피해·퀘스트·자원 상태를 소유 | 권한 있는 최신 월드 상태 | 모델이 월드를 직접 변경하게 하지 않음 |
+| Perception/Belief | 시야·소리·공유 정보에서 NPC가 아는 사실을 관리 | 출처·관측 시각·confidence·TTL이 있는 Belief | 보이지 않는 Actor의 실제 상태를 보충하지 않음 |
+| Goal Manager | 퀘스트와 사건을 Goal로 만들고 우선순위·phase·중단·재개를 관리 | Active Goal과 revision | 매 순간의 전술 행동을 직접 점수화하지 않음 |
+| Typed Target Universe·Slotter | 서로 다른 대상 형식을 공통 표현으로 바꾸고 고정 slot에 선정 | 16개 일반 Target와 `NoTarget` 1개 | 행동을 선택하거나 월드를 변경하지 않음 |
+| Candidate Builder | Skill과 Target의 가능한 조합을 만들고 불가능한 조합을 mask | 고정 272개 후보와 hard mask | 안전하지 않은 후보를 모델 판단에 맡기지 않음 |
+| Utility Baseline·Neural Policy | 허용된 후보의 전술적 선호를 계산 | raw score와 제한된 parameter proposal | Goal 생성, 안전 승인, 자원 예약을 하지 않음 |
+| Post-process | 전환 비용·OOD·Calibration을 적용 | 선택 후보 또는 abstain/fallback | 최신 월드 상태를 확정하지 않음 |
+| Commit Coordinator | 응답이 아직 유효한지 검사하고 자원을 예약 | 성공한 Skill 시작 또는 명시적 실패 코드 | stale 응답이나 부분 성공을 허용하지 않음 |
+| Skill Executor | 선택된 Skill을 tick하고 완료·실패·취소 처리 | 실제 Gameplay 결과와 종료 상태 | 새 Goal이나 모델 점수를 만들지 않음 |
+
+이렇게 나누는 이유는 실패 원인을 분리하기 위해서다. 대상이 목록에서 빠진 문제, 후보가 mask된 문제, 모델이 잘못 고른 문제, 늦은 응답 문제, Skill 실행 실패를 각각 다른 계층에서 측정하고 고칠 수 있다.
+
+## 1.5 자주 쓰는 용어
+
+| 용어 | 이 문서에서의 뜻 |
+|---|---|
+| Belief | 실제 월드 전체가 아니라 해당 NPC가 관측하거나 전달받아 알고 있는 상태 |
+| Goal | `조사한다`, `전투한다`처럼 여러 행동에 걸쳐 유지되는 목적 |
+| Goal Phase | Goal 안의 현재 단계. 예: 소리 방향 보기 → 접근 → 주변 탐색 |
+| Skill | `LookAt`, `Approach`, `Attack`처럼 실행기가 수행할 수 있는 한 가지 행동 |
+| Target | Skill이 향하거나 사용하는 대상. Actor뿐 아니라 소리, 위치, 엄폐물도 포함 |
+| Typed Target | 종류가 다른 Target을 공통 Handle과 Feature 형식으로 표현한 것 |
+| Target Slot | 이번 의사결정에서 모델에 보여주는 Target의 고정 위치 |
+| Candidate | `Skill + Target Slot` 조합. 예: `Investigate + SoundEvent slot 3` |
+| Hard Mask | 게임 규칙상 실행할 수 없는 Candidate를 모델 평가 전에 제거한 표 |
+| Commit | 선택된 Candidate를 최신 상태로 재검증하고 실제 Skill 시작을 확정하는 짧은 트랜잭션 |
+| OOD | 학습 때와 너무 다른 입력을 감지해 모델 선택을 포기하는 신호 |
+| Contract | Python·Unreal·서버가 동일하게 따라야 하는 타입, 순서, 수식, 실패 규칙 |
+
+## 1.6 달성 목표
+
+- 장기 Goal은 명시적으로 유지하고, 현재 Goal 안의 전술 행동 선택만 학습한다.
+- NPC가 관측하거나 전달받은 정보만 사용해 플레이어가 납득할 수 있는 행동을 만든다.
+- 상황별 행동 선호 조건문의 증가를 줄인다.
+- Candidate 누락, Ranking 오류, Calibration 오류, Commit 오류, Skill 실행 오류를 따로 측정한다.
+- Utility Baseline보다 안전과 성능이 나빠지지 않는 상태에서 자연스러움과 목표 수행 품질의 개선을 증명한다.
+- Python 학습 결과와 Unreal Runtime이 같은 입력에 같은 계약을 적용하도록 만든다.
+
+## 1.7 이 문서가 목표로 하지 않는 것
+
+- 신경망이 퀘스트나 장기 Goal을 임의로 생성·완료하는 것
 - 숨은 Actor의 실제 위치·체력·행동을 모델이 사용하는 것
-- 감정·관계를 모델 출력으로 직접 누적 변경하는 것
+- 감정·관계를 모델 출력만으로 직접 누적 변경하는 것
 - 신규 Role·Skill의 무조건적인 zero-shot 품질 보장
-- 매 프레임 이동 벡터·애니메이션을 모델이 직접 출력하는 것
+- 매 프레임 이동 벡터나 애니메이션을 모델이 직접 출력하는 것
 - GRU hidden state만으로 장기 계획을 유지하는 것
 
-## 1.3 계층별 소유권
-
-| 계층 | 소유 책임 |
-|---|---|
-| Authoritative World | 물리, 피해, 실제 Actor 상태, 퀘스트, 서버 권한 |
-| Perception/Belief | NPC가 아는 상태, 출처, 관측시각, confidence, TTL |
-| Goal Manager | Goal 생성, arbitration, phase transition, suspend/resume, revision |
-| Target Slotter | Target Universe에서 16개 일반 Target을 결정론적으로 선정 |
-| Candidate Builder | 16×17 고정 Candidate layout과 hard mask 생성 |
-| Neural Policy | raw score와 제한된 표현 파라미터 출력 |
-| Post-process | switch cost, adjusted score, OOD, calibration, abstain |
-| Commit Coordinator | stale 검증, 자원 예약, Skill 시작의 원자적 Commit |
-| Skill Executor | Tick, Complete, Cancel, 물리·애니메이션·전투 실행 |
-
 ---
 
-# 2. Typed Target 계약
+# 2. 서로 다른 대상을 한 형식으로 다루는 방법 (Typed Target)
+
+NPC 행동의 대상은 Actor만이 아니다. 보이는 적, 방금 들린 소리, 적의 마지막 위치, 엄폐 지점, Smart Object, 순찰 Waypoint처럼 수명과 검증 방식이 서로 다른 대상을 함께 다뤄야 한다. Skill마다 별도 대상 타입과 예외 규칙을 만들면 Candidate Builder, Dataset, 신경망 입력, Commit 코드가 같은 분기문을 반복하게 된다.
+
+`Typed Target`은 이 대상들을 **공통 식별 형식과 종류별 데이터**로 묶는 계약이다. 공통 `Handle`은 Runtime이 "정확히 어느 대상의 어느 상태인가"를 확인할 때 쓰고, `Features`는 모델이 판단에 필요한 관측값만 받게 한다. 이 분리 덕분에 모델은 서버 ID나 숨은 월드 상태를 보지 않으면서도 여러 종류의 대상을 같은 Candidate 구조로 평가할 수 있다.
 
 ## 2.1 Runtime Handle과 Model Feature 분리
 
@@ -180,11 +234,13 @@ struct FTargetFeatures
 - `IdentityKey = (Kind, StableId, Generation)`
 - `SnapshotKey = (Kind, StableId, Generation, Revision)`
 - Dedupe와 이전 slot 유지에는 `IdentityKey`를 사용하고 같은 identity 중 가장 최신 Revision을 선택한다.
-- Candidate Hash와 Commit snapshot 검증에는 `SnapshotKey`를 사용한다.
+- Candidate Hash에는 요청 시점의 `SnapshotKey`를 기록한다. Commit의 Revision 일치 방식은 Target Kind별 §7.3 규칙을 따른다.
 - Event가 과거 Revision의 같은 대상을 참조할 때 현재 slot 재매핑은 `IdentityKey`로 수행한다.
 - Switch Cost의 `target_changed`, `same_as_current_target`, `same_as_current_skill_target`, Continue slot 재매핑은 `IdentityKey` 비교를 사용한다.
-- `Revision`만 바뀐 동일 identity는 Target switch가 아니라 snapshot update다. 이 변경은 `SnapshotKey` stale 검증에는 반영하지만 switch penalty를 만들지 않는다.
+- `Revision`만 바뀐 동일 identity는 Target switch가 아니라 snapshot update다. immutable/resource Target의 exact Revision 변경은 stale 처리하고, Entity Belief 갱신은 §7.1의 제한된 non-material 조건에서만 최신 Belief 재검증을 허용한다.
 - Canonical serialization의 `FTargetHandle` 전체 byte 비교를 의미상 same-target 비교로 재사용하지 않는다.
+
+같은 적을 두 번 관측한 경우를 생각하면 쉽다. `IdentityKey`는 "같은 적인가"를 답하고, `SnapshotKey`는 "요청 때 본 관측과 같은가"를 답한다. 새 Entity 관측이 위치 같은 연속값만 조금 바꿨다면 50ms 한도 안에서 최신 Belief로 다시 검증할 수 있다. 시야, 실행 가능 여부, mask가 바뀌었거나 immutable Target의 Revision이 달라졌다면 이전 응답을 폐기한다.
 
 금지 사항:
 
@@ -195,16 +251,16 @@ struct FTargetFeatures
 
 ## 2.2 Target Kind ID
 
-| ID | Name |
-| --- | --- |
-| 0 | NoTarget |
-| 1 | Entity |
-| 2 | SoundEvent |
-| 3 | LastKnownPosition |
-| 4 | CoverSlot |
-| 5 | SmartObject |
-| 6 | Waypoint |
-| 7 | WorldPosition |
+| ID | Name | 쉽게 말하면 |
+|---:|---|---|
+| 0 | NoTarget | 대상을 필요로 하지 않는 Skill용 고정 자리 |
+| 1 | Entity | NPC가 현재 추적할 수 있는 Actor |
+| 2 | SoundEvent | 특정 시점에 들린 소리의 변경되지 않는 기록 |
+| 3 | LastKnownPosition | 더 이상 보이지 않는 대상의 마지막 관측 위치 |
+| 4 | CoverSlot | 예약과 점유 상태를 검증해야 하는 엄폐 지점 |
+| 5 | SmartObject | 의자·문·상호작용 지점처럼 예약 가능한 기능 위치 |
+| 6 | Waypoint | 순찰·경로에 작성된 고정 지점 |
+| 7 | WorldPosition | Goal·Script·Player Ping이 만든 임시 위치 |
 
 ## 2.3 Handle 생성 규칙
 
@@ -342,7 +398,11 @@ Tensor Build
 
 ---
 
-# 3. Target Universe와 Target Slotter
+# 3. 모델에 보여줄 대상을 고르는 방법 (Target Universe와 Slotter)
+
+한 장면에는 모델 입력 한도를 넘는 Actor, 소리, 위치, 자원이 있을 수 있다. `Target Universe`는 현재 Goal과 Belief에서 사용할 수 있는 모든 Typed Target의 집합이고, `Target Slotter`는 그중 중요한 대상을 고정된 17개 위치에 넣는다.
+
+현재 Skill Target, Goal Target, 예약 자원처럼 빠지면 안 되는 대상은 먼저 보존하고, 나머지는 종류별 quota와 결정론적 정렬로 채운다. Python과 Unreal이 같은 대상을 같은 slot에 넣어야 학습 때의 Candidate 번호가 Runtime에서도 같은 의미를 가진다.
 
 ## 3.1 고정 용량
 
@@ -478,7 +538,11 @@ Target Recall denominator = Σ_s |R(s)|
 
 ---
 
-# 4. Candidate Universe
+# 4. 실행 가능한 행동 목록을 만드는 방법 (Candidate Universe)
+
+모델은 Skill 이름 하나만 고르지 않는다. `Attack + Entity slot 2`, `Investigate + SoundEvent slot 5`처럼 **행동과 대상의 조합**을 고른다. 이 조합 하나가 Candidate다.
+
+Candidate Builder는 16개 Skill과 17개 Target slot을 조합해 항상 272개 위치를 만들고, 현재 실행할 수 없는 조합은 hard mask로 제거한다. 모델은 이미 허용된 후보의 순위만 정하므로 `Attack + Waypoint`처럼 의미 없는 조합이나 precondition을 위반한 행동을 점수로 되살릴 수 없다.
 
 ## 4.1 고정 Layout
 
@@ -584,7 +648,11 @@ Full Acceptable Recall denominator = Σ_s |G(s)|
 
 ---
 
-# 5. Goal Manager와 Arbitration
+# 5. NPC가 지금 달성할 목적을 관리하는 방법 (Goal Manager)
+
+Goal은 한 번의 행동보다 오래 유지되는 목적이다. 예를 들어 `InvestigateDisturbance` Goal은 소리 방향을 보고, 접근하고, 주변을 찾는 여러 Skill에 걸쳐 이어질 수 있다. 신경망은 이 Goal을 만들거나 완료 처리하지 않는다.
+
+Goal Manager는 퀘스트, 전투, 사회적 사건에서 Goal을 만들고 우선순위를 비교한다. 더 중요한 Goal이 들어오면 현재 Goal을 중단·보관·재개할지 결정하고, phase와 revision을 관리한다. Policy는 Goal Manager가 정한 현재 Goal과 phase 안에서만 다음 Candidate를 고른다.
 
 ## 5.1 Goal State
 
@@ -743,7 +811,11 @@ trigger:
 - Registry patch 전에는 Goal FSM Runtime Gate를 PASS로 표시할 수 없다.
 - Companion UE 문서의 Phase 0 표가 Registry와 다르면 Registry transition을 우선하며, UE 표는 Registry에서 재생성한 뒤 parity를 검사한다.
 
-# 6. Neural Policy와 Post-process
+# 6. 후보를 평가하고 불확실하면 물러나는 방법 (Neural Policy와 Post-process)
+
+Neural Policy는 월드 명령을 직접 출력하지 않는다. 각 Candidate의 `raw score`와 Skill이 허용한 범위 안의 parameter proposal만 출력한다. 같은 입력과 Candidate는 Utility Baseline도 평가할 수 있어 모델이 없거나 거부됐을 때 즉시 대체할 수 있다.
+
+Post-process는 행동을 너무 자주 바꾸지 않도록 Switch Cost를 빼고, 학습 분포와 다른 상태인지 OOD를 계산하며, 선택을 신뢰할 수 있는지 Calibration으로 확인한다. 어느 Gate라도 통과하지 못하면 Neural 결과를 `abstain`하고 최신 상태에서 Utility Baseline을 실행한다. Utility에도 valid Candidate가 없으면 Goal별 fallback을 사용한다.
 
 ## 6.1 V1 모델
 
@@ -1064,7 +1136,11 @@ decision_contract_hash = SHA256(
 
 ---
 
-# 7. 비동기 추론과 Atomic Commit
+# 7. 늦은 모델 응답이 잘못 실행되지 않게 하는 방법 (비동기 추론과 Atomic Commit)
+
+모델 추론은 GameThread 밖에서 실행될 수 있다. 추론하는 동안 Target이 사라지거나 Goal이 바뀌거나 다른 NPC가 자원을 예약할 수 있으므로, 응답이 도착했다는 이유만으로 실행하면 안 된다.
+
+각 요청은 decision ID, 계약 Hash, Candidate Hash와 snapshot revision을 가진다. Commit Coordinator는 응답이 최신 요청과 같은 상태를 가리키는지 확인하고, Target·Goal·자원 precondition을 한 번 더 검사한다. 모든 검증과 예약이 성공해야 Skill을 시작한다. 중간에 실패하면 이번 Commit이 만든 신규 mutation과 부분 예약만 rollback하고 기존 Skill은 유지한다.
 
 ## 7.1 Request 상태
 
@@ -1077,22 +1153,33 @@ NPC별 상태:
 - `urgent_flag`
 - `latest_snapshot_revision`: Commit-relevant material state가 바뀔 때만 증가하는 uint64
 
-각 inference request/response envelope는 `snapshot_revision:uint64`과 `snapshot_captured_at_monotonic_ms:uint64`를 저장한다. 이것은 연속적인 raw float 변화마다 증가시키는 frame counter가 아니다.
+각 inference request/response envelope는 다음 값을 저장한다.
+
+- `snapshot_revision:uint64`
+- `snapshot_captured_at_monotonic_ms:uint64`
+- `request_deadline_monotonic_ms:uint64`
+
+`snapshot_revision`은 연속적인 raw float 변화마다 증가시키는 frame counter가 아니다. V1 `request_deadline_budget_ms`는 `40`이며, capture 시 `request_deadline_monotonic_ms = checked_add(snapshot_captured_at_monotonic_ms, 40)`으로 한 번 계산한다. overflow면 요청을 발행하지 않고 `DeadlineExpired`로 처리한다. Feature Build, queue, inference, Post-process, Commit 시작이 모두 이 40ms 안에 들어와야 하며 Commit 시 `current_server_monotonic_ms ≤ request_deadline_monotonic_ms`를 다시 검사한다. 경계를 1ms라도 넘기면 응답과 Execution Plan을 폐기한다.
+
+`request_deadline_budget_ms`와 deadline 계산 방식은 Decision Runtime Contract와 Decision Contract Hash에 포함한다. Appendix E의 p95/p99와 deadline miss는 이 같은 capture-to-Commit 시계를 사용한다.
 
 Material change:
 
 - Active Goal instance/revision 변경
-- Candidate Set/Mask 또는 Target `SnapshotKey` 변경
-- 현재 Perception/LOS 상실 등 Commit 가능성을 바꾸는 변경
-- Skill precondition, interruptibility, authoritative deadline 변경
+- Candidate membership/order/mask 또는 Target `IdentityKey`/Generation 변경
+- SoundEvent·LastKnownPosition·Waypoint·WorldPosition처럼 exact match가 필요한 Target Revision 변경
+- Entity Belief Revision 변경이 현재 Perception/LOS, Target 유효성, Candidate mask, Skill precondition을 바꿈
 - Resource generation/availability 변경
+- Skill interruptibility 또는 authoritative deadline 변경
 - 피격·폭발·강제 Goal 같은 urgent event
 
 Non-material change:
 
 - 로그·telemetry counter와 model input이 아닌 presentation state
-- Schema에서 `staleness_class: continuous_nonmaterial`로 구조화된 float feature drift만 허용
-- 해당 drift 중에도 모든 ID/enum/mask/bool/sentinel, Target `SnapshotKey`, Goal revision, Candidate Hash, Event ID/order, path reachable/LOS, Skill precondition, Resource generation/availability가 같아야 함
+- 같은 Entity `IdentityKey`/Generation의 새 Belief Revision이면서 현재 허용 Perception이 유지되고 Candidate membership/order/mask와 Commit precondition이 그대로인 경우
+- 위 Entity 갱신 중 Schema에서 `staleness_class: continuous_nonmaterial`로 구조화한 float feature만 바뀐 경우
+
+허용된 Entity Revision 갱신은 `latest_snapshot_revision`을 올리지 않고 `dirty_flag`만 설정한다. 응답의 Candidate Hash는 요청 당시 pending hash와 비교하고, Commit에서는 최신 Entity Belief와 50ms age bound를 다시 검증한다. 다른 Target Kind의 Revision 변경이나 boolean·sentinel·eligibility 변화는 material이다.
 
 V1 `max_nonmaterial_stale_ms`는 `50`이다. 이 값과 Schema staleness allowlist는 Decision Runtime Contract에 포함하며 변경 시 Decision Contract Hash를 갱신한다. 현재 RC5 Schema에 staleness class가 없으므로 후속 patch 전 구현은 수기 field 추정을 금지하고 non-material stale Commit을 승격 증거로 사용할 수 없다.
 
@@ -1136,7 +1223,7 @@ Kind별 revision 규칙:
 
 | Target Kind | Commit revision 규칙 |
 |---|---|
-| Entity | Identity/Generation 일치 후 **최신 유효 Belief Revision** 허용. 추적이 필요한 Skill은 현재 Perception/LOS 재검증 |
+| Entity | Identity/Generation 일치 후 **최신 유효 Belief Revision**으로 재검증. Revision-only 갱신 허용은 §7.1의 `continuous_nonmaterial` 조건과 50ms age bound를 모두 만족할 때만 가능하며, 추적이 필요한 Skill은 현재 Perception/LOS를 다시 검사 |
 | SoundEvent | 요청 당시 immutable snapshot revision exact match + TTL |
 | LastKnownPosition | immutable snapshot revision exact match. Origin Actor 현재 위치 조회 금지 |
 | CoverSlot/SmartObject | Resource Generation + Availability Revision을 CAS하고 성공 시 ReservationId 생성 |
@@ -1144,7 +1231,7 @@ Kind별 revision 규칙:
 | WorldPosition | immutable snapshot revision exact match |
 | NoTarget | Target 검증 없음 |
 
-응답의 Candidate Hash는 먼저 **pending request에 저장된 hash**와 비교한다. 최신 월드로 Candidate Hash를 재계산해 최초 비교에 사용하지 않는다.
+응답의 Candidate Hash는 먼저 **pending request에 저장된 hash**와 비교한다. 다르면 `CandidateHashMismatch`로 폐기한다. 최신 월드로 Candidate Hash를 재계산해 최초 비교에 사용하지 않는다.
 
 Reservation:
 
@@ -1153,13 +1240,33 @@ Reservation:
 - 부분 예약과 `StartCommit` 실패는 전부 rollback
 - 후보 생성 전에는 ReservationId가 없으며 ResourceGeneration과 AvailabilityRevision만 존재
 
-## 7.4 Commit 실패 코드
+## 7.4 모델 거부·실패 후 Fallback
+
+다음 경우에는 Neural 결과를 실행하지 않는다.
+
+- Backend timeout/error 또는 `DeadlineExpired`
+- `ContractMismatch`, `DecisionSuperseded`, `SnapshotSuperseded`
+- OOD·Calibration abstain
+- Candidate가 없거나 Commit 검증 실패
+
+처리 순서는 다음과 같다.
+
+1. 거부된 응답과 그 Execution Plan은 폐기한다.
+2. 기존 Skill이 `CanContinue(LatestBelief, LatestGoalRevision)`를 통과하면 새 결정을 준비하는 동안 유지한다.
+3. 더 최신인 commit-eligible 요청이 없을 때만 최신 Belief·Goal로 새 decision ID와 Candidate를 만든다. 오래된 요청의 Tensor나 Candidate Hash를 재사용하지 않는다.
+4. `utility_baseline_v1.0.0`이 같은 Target Slot, Candidate, hard mask와 Switch Cost로 후보를 고른다. Neural OOD·Calibration은 적용하지 않지만 §7.3 Commit 검증은 그대로 통과해야 한다.
+5. Utility에도 valid Candidate가 없거나 Commit이 실패하면 Goal Registry의 결정론적 fallback을 사용한다.
+
+긴급 이벤트가 새 요청을 이미 만들었다면 이전 요청의 실패는 telemetry만 남기고 별도 fallback 결정을 만들지 않는다. Fallback reason, 기존 Skill 유지 여부, Utility 결과와 최종 Commit 실패 코드를 모두 기록한다.
+
+## 7.5 Commit 실패 코드
 
 
 - `DecisionSuperseded`
 - `SnapshotSuperseded`
 - `DeadlineExpired`
 - `ContractMismatch`
+- `CandidateHashMismatch`
 - `GoalRevisionChanged`
 - `TargetGenerationChanged`
 - `TargetBeliefInvalid`
@@ -1169,7 +1276,7 @@ Reservation:
 - `StartCommitFailed`
 - `AuthorityRejected`
 
-## 7.5 멀티플레이
+## 7.6 멀티플레이
 
 - 서버가 Perception, Belief, Goal, Inference 요청, Post-process, Commit을 소유한다.
 - 클라이언트는 선택 Skill, typed target Net reference 또는 snapshot, parameter, server start time을 복제받는다.
@@ -1177,7 +1284,11 @@ Reservation:
 
 ---
 
-# 8. Hidden Information 실행 경계
+# 8. NPC가 모르는 정보를 쓰지 않게 하는 방법 (Hidden Information 경계)
+
+게임 서버는 모든 Actor의 실제 위치와 상태를 알지만 NPC가 그 정보를 모두 아는 것은 아니다. 서버의 편의를 이유로 숨은 정보를 모델 입력이나 Skill 실행에 섞으면 NPC가 벽 너머 적을 추적하거나 잊어야 할 위치를 계속 아는 문제가 생긴다.
+
+이 경계는 "서버에 데이터가 있는가"가 아니라 "이 NPC가 합법적으로 관측했는가"로 정보를 나눈다. Entity를 시야에서 놓치면 실제 Actor Transform을 계속 읽지 않고, 마지막으로 본 위치를 별도의 immutable `LastKnownPosition` Target으로 바꿔 사용한다.
 
 ## 8.1 원칙
 
@@ -1217,7 +1328,11 @@ Authoritative 물리·충돌·피해 판정은 Ground Truth를 사용할 수 있
 
 ---
 
-# 9. 데이터·학습·Baseline
+# 9. 같은 의사결정을 학습하고 비교하는 방법 (데이터·학습·Baseline)
+
+모델 품질은 Runtime과 다른 규칙으로 만든 데이터에서는 판단할 수 없다. 학습 Record는 Runtime에서 Capture하거나 Runtime과 동일한 계약으로 절차 생성한 Tensor, Candidate Mask, Switch Cost, label과 생성 출처를 함께 저장한다. split 간 같은 상황이 섞이거나 숨은 정보가 입력에 들어가면 Dataset Validator가 학습 전에 거부한다.
+
+Utility Baseline은 단순 비상용 코드가 아니라 비교 기준이다. Neural Policy는 같은 Target과 Candidate를 받아야 하며, 안전·성능은 Baseline보다 나빠지지 않으면서 사전에 정한 품질 지표에서 개선을 보여야 한다.
 
 ## 9.1 데이터 계층
 
@@ -1688,7 +1803,11 @@ python -m anpc_ml.evaluate --bundle <model_bundle_dir>
 
 Phase 0에서는 작은 deterministic fixture dataset으로 위 명령과 ONNX→Unreal 경로를 끝까지 검증한다. Fixture model은 품질 승격 대상이 아니며 Utility Baseline보다 우수하다고 주장하지 않는다. V1은 Appendix E 최소 데이터와 모든 품질·안전·성능 Gate를 충족한 별도 Model Bundle이다.
 
-# 10. Schema Generator와 Parity
+# 10. Python과 Unreal이 같은 규칙을 쓰게 하는 방법 (Schema Generator와 Parity)
+
+Tensor index, enum ID, 정규화, bit packing, Hash 순서를 문서·Python·C++에 따로 적으면 언젠가 서로 달라진다. 이 프로젝트는 YAML Schema와 Registry를 단일 원본으로 두고 Python 코드, C++ header, Appendix를 생성한다.
+
+Parity test는 두 구현이 같은 fixture를 같은 byte와 float 결과로 해석하는지 확인한다. 문서 표가 맞아 보여도 생성 코드나 Runtime 결과가 다르면 계약은 통과한 것이 아니다.
 
 ## 10.1 Single Source와 실행 산출물
 
@@ -1787,15 +1906,20 @@ Schema semantic validation
 | `GOAL-TRIGGER-001` | `Timeout` 문자열 allowlist, duration 없음 | typed Event/Timer/Lifecycle/ServerControl trigger와 phase duration | Goal Registry validator + generated FSM runtime test |
 | `GOAL-REVISION-001` | Registry revision 목록 누락 | interruptibility/resume policy change 추가 | generated Registry parity |
 | `IDENTITY-EQUALITY-001` | Pair Feature source가 `handle equality`/`typed handle equals`로 모호 | `same_as_current_target`와 `same_as_current_skill_target`에 `comparison_key: identity_key` 구조화 | generated helper + Revision-only mutation Golden |
-| `ASYNC-STALE-001` | continuous float drift allowlist와 age bound가 구조화되지 않음 | `staleness_class`와 `max_nonmaterial_stale_ms=50`을 Decision Runtime Contract에 추가 | stale boundary Runtime/Golden test |
+| `ASYNC-STALE-001` | continuous float drift allowlist와 age bound가 구조화되지 않음 | Entity Revision-only `staleness_class`, `max_nonmaterial_stale_ms=50`, exact-match Target Kind를 Decision Runtime Contract에 추가 | stale boundary·Kind별 Revision Runtime/Golden test |
+| `ASYNC-DEADLINE-001` | request deadline field와 40ms 계산이 구조화되지 않음 | `request_deadline_budget_ms=40`, checked absolute deadline, capture-to-Commit clock을 Decision Runtime Contract에 추가 | 39/40/41ms boundary·overflow·deadline miss Runtime test |
+| `FALLBACK-001` | timeout·abstain·supersede의 fallback 규칙과 failure code가 여러 절에 분산 | `CandidateHashMismatch`를 포함한 failure enum과 reason→기존 Skill 유지→latest snapshot Utility→Goal fallback 순서를 Decision Runtime Contract에 구조화 | hash mismatch·timeout·OOD·stale·urgent race Runtime test |
 | `EVENT-MOVING-001` | `source_moving_probability`가 bool | 확률이면 ratio `[0,1]`; boolean 의미를 유지하려면 `source_is_moving`으로 rename | Schema migration + Float Feature parity |
 | `DOC-GENERATOR-001` | generated Appendix `D.3` 중복 | Candidate Hash D.3, Decision Hash D.4, Normalizer D.5 | generated docs parity |
 | `TEST-CATALOG-001` | family taxonomy만 존재 | 실제 case allowlist YAML 추가 | Catalog/Lock/Archive validation |
 
 Auto-generated marker 내부를 수동 편집해 위 문제를 숨기지 않는다. 구조화된 원본과 Generator를 먼저 고치고 Appendix·Python·C++·Golden·Manifest를 함께 재생성한다.
 
-# 11. Phase와 프로젝트 계획
+# 11. 구현 순서와 완료 범위 (Phase와 프로젝트 계획)
 
+전체 모델 품질을 한 번에 만들지 않는다. Phase 0은 Utility Baseline을 중심으로 Perception부터 Commit까지의 연결과 데이터 Capture를 증명한다. Phase 1은 구조화 계약 patch, 충분한 Dataset, Neural/OOD/Calibration과 모든 승격 Gate를 추가한다.
+
+각 Phase의 `완료`는 문서 작성이 아니라 해당 Runtime 경로와 검증 증거가 실제로 존재한다는 뜻이다.
 
 ## 11.1 Phase 0 = MVP Vertical Slice
 
@@ -1837,6 +1961,10 @@ Auto-generated marker 내부를 수동 편집해 위 문제를 숨기지 않는�
 Phase 0은 병렬 수행을 전제로 약 6~8주 범위다. Phase 1은 Phase 0 Gate 통과 후 약 12~16주 범위이며 팀 규모와 Unreal 통합 상태에 따라 조정한다.
 
 ---
+
+## Appendix A–D 사용 안내
+
+아래 구간은 Schema와 Registry에서 생성된 enum ID, Tensor index, Target payload, Skill parameter, Goal, Hash의 정확한 값이다. 처음 읽을 때는 건너뛰고, 구현이나 parity test에서 값이 필요할 때 참조한다. 표를 직접 고치지 말고 구조화된 원본과 Generator를 수정해야 한다.
 
 <!-- BEGIN AUTO-GENERATED SCHEMA CONTRACT -->
 
@@ -2536,7 +2664,9 @@ Phase 0은 병렬 수행을 전제로 약 6~8주 범위다. Phase 1은 Phase 0 G
 
 <!-- END AUTO-GENERATED SCHEMA CONTRACT -->
 
-# Appendix E. KPI·Dataset·Performance Gate
+# Appendix E. 품질·안전·성능 승인 기준
+
+이 Appendix는 "무엇을 측정해야 모델을 사용할 수 있는가"를 정한다. 표의 숫자는 현재 달성 결과가 아니라 앞으로 통과해야 하는 기준이다. Candidate/Target 누락, 안전 위반, OOD·Calibration, 자연스러움, Dataset 규모와 latency를 따로 측정한다.
 
 <!-- BEGIN AUTO-GENERATED TEST TAXONOMY KPI: REQUIREMENTS -->
 
@@ -2695,7 +2825,9 @@ Gate:
 
 ---
 
-# 12. 최종 승인 체크리스트
+# 12. 언제 구현 완료라고 할 수 있는가 (최종 승인 체크리스트)
+
+아래 항목은 작업 목록이면서 승인 조건이다. 일부 정적 테스트만 통과하거나 문서에 규칙을 추가한 상태로는 Schema Freeze나 V1 Release를 선언할 수 없다.
 
 Schema 2.0 Freeze 승인에는 다음이 모두 필요하다.
 
@@ -2716,9 +2848,11 @@ Schema 2.0 Freeze 승인에는 다음이 모두 필요하다.
 - [ ] Calibration global/group accepted count·coverage·one-sided risk CI Gate 통과
 - [ ] Model Bundle manifest self-exclusion과 `model_sha256=SHA256(policy.onnx)` 검증
 - [ ] `snapshot_revision` stale response와 `SnapshotSuperseded` Runtime 테스트 통과
+- [ ] 40ms request deadline의 39/40/41ms·overflow Runtime 테스트 통과
+- [ ] Candidate Hash mismatch가 `CandidateHashMismatch`로 거부되고 Neural 실패→latest Utility→Goal fallback 순서 테스트 통과
 - [ ] Atomic Commit rollback·lease·urgent cancellation 테스트 통과
 - [ ] Hidden Information Leakage Test 통과
 - [ ] Appendix E의 실제 Baseline/CI/표본 Gate 통과
 - [ ] 보관 validation report의 pending Runtime/Formal Gate가 실제 evidence로 모두 종료
 
-이 문서와 현재 RC5 YAML이 상충하는 output·Registry 항목은 §0.1과 §10.6에 기록된 의도된 remediation 대상이다. 해당 항목은 YAML의 현재 field index·enum·shape를 Runtime active contract로 우선하되 **최종 Freeze와 OOD Runtime 승격은 금지**한다. 구조화된 원본과 Generator를 고쳐 새 patch version의 YAML·generated artifacts·Golden·Decision Contract Hash를 함께 발급한 뒤에만 본문의 목표 계약이 active가 된다.
+이 문서의 목표 계약과 현재 RC5 YAML이 다른 output·Registry 항목은 §10.6의 remediation backlog에 기록한다. 과거 판단 근거는 `docs/current/history/ai_native_npc_requirements_history_v0.4.6.md`에 있다. 해당 항목은 YAML의 현재 field index·enum·shape를 Runtime active contract로 우선하되 **최종 Freeze와 OOD Runtime 승격은 금지**한다. 구조화된 원본과 Generator를 고쳐 새 patch version의 YAML·generated artifacts·Golden·Decision Contract Hash를 함께 발급한 뒤에만 본문의 목표 계약이 active가 된다.

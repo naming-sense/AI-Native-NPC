@@ -8,7 +8,7 @@
 - 대체 문서: 기존 `ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan.md` v0.3
 - 상위 기준서: `ai_native_npc_requirements_implementation_plan_v0.4.6.md`
 - Tensor 단일 원본: `ai_native_npc_schema_v2_0.yaml`
-- 상위 기준서 SHA-256: `84f3723ed776ef88958cc139f90f513c163e68f8ea1b39d810b82b17514fcaba`
+- 상위 기준서 SHA-256: `220b783e452fb3c17789c28ab953457ea765f7d65af88aa809f06c5ad9e4742b`
 - Schema YAML SHA-256: `424898ba9e80ff8ac7ad4d48a806f8606d2c595ec892d2753becbdaa3e47b6cc`
 - Skill Registry SHA-256: `08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8`
 - Goal Registry SHA-256: `b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2`
