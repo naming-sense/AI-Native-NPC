@@ -1,5 +1,7 @@
 # AI Native NPC 요구사항 문서 독자 중심 재구성 계획
 
+> **후속 구조:** 이 계획이 수정한 결합 문서는 [Requirements](../current/requirements/ai_native_npc_requirements_v0.4.6.md), [Implementation Plan](../current/implementation/ai_native_npc_implementation_plan_v0.4.6.md), [Contract Appendices](../current/reference/ai_native_npc_contract_appendices_v0.4.6.md)로 분리됐다.
+
 > **For Hermes:** 이 계획을 순서대로 실행하되 Auto-generated marker 내부는 수정하지 않는다.
 
 **Goal:** 처음 읽는 사람이 AI Native NPC의 목적, 전체 동작 흐름, 각 계층의 책임, Typed Target을 비롯한 핵심 개념의 존재 이유를 먼저 이해한 뒤 세부 구현 계약을 읽을 수 있도록 요구사항 문서를 재구성한다.

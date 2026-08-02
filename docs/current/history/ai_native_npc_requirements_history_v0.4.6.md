@@ -1,6 +1,8 @@
 # AI Native NPC 요구사항 v0.4.6 검증·개정 이력
 
-- 대상 문서: `docs/current/requirements/ai_native_npc_requirements_implementation_plan_v0.4.6.md`
+- 현행 요구사항: `docs/current/requirements/ai_native_npc_requirements_v0.4.6.md`
+- 현행 구현 계획: `docs/current/implementation/ai_native_npc_implementation_plan_v0.4.6.md`
+- 현행 계약 부록: `docs/current/reference/ai_native_npc_contract_appendices_v0.4.6.md`
 - 이력 기준일: 2026-08-02
 - 성격: 감사와 변경 추적을 위한 참고 문서
 
@@ -99,7 +101,21 @@ Remediation은 목표 계약을 Requirements에 기록했지만 RC5 YAML·Genera
 
 ---
 
-## 5. 상태 용어 해석
+## 5. 2026-08-02 문서 분리와 Teacher LLM 계약 복원
+
+결합 문서를 독자와 집행 단계에 따라 세 문서로 분리했다.
+
+- Requirements: Runtime·데이터·안전 규범
+- Implementation Plan: Reference Model·학습·릴리스·Phase 실행 절차
+- Contract Appendices: 생성 Schema/Registry 표와 승인 기준
+
+개발 단계의 `Teacher LLM Silver Label` 계약에는 입력 경계, strict response, 5-sample 합의, Dataset Record mapping, annotation provenance, Gold Validation 승격 Gate를 추가했다. Teacher Profile·request/response Schema·Golden parity가 구현되기 전 Teacher Silver 생성은 HOLD다.
+
+생성 Appendix의 단일 문서 경로 변경은 Schema와 Test Taxonomy의 `documentation_contract`에 반영했다.
+
+---
+
+## 6. 상태 용어 해석
 
 - `Harness PASS`: Schema, 생성 코드, Golden fixture, 문서 marker의 정적 정합성 증거다.
 - `Runtime PASS`: 실제 Unreal/서버 경로가 실행되고 필요한 Runtime test가 통과했다는 뜻이다.

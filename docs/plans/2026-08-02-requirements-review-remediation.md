@@ -1,5 +1,7 @@
 # AI Native NPC 요구사항 검토 반영 Implementation Plan
 
+> **후속 구조:** 이 계획이 수정한 결합 문서는 [Requirements](../current/requirements/ai_native_npc_requirements_v0.4.6.md), [Implementation Plan](../current/implementation/ai_native_npc_implementation_plan_v0.4.6.md), [Contract Appendices](../current/reference/ai_native_npc_contract_appendices_v0.4.6.md)로 분리됐다.
+
 > **For Hermes:** Use subagent-driven-development skill to implement this plan task-by-task.
 
 **Goal:** v0.4.6 요구사항 검토 결과를 저장소의 감사 가능한 문서로 남기고, 발견된 P0/P1/P2 계약 결함을 요구사항 기준서에 반영한다.
