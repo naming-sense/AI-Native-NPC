@@ -103,3 +103,30 @@
 - Auto-generated Appendix의 값은 Schema/Registry와 Generator가 소유하며 이 작업에서 수동 수정하지 않는다.
 - History 문서는 감사 기록이며 현재 Runtime 구현 입력이 아니다.
 - 이번 작업은 문서 재구성이다. Schema, Runtime, ML 구현 상태를 PASS로 바꾸지 않는다.
+
+---
+
+## Follow-up: 간결한 직접형 문장으로 정리
+
+**Goal:** 설명 문단을 `주체 + 역할/동작` 중심으로 줄인다.
+
+**원칙:**
+
+1. `A가 아니다. B다.` 대조형 설명을 B의 직접 정의로 바꾼다.
+2. 한 문장에는 한 가지 동작만 둔다.
+3. 같은 의미를 도식·문단·표에서 반복하지 않는다.
+4. 소개 문단은 1~2문장으로 제한한다.
+5. Runtime 안전, 금지 입력, stale 폐기 같은 규범적 부정문은 유지한다.
+6. Auto-generated marker 내부와 수치·타입·실패 의미는 유지한다.
+
+**대상:**
+
+- §0~§1의 문서 안내, 목적, 계층 책임, 용어
+- §2~§12의 장별 소개 문단
+- Appendix 사용 안내와 승인 체크리스트 소개
+
+**검증:**
+
+- 직접형으로 바꾼 문장이 세부 계약과 같은 의미인지 확인한다.
+- Requirements SHA와 UE companion binding을 다시 계산한다.
+- Generated block byte parity, Markdown fence, `git diff --check`를 검사한다.
