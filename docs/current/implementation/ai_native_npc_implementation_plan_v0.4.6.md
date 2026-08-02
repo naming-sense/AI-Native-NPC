@@ -1,24 +1,88 @@
 # AI Native NPC 구현 계획
-## Reference Model·학습·릴리스·Phase 실행 계획
+## Phase·Owner·Reference Model·학습·릴리스 실행 계획
 
 - 문서 버전: **v0.4.6**
-- 개정일: 2026-08-02
+- 개정일: 2026-08-03
 - 주 독자: **ML, Data, Gameplay AI, Server, Unreal NNE, QA, Release 승인자**
-- 범위: **Reference Model 구조, ML pipeline, Training Config, Checkpoint·Report, 구현 명령, release pipeline, Phase·Owner·일정, 최종 승인 절차**
+- 범위: **Phase·Owner·일정, Reference Model 구조, ML pipeline, Training Config, Checkpoint·Report, 구현 명령, release pipeline, 최종 승인 절차**
 - 상위 요구사항: [AI Native NPC 의사결정 시스템 요구사항](../requirements/ai_native_npc_requirements_v0.4.6.md)
 - 계약 부록: [AI Native NPC Contract Appendices](../reference/ai_native_npc_contract_appendices_v0.4.6.md)
 
-이 문서는 요구사항을 중복 소유하지 않는다. Runtime 동작·권한·입출력·안전·데이터·평가 규칙은 상위 요구사항을, 생성된 정확한 계약값과 승인 Gate는 계약 부록을 참조한다.
+상위 요구사항은 Runtime 동작·권한·입출력·안전·데이터·평가 규칙을 소유한다. 계약 부록은 생성된 정확한 계약값과 승인 Gate를 소유한다. 이 문서는 Phase·Owner·구현·검증 순서를 소유한다.
 
 ---
 
+<a id="implementation-scope"></a>
 # 1. 독자와 실행 범위
 
-이 계획의 작업자는 상위 요구사항과 계약 부록의 버전·Hash를 잠근 뒤 아래 순서와 산출물을 구현한다. 요구사항 또는 생성 계약값을 변경해야 하면 이 문서에서 우회하지 않고 해당 규범 원본과 생성 산출물을 먼저 갱신한다.
+이 계획의 작업자는 상위 요구사항과 계약 부록의 버전·Hash를 잠근 뒤 아래 순서와 산출물을 구현한다. 요구사항 또는 생성 계약값을 변경해야 하면 해당 규범 원본과 생성 산출물을 먼저 갱신한다.
 
-# 2. `policy_arch_v1.0.0` Reference Model
+---
 
-## 2.1 V1 모델
+<a id="phase-owner"></a>
+# 2. Phase·Owner·일정
+
+## 2.1 Phase와 구현 범위
+
+Phase 0은 Perception→Utility Baseline→Commit 연결과 데이터 Capture를 검증한다. Phase 1은 구조화 계약 patch·Dataset·Neural·OOD·Calibration·승격 Gate를 적용한다. 각 Phase는 Runtime 경로와 검증 증거로 완료한다.
+
+### 2.1.1 Phase 0 = MVP Vertical Slice
+
+범위:
+
+- NPC Profile 1개: Guard
+- Goal 2개: IdleObserve, InvestigateDisturbance
+- 실행 Skill 5개: Idle, TurnTo, Approach, Investigate, SearchArea
+- `ContinueCurrentAction` control candidate
+- Target Kind: Entity, SoundEvent, LastKnownPosition, Waypoint, NoTarget
+- Event Buffer, Target Slotter, 272 layout, Utility Baseline, 단순 Neural Scorer
+- Single-player 서버 권위 형태의 GameThread Commit
+
+완료 조건:
+
+- Perception→Utility Baseline→Commit/Fallback 경로가 재현 가능한 Runtime 테스트를 통과한다.
+- Capture record, 272 feature layout, score·parameter output이 Schema·Golden parity를 통과한다.
+- Phase 0 증거와 남은 Runtime Gate를 [최종 승인 체크리스트](#final-approval)에 기록한다.
+
+### 2.1.2 Phase 1 = V1
+
+- Role 3개
+- Goal 4개
+- Skill Registry 16개
+- Target Kind 8개
+- Calibration/OOD/Abstain
+- Cover/SmartObject reservation
+- 멀티플레이 서버 권위
+- DAgger와 정식 KPI Gate
+
+완료 조건:
+
+- Phase 1 Schema patch와 생성 계약·Dataset·Model Bundle의 Hash binding이 일치한다.
+- Neural·OOD·Calibration·Unreal Runtime Gate가 실제 증거로 통과한다.
+- [최종 승인 체크리스트](#final-approval)에 pending Gate가 없어야 한다.
+
+### 2.1.3 일정·Owner·의존성
+
+| Workstream | Owner | Phase 0 예상 | Phase 1 예상 | 선행 의존성 |
+|---|---|---:|---:|---|
+| Belief/Target Runtime | Gameplay AI | 2주 | 3주 | Target contract |
+| Goal Manager/FSM | Gameplay AI + Designer | 2주 | 3주 | Goal Registry Appendix D.2 + typed trigger patch |
+| Slotter/Candidate/Hash | Gameplay AI + ML | 2주 | 2주 | Schema Appendix A/C/D |
+| Utility Baseline | AI Designer | 1주 | 2주 | Candidate pipeline |
+| Feature Builder/Golden Test | ML + Gameplay AI | 2주 | 2주 | schema.yaml generator |
+| Neural Model/Export | ML | 2주 | 4주 | Golden Feature parity |
+| Async Commit/Reservation | Gameplay/Server | 2주 | 4주 | Skill contract |
+| Gold/DAgger Tool | Tech Designer | 1주 | 4주 | Inspector/Replay |
+| QA/KPI Automation | QA + ML | 2주 | 지속 | Critical Suite |
+
+Phase 0은 병렬 수행을 전제로 약 6~8주 범위다. Phase 1은 Phase 0 Gate 통과 후 약 12~16주 범위이며 팀 규모와 Unreal 통합 상태에 따라 조정한다.
+
+---
+
+<a id="reference-model"></a>
+# 3. `policy_arch_v1.0.0` Reference Model
+
+## 3.1 V1 모델
 
 V1은 GRU를 사용하지 않고 최근 12개 명시적 Event Buffer를 사용한다.
 
@@ -140,9 +204,10 @@ RawScore = clamp(
 
 ---
 
-# 3. ML Pipeline
+<a id="ml-pipeline"></a>
+# 4. ML Pipeline
 
-## 3.1 ML Training Contract 개요
+## 4.1 ML Training Contract 개요
 
 규범 프로필 ID는 `policy_train_v1.0.0`이다. 학습 코드는 별도 Unreal 구현 저장소의 `ML/`에 두고, 이 저장소의 YAML과 `generated/python/ai_native_npc_contracts_generated.py`를 고정 커밋으로 가져와 사용한다.
 
@@ -166,7 +231,7 @@ Unreal Capture / Procedural Generator
 
 Test, OOD, Critical split은 checkpoint와 Calibration asset이 동결되기 전 학습 코드에서 열 수 없다. Test 결과를 보고 architecture, seed, epoch, threshold를 고르면 새 실험으로 간주하고 Test split을 새 버전으로 교체한다.
 
-## 3.2 Teacher LLM Silver Label 생성
+## 4.2 Teacher LLM Silver Label 생성
 
 규범 계약은 [요구사항 §9.1.1](../requirements/ai_native_npc_requirements_v0.4.6.md#911-teacher-llm-silver-label-생성)이 소유한다. 이 절은 그 계약을 중복 정의하지 않고 구현 순서와 실행 지점만 제안한다.
 
@@ -193,7 +258,12 @@ Profile·Schema hash 검증
 → Role×Goal Gold comparison report
 ```
 
-`ML/tests/test_teacher_pipeline.py`는 request/profile hash Golden, Tensor→view parity, hidden-information filtering, strict response schema, abstain invariant, mask 위반, 합의·confidence, source snapshot join과 `candidate_set_canonical_bytes` 재검증, annotation join, parameter positive-zero/mask, `selected_is_acceptable=null`, `source_type=silver`, split Gate를 fixture로 검증한다.
+`ML/tests/test_teacher_pipeline.py`는 다음 계약을 fixture로 검증한다.
+
+- Request·Profile: hash Golden, Tensor→view parity, hidden-information filtering
+- Response·Consensus: strict Schema, abstain invariant, mask 위반, 합의·confidence
+- Provenance·Join: source Snapshot join, `candidate_set_canonical_bytes` 재검증, annotation join
+- Dataset mapping·Split: parameter positive-zero/mask, `selected_is_acceptable=null`, `source_type=silver`, split Gate
 
 ```bash
 python -m ML.teacher.generate --profile ML/config/teacher_profile_v1.yaml --input <decision_snapshot_shard> --output <annotation_shard> --review-queue <gold_review_queue>
@@ -205,9 +275,10 @@ python -m ML.teacher.report --profile ML/config/teacher_profile_v1.yaml --input 
 
 ---
 
-# 4. Training Config와 Checkpoint·Report
+<a id="training-config"></a>
+# 5. Training Config와 Checkpoint·Report
 
-## 4.1 Training Config
+## 5.1 Training Config
 
 고정 기본값:
 
@@ -238,7 +309,7 @@ python -m ML.teacher.report --profile ML/config/teacher_profile_v1.yaml --input 
 
 서로 다른 hardware/library에서 weight byte가 같다는 보장은 하지 않는다. 동일 release model을 다시 만들 때는 잠긴 환경을 사용한다. 환경이 달라 model hash가 바뀌면 새 Model Bundle로 취급하고 전체 Gate를 다시 실행한다.
 
-## 4.2 Checkpoint 선택과 Training Report
+## 5.2 Checkpoint 선택과 Training Report
 
 Stage별 best checkpoint는 Validation의 다음 정렬 Key로 자동 선택한다.
 
@@ -251,14 +322,20 @@ Stage별 best checkpoint는 Validation의 다음 정렬 Key로 자동 선택한�
 
 Top-1은 Runtime과 동일한 Adjusted Score 선택 결과로 계산한다. 보고서에는 micro/macro/worst-group, source별, Target Kind별, valid candidate count bucket별 결과와 abstain-only 분모를 모두 기록한다.
 
-Checkpoint 파일은 weights만 담는 `model.safetensors`, architecture/config JSON, optimizer state, epoch, RNG state, Dataset/Code/Environment hash로 구성한다. Release Export는 best weights와 architecture/config만 사용하며 optimizer state는 배포하지 않는다.
+Checkpoint는 다음 파일과 상태를 포함한다.
+
+- weights 전용 `model.safetensors`
+- architecture/config JSON
+- optimizer state, epoch, RNG state
+- Dataset/Code/Environment hash
+
+Release Export는 best weights와 architecture/config만 사용한다. Optimizer state는 배포하지 않는다.
 
 
 ---
 
-# 5. 구현 저장소 명령
-
-## 5.1 구현 저장소 명령과 Phase 구분
+<a id="implementation-cli"></a>
+# 6. 구현 저장소 명령과 Phase 구분
 
 별도 구현 저장소의 CLI는 다음 단일 흐름을 제공한다.
 
@@ -276,9 +353,8 @@ Phase 0은 작은 deterministic fixture dataset으로 ONNX→Unreal 경로를 �
 
 ---
 
-# 6. Cross-Environment Release Pipeline
-
-## 6.1 Cross-Environment Release Pipeline
+<a id="release-pipeline"></a>
+# 7. Cross-Environment Release Pipeline
 
 규범 증거에는 논리 결과와 입력·도구 Hash만 포함한다. Compiler 경로·버전, 테스트 실행시간, stdout/stderr는 `dist/local/contract_test_diagnostics.json`에만 기록하며 Lock과 ZIP에서 제외한다.
 
@@ -309,54 +385,7 @@ Schema semantic validation
 
 ---
 
-# 7. Phase·Owner·일정
-
-## 7.1 Phase와 구현 범위
-
-Phase 0은 Perception→Utility Baseline→Commit 연결과 데이터 Capture를 검증한다. Phase 1은 구조화 계약 patch·Dataset·Neural·OOD·Calibration·승격 Gate를 적용한다. 각 Phase는 Runtime 경로와 검증 증거로 완료한다.
-
-### 7.1.1 Phase 0 = MVP Vertical Slice
-
-범위:
-
-- NPC Profile 1개: Guard
-- Goal 2개: IdleObserve, InvestigateDisturbance
-- 실행 Skill 5개: Idle, TurnTo, Approach, Investigate, SearchArea
-- `ContinueCurrentAction` control candidate
-- Target Kind: Entity, SoundEvent, LastKnownPosition, Waypoint, NoTarget
-- Event Buffer, Target Slotter, 272 layout, Utility Baseline, 단순 Neural Scorer
-- Single-player 서버 권위 형태의 GameThread Commit
-
-### 7.1.2 Phase 1 = V1
-
-- Role 3개
-- Goal 4개
-- Skill Registry 16개
-- Target Kind 8개
-- Calibration/OOD/Abstain
-- Cover/SmartObject reservation
-- 멀티플레이 서버 권위
-- DAgger와 정식 KPI Gate
-
-### 7.1.3 일정·Owner·의존성
-
-| Workstream | Owner | Phase 0 예상 | Phase 1 예상 | 선행 의존성 |
-|---|---|---:|---:|---|
-| Belief/Target Runtime | Gameplay AI | 2주 | 3주 | Target contract |
-| Goal Manager/FSM | Gameplay AI + Designer | 2주 | 3주 | Goal Registry Appendix D.2 + typed trigger patch |
-| Slotter/Candidate/Hash | Gameplay AI + ML | 2주 | 2주 | Schema Appendix A/C/D |
-| Utility Baseline | AI Designer | 1주 | 2주 | Candidate pipeline |
-| Feature Builder/Golden Test | ML + Gameplay AI | 2주 | 2주 | schema.yaml generator |
-| Neural Model/Export | ML | 2주 | 4주 | Golden Feature parity |
-| Async Commit/Reservation | Gameplay/Server | 2주 | 4주 | Skill contract |
-| Gold/DAgger Tool | Tech Designer | 1주 | 4주 | Inspector/Replay |
-| QA/KPI Automation | QA + ML | 2주 | 지속 | Critical Suite |
-
-Phase 0은 병렬 수행을 전제로 약 6~8주 범위다. Phase 1은 Phase 0 Gate 통과 후 약 12~16주 범위이며 팀 규모와 Unreal 통합 상태에 따라 조정한다.
-
-
----
-
+<a id="final-approval"></a>
 # 8. 최종 승인
 
 ## 8.1 최종 승인 체크리스트
@@ -387,4 +416,10 @@ Schema 2.0 Freeze는 다음 항목을 모두 요구한다.
 - [ ] Appendix E의 실제 Baseline/CI/표본 Gate 통과
 - [ ] 보관 validation report의 pending Runtime/Formal Gate가 실제 evidence로 모두 종료
 
-현재 Runtime 계약은 RC5 YAML의 field index·enum·shape다. §10.6 항목은 새 patch의 YAML·generated artifacts·Golden·Decision Contract Hash 발급 후 활성화한다. 완료 전 상태는 Freeze·OOD Runtime 승격 대상에서 제외한다. 변경 이력은 `docs/current/history/ai_native_npc_requirements_history_v0.4.6.md`에 보관한다.
+현재 Runtime 계약은 RC5 YAML의 field index·enum·shape다.
+
+[Requirements §10.6](../requirements/ai_native_npc_requirements_v0.4.6.md#106-rc5-구조화-계약-remediation-backlog)의 항목은 새 patch 발급 후 활성화한다.
+
+새 patch는 YAML·generated artifacts·Golden·Decision Contract Hash를 포함한다.
+
+완료 전 상태는 Freeze·OOD Runtime 승격 대상에서 제외한다. 변경 이력은 `docs/current/history/ai_native_npc_requirements_history_v0.4.6.md`에 보관한다.

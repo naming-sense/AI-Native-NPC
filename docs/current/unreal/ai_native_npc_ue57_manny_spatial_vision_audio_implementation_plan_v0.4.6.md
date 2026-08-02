@@ -3,15 +3,15 @@
 
 - 문서 버전: **v0.4.6**
 - 문서 상태: **UE 5.7 RC5 Active Companion / Requirements Remediation Runtime Binding pending**
-- 개정일: 2026-08-02
+- 개정일: 2026-08-03
 - 문서 보강: **ML/NNE Implementation Supplement 1 + Requirements Review Remediation Binding Notice**
 - 대체 문서: 기존 `ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan.md` v0.3
 - 상위 요구사항: `../requirements/ai_native_npc_requirements_v0.4.6.md`
 - 공통 구현 계획: `../implementation/ai_native_npc_implementation_plan_v0.4.6.md`
 - 계약 부록: `../reference/ai_native_npc_contract_appendices_v0.4.6.md`
 - Tensor 단일 원본: `ai_native_npc_schema_v2_0.yaml`
-- Requirements SHA-256: `d7bde438d4b672338682b2f31cce4b5ea90ad38489a4f33202c7e919cc2daba1`
-- Schema YAML SHA-256: `f3a030798c49b16b2b53156e2dc63bd1cde29867fa288c44579cf153bd823344`
+- Requirements SHA-256: `84745e04e3f96b00b7f32b592d1006bf95fd569fa5595cf602a6463df1780c5a`
+- Schema YAML SHA-256: `8c72e1a6aa94399b5748c3ec7bfdaf31beb7148cc5f228eb86c88cee60b67baf`
 - Skill Registry SHA-256: `08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8`
 - Goal Registry SHA-256: `b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2`
 - Test Taxonomy SHA-256: `52abbec52ff6b057b28e89d54c5f9dd9407977e9a8e45f7dfd0e419af57a4286`
@@ -57,14 +57,20 @@ v0.4.6까지 누적된 추가 계약:
 
 - 공유 Contract Appendices의 A~D를 YAML·Registry에서 자동 생성하고 strict parity 검사
 - Normalizer의 역전 범위, 0 이하 divisor, log1p 정의역, sentinel/valid-range 충돌을 release 전에 hard reject
-- Candidate/Decision Hash field order·magic·endianness를 YAML에서 Python/C++ 및 Appendix D.3으로 생성
+- Candidate/Decision Hash field order·magic·endianness를 YAML에서 Python/C++ 및 Appendix D.3·D.4로 생성
 - Decision Contract Hash Golden parity와 semantic mutation regression test 추가
 - 자동 생성 Appendix 밖의 manual hash literal을 strict validation에서 거부
 - constant/missing/must_equal/padding_zero 의미 교차검증과 동적 mutation probe 추가
 
-Phase 0은 조건부 GO다. Utility Baseline, Capture, fallback, atomic Commit 및 현 RC5 2-output score/parameter smoke는 진행할 수 있다. 그러나 Float Tensor/ONNX parity, Target/Candidate Recall, Atomic Commit, Hidden Leakage Runtime 증거와 Requirements Remediation이 통과하기 전 대량 학습 데이터와 최종 Freeze는 보류한다.
+Phase 0은 조건부 GO다.
 
-2026-07-30 보강은 [공통 구현 계획 §2~§5](../implementation/ai_native_npc_implementation_plan_v0.4.6.md)의 Reference Model·ML Training Contract를 Unreal 구현 절차로 연결했다. 현 RC5 Schema·Registry 값은 그대로 유지하며, Phase 0에서는 fixture model로 ONNX Import→NNE→score/parameter Post-process→Commit/Fallback 경로를 먼저 증명한다.
+- 진행 가능: Utility Baseline, Capture, fallback, atomic Commit, 현 RC5 2-output score/parameter smoke
+- 보류: 대량 학습 데이터, 최종 Freeze
+- 보류 해제 조건: Float Tensor/ONNX parity, Target/Candidate Recall, Atomic Commit, Hidden Leakage Runtime 증거, Requirements Remediation 통과
+
+2026-07-30 보강은 [공통 구현 계획 §3~§6](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#reference-model)의 Reference Model·ML Training Contract를 Unreal 구현 절차로 연결했다.
+
+현 RC5 Schema·Registry 값은 유지한다. Phase 0은 fixture model로 ONNX Import→NNE→score/parameter Post-process→Commit/Fallback 경로를 먼저 증명한다.
 
 ## 0.1 Requirements Review Remediation Binding Notice
 
@@ -1516,13 +1522,21 @@ Generated Header는 상수와 Enum만 제공하지 않고 다음 실행 함수�
 - portable SHA-256와 `CandidateSetHashHex`
 - `DecodeParameter`와 Skill별 Commit Clamp
 
-Phase 0 CI는 동일 fixture를 Python unittest와 C++17 executable 양쪽에서 실행한다. 이것은 Unreal Runtime parity의 선행 증거이며, 실제 UE `FMath`/NNE parity Gate는 별도로 pending 상태를 유지한다.
+Phase 0 CI는 동일 fixture를 Python unittest와 C++17 executable 양쪽에서 실행한다.
+
+이 결과는 Unreal Runtime parity의 선행 증거다. 실제 UE `FMath`/NNE parity Gate는 별도로 pending 상태를 유지한다.
 
 # 14. Neural Policy와 오프라인 학습
 
 ## 14.1 V1 모델
 
-V1 Reference Model은 `policy_arch_v1.0.0`이다. Event Buffer를 사용하고 GRU를 사용하지 않는다. 감정·관계 값은 `UNPCSocialStateComponent`가 사건 기반으로 갱신하며 모델은 읽기만 한다. 정확한 Layer·초기화·Optimizer는 [공통 구현 계획 §2·§4](../implementation/ai_native_npc_implementation_plan_v0.4.6.md)가, Loss는 [Requirements §9.11](../requirements/ai_native_npc_requirements_v0.4.6.md#911-loss-contract)이 소유한다.
+V1 Reference Model은 `policy_arch_v1.0.0`이다. Event Buffer를 사용하고 GRU를 사용하지 않는다.
+
+`UNPCSocialStateComponent`는 감정·관계 값을 사건 기반으로 갱신한다. 모델은 해당 값을 읽는다.
+
+- Layer·초기화: [공통 구현 계획 §3](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#reference-model)
+- Optimizer: [공통 구현 계획 §5](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#training-config)
+- Loss: [Requirements §9.11](../requirements/ai_native_npc_requirements_v0.4.6.md#911-loss-contract)
 
 ```text
 global_state [128]
@@ -3172,5 +3186,5 @@ Scenarios/NPCMannyQuinnScenarioTest.cpp
 
 ## 공유 계약 부록
 
-- [Schema·Registry Appendix A–D](../reference/ai_native_npc_contract_appendices_v0.4.6.md#appendix-ad-auto-generated-schema-registry-계약)
+- [Schema·Registry Appendix A–D](../reference/ai_native_npc_contract_appendices_v0.4.6.md#appendix-ad-auto-generated-schemaregistry-계약)
 - [UE 구현 승인 체크리스트](../reference/ai_native_npc_contract_appendices_v0.4.6.md#ue-구현-승인-체크리스트)

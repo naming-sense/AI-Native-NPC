@@ -25,7 +25,7 @@ Appendix A–D는 Schema와 Registry에서 생성한 enum ID·Tensor index·Targ
 
 - Generator: `0.4.6`
 - Contract revision: `2.0.0-rc5`
-- Schema SHA-256: `f3a030798c49b16b2b53156e2dc63bd1cde29867fa288c44579cf153bd823344`
+- Schema SHA-256: `8c72e1a6aa94399b5748c3ec7bfdaf31beb7148cc5f228eb86c88cee60b67baf`
 - Skill Registry SHA-256: `08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8`
 - Goal Registry SHA-256: `b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2`
 - Test Taxonomy SHA-256: `52abbec52ff6b057b28e89d54c5f9dd9407977e9a8e45f7dfd0e419af57a4286`
@@ -671,7 +671,7 @@ Appendix A–D는 Schema와 Registry에서 생성한 enum ID·Tensor index·Targ
 | 5 | `target_mask` | `bitset` | `{"bit_count":17,"bit_order":"LSB-first","byte_count":3,"unused_high_bits":"zero"}` |
 | 6 | `candidate_mask` | `bitset` | `{"bit_count":272,"bit_order":"LSB-first","byte_count":34,"unused_high_bits":"none"}` |
 
-### D.3 Hash: decision_contract_hash
+### D.4 Hash: decision_contract_hash
 
 - Algorithm: `SHA-256`
 - Byte order: `little`
@@ -689,7 +689,7 @@ Appendix A–D는 Schema와 Registry에서 생성한 enum ID·Tensor index·Targ
 | 8 | `postprocess_contract_sha256` | `bytes[32]` | `{}` |
 | 9 | `calibration_ood_asset_sha256` | `bytes[32]` | `{}` |
 
-### D.4 Normalizer 의미 규칙
+### D.5 Normalizer 의미 규칙
 
 ```json
 {

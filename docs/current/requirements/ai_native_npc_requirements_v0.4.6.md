@@ -2,7 +2,7 @@
 ## Runtime·데이터·안전 계약
 
 - 문서 버전: **v0.4.6**
-- 개정일: 2026-08-02
+- 개정일: 2026-08-03
 - 적용 범위: **Unreal 클라이언트, 서버 Gameplay AI, Python 학습·평가 코드**
 - 현재 요약: **RC5 정적 계약과 Utility Baseline 구현은 진행 가능. V1 Neural·OOD·대량 데이터·최종 Freeze는 보류**
 - 기계 판독 계약: **Schema 2.0.0 RC5**
@@ -153,7 +153,9 @@ Skill Executor
     └─ 이동, 시선, 대화, 엄폐, 전투를 실제로 실행
 ```
 
-예: Hearing이 `SoundEvent`를 만들면 Goal Manager가 `InvestigateDisturbance`를 활성화한다. Target Slotter와 Candidate Builder가 `Investigate(SoundEvent)`를 구성하고, Commit Coordinator가 TTL·Goal·이동 가능 여부를 검증한 뒤 Skill을 시작한다.
+예: Hearing이 `SoundEvent`를 만들면 Goal Manager가 `InvestigateDisturbance`를 활성화한다.
+
+Target Slotter와 Candidate Builder는 `Investigate(SoundEvent)`를 구성한다. Commit Coordinator는 TTL·Goal·이동 가능 여부를 검증한 뒤 Skill을 시작한다.
 
 ## 1.3 학습한 모델이 Runtime에 들어오는 순서
 
@@ -261,10 +263,14 @@ struct FTargetFeatures
 - Candidate Hash에는 요청 시점의 `SnapshotKey`를 기록한다. Commit의 Revision 일치 방식은 Target Kind별 §7.3 규칙을 따른다.
 - Event가 과거 Revision의 같은 대상을 참조할 때 현재 slot 재매핑은 `IdentityKey`로 수행한다.
 - Switch Cost의 `target_changed`, `same_as_current_target`, `same_as_current_skill_target`, Continue slot 재매핑은 `IdentityKey` 비교를 사용한다.
-- 같은 `IdentityKey`의 Revision-only 변경은 snapshot update다. immutable/resource Target의 exact Revision 변경은 stale 처리하고, Entity Belief 갱신은 §7.1의 제한된 non-material 조건에서만 최신 Belief 재검증을 허용한다.
+- 같은 `IdentityKey`의 Revision-only 변경은 snapshot update로 처리한다.
+- immutable/resource Target의 exact Revision 변경은 stale로 처리한다.
+- Entity Belief 갱신은 §7.1의 제한된 non-material 조건을 만족할 때만 최신 Belief 재검증을 허용한다.
 - Canonical serialization의 `FTargetHandle` 전체 byte 비교를 의미상 same-target 비교로 재사용하지 않는다.
 
-같은 적을 두 번 관측한 경우를 생각하면 쉽다. `IdentityKey`는 "같은 적인가"를 답하고, `SnapshotKey`는 "요청 때 본 관측과 같은가"를 답한다. 새 Entity 관측이 위치 같은 연속값만 조금 바꿨다면 50ms 한도 안에서 최신 Belief로 다시 검증할 수 있다. 시야, 실행 가능 여부, mask가 바뀌었거나 immutable Target의 Revision이 달라졌다면 이전 응답을 폐기한다.
+같은 적을 두 번 관측한 경우를 생각하면 쉽다. `IdentityKey`는 두 관측이 같은 적을 가리키는지 판정한다. `SnapshotKey`는 현재 관측이 요청 시점의 관측과 같은지 판정한다.
+
+새 Entity 관측에서 위치와 같은 연속값만 조금 바뀌면 50ms 한도 안에서 최신 Belief로 다시 검증할 수 있다. 시야, 실행 가능 여부, Candidate mask, immutable Target Revision 중 하나라도 바뀌면 이전 응답을 폐기한다.
 
 금지 사항:
 
@@ -273,18 +279,20 @@ struct FTargetFeatures
 - 시간은 `age`, 위치는 NPC-local 상대 위치로 변환한다.
 - `ReservationId`는 Commit 성공 후에만 존재한다.
 
-## 2.2 Target Kind ID
+## 2.2 Target Kind 의미
 
-| ID | Name | 쉽게 말하면 |
-|---:|---|---|
-| 0 | NoTarget | 대상을 필요로 하지 않는 Skill용 고정 자리 |
-| 1 | Entity | NPC가 현재 추적할 수 있는 Actor |
-| 2 | SoundEvent | 특정 시점에 들린 소리의 변경되지 않는 기록 |
-| 3 | LastKnownPosition | 더 이상 보이지 않는 대상의 마지막 관측 위치 |
-| 4 | CoverSlot | 예약과 점유 상태를 검증해야 하는 엄폐 지점 |
-| 5 | SmartObject | 의자·문·상호작용 지점처럼 예약 가능한 기능 위치 |
-| 6 | Waypoint | 순찰·경로에 작성된 고정 지점 |
-| 7 | WorldPosition | Goal·Script·Player Ping이 만든 임시 위치 |
+정확한 숫자 ID는 [Contract Appendices의 `A.target_kind`](../reference/ai_native_npc_contract_appendices_v0.4.6.md#atarget_kind)가 소유한다.
+
+| Kind | 역할 |
+|---|---|
+| `NoTarget` | 대상을 필요로 하지 않는 Skill용 고정 자리 |
+| `Entity` | NPC가 현재 추적할 수 있는 Actor |
+| `SoundEvent` | 특정 시점에 들린 소리의 변경되지 않는 기록 |
+| `LastKnownPosition` | 더 이상 보이지 않는 대상의 마지막 관측 위치 |
+| `CoverSlot` | 예약과 점유 상태를 검증해야 하는 엄폐 지점 |
+| `SmartObject` | 의자·문·상호작용 지점처럼 예약 가능한 기능 위치 |
+| `Waypoint` | 순찰·경로에 작성된 고정 지점 |
+| `WorldPosition` | Goal·Script·Player Ping이 만든 임시 위치 |
 
 ## 2.3 Handle 생성 규칙
 
@@ -543,7 +551,9 @@ Hysteresis는 **선정 여부**를 바꾸지 않고 선정된 Target의 slot 위
 
 ## 3.8 Target Recall Gate
 
-한 Decision state `s`의 Gold relevant Target 집합을 `R(s)`라고 한다. Relevant Target은 해당 Goal phase에서 하나 이상의 safe acceptable Skill을 실행하거나 Critical invariant를 만족하는 데 필요한 unique `IdentityKey`이며, Ground Truth label channel에서만 작성한다.
+한 Decision state `s`의 Gold relevant Target 집합을 `R(s)`라고 한다. `R(s)`에는 해당 Goal phase의 safe acceptable Skill 실행이나 Critical invariant 충족에 필요한 unique `IdentityKey`를 포함한다.
+
+`R(s)`는 Ground Truth label channel에서만 작성한다.
 
 ```text
 Target Recall numerator   = Σ_s |SlottedIdentity(s) ∩ R(s)|
@@ -588,27 +598,9 @@ target_slot     = candidate_index % 17
 
 따라서 “현재 실행 유지”와 “같은 Skill을 새로 시작”하는 의미가 중복되지 않는다.
 
-## 4.3 Skill ID
+## 4.3 Skill 계약 참조
 
-| ID | Name |
-| --- | --- |
-| 0 | Idle |
-| 1 | ContinueCurrentAction |
-| 2 | LookAt |
-| 3 | TurnTo |
-| 4 | Approach |
-| 5 | KeepDistance |
-| 6 | RetreatFrom |
-| 7 | Follow |
-| 8 | Investigate |
-| 9 | SearchArea |
-| 10 | Greet |
-| 11 | Warn |
-| 12 | CallForHelp |
-| 13 | TakeCover |
-| 14 | Flee |
-| 15 | Attack |
-
+정확한 Skill 숫자 ID는 [Contract Appendices의 `A.skill`](../reference/ai_native_npc_contract_appendices_v0.4.6.md#askill)가 소유한다. 아래 허용표는 각 Skill이 사용할 수 있는 Target Kind를 정의한다.
 
 
 ## 4.4 Skill–Target Kind 허용표
@@ -719,7 +711,11 @@ Active phase는 다음 interruptibility 중 하나를 가진다.
 3. V1 `preemption_margin`은 Goal Registry의 `50`이다. uint8 계산 전 넓은 정수형으로 승격해 overflow를 금지한다.
 4. 현재 interruptibility가 허용하는 시점이다.
 
-Emergency source는 `preemption_margin`과 일반 priority key 우위를 우회하고 위 표의 Emergency 열을 따른다. 둘 이상의 Emergency 후보끼리는 같은 Arbitration Key로 정렬한다. `Server ForceAbort`는 현재 Active Goal을 즉시 `Aborted`로 만드는 authoritative terminal command이며 margin·key·interruptibility를 모두 우회한다.
+- Emergency source는 `preemption_margin`과 일반 priority key 우위 조건을 우회한다.
+- Emergency source의 preemption 시점은 위 표의 Emergency 열을 따른다.
+- 둘 이상의 Emergency 후보는 같은 Arbitration Key로 정렬한다.
+- `Server ForceAbort`는 현재 Active Goal을 즉시 `Aborted`로 만드는 authoritative terminal command다.
+- `Server ForceAbort`는 margin·key·interruptibility를 모두 우회한다.
 
 Preempt 시 Resume Policy:
 
@@ -729,7 +725,16 @@ Preempt 시 Resume Policy:
 
 현재 Goal을 preempt할 새 Goal의 activation 준비가 실패하면 기존 Goal은 계속 Active다. 반쪽 preemption은 허용하지 않는다.
 
-Suspended 최대 8개가 이미 찬 상태에서 새 suspension이 필요하면 일반 preemption은 거부한다. Emergency Goal은 replacement activation 준비를 먼저 완료한 뒤 Suspended 중 Arbitration Key가 가장 나쁜 Goal을 `Aborted` 처리하고 현재 Goal을 저장할 수 있으며, 이 eviction을 audit event로 기록한다. activation 준비 실패 시 eviction과 현재 Goal 변경을 모두 금지한다. `Server ForceAbort`는 현재 Goal을 저장하거나 기존 Suspended Goal을 evict하지 않는다. `AbortOnPreempt`는 slot을 소비하지 않는다.
+Suspended Goal이 이미 8개인 상태에서 새 suspension이 필요하면 일반 preemption을 거부한다.
+
+이 상태의 Emergency preemption은 다음 순서로 실행한다.
+
+1. replacement activation 준비를 완료한다.
+2. Suspended Goal 중 Arbitration Key가 가장 나쁜 Goal을 `Aborted` 처리한다.
+3. 현재 Goal을 Suspended collection에 저장한다.
+4. eviction을 audit event로 기록한다.
+
+replacement activation 준비가 실패하면 eviction과 현재 Goal 변경을 모두 금지한다. `Server ForceAbort`는 현재 Goal을 저장하지 않으며 기존 Suspended Goal을 evict하지 않는다. `AbortOnPreempt`는 Suspended slot을 소비하지 않는다.
 
 ## 5.5 Suspended Resume
 
@@ -820,7 +825,10 @@ trigger:
 
 - `after_seconds`는 finite positive float이며 phase entry/resume 시점의 server monotonic deadline으로 변환한다.
 - Timer countdown 자체는 `goal_revision`을 올리지 않지만 deadline 계약 값 변경은 revision을 올린다.
-- `ResumeSamePhase` suspension은 phase timer를 pause하고 `remaining_ms = max(0, deadline_ms - suspended_at_ms)`를 uint64로 저장한다. resume 시 full duration으로 초기화하지 않고 이 remaining time으로 재무장한다.
+- `ResumeSamePhase` suspension은 phase timer를 pause한다.
+- suspension 시 `remaining_ms = max(0, deadline_ms - suspended_at_ms)`를 uint64로 저장한다.
+- resume 시 저장한 `remaining_ms`로 timer를 재무장한다.
+- resume 시 full duration을 다시 적용하지 않는다.
 - `RestartPhase` suspension은 이전 phase timer remaining을 폐기한다. resume 시 phase `OnEnter`를 다시 실행하고 Registry의 full `after_seconds`로 재무장한다.
 - Suspended 동안 phase timer는 진행하지 않지만 Goal의 별도 authoritative absolute deadline은 계속 진행한다. resume validation 시 이미 지난 absolute deadline은 Goal을 terminal 처리한다.
 - Save/Load는 timer ID, timer contract duration, `remaining_ms`, Resume Policy를 보존한다. Load 후 server monotonic epoch가 달라도 stored remaining으로 재무장하며 wall-clock을 사용하지 않는다.
@@ -837,7 +845,9 @@ Neural Policy는 Candidate별 `raw score`와 parameter proposal을 출력한다.
 
 > **상태:** score·parameter 2-output은 `ACTIVE RC5`, `tactical_context`를 포함한 OOD interface는 `POST-RC5`다.
 
-Reference Model의 정확한 Layer 구조와 bounded scorer 구현은 [구현 계획의 §2](../implementation/ai_native_npc_implementation_plan_v0.4.6.md)를 따른다. 이 절은 Runtime이 집행하는 출력·mask·parameter interface를 소유한다.
+Reference Model의 정확한 Layer 구조와 bounded scorer 구현은 [구현 계획의 §3](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#reference-model)을 따른다.
+
+이 절은 Runtime이 집행하는 출력·mask·parameter interface를 소유한다.
 
 V1 OOD Runtime을 포함하는 목표 ONNX output 계약은 다음 세 개다.
 
@@ -849,11 +859,17 @@ tactical_context                 float32 [B,128]
 
 `tactical_context`는 Fusion의 `h`와 동일한 FP32 Tensor이며 별도 projection이나 post-export 변환을 적용하지 않는다. OOD asset fit, PyTorch 평가, ONNX Runtime, Unreal NNE가 이 동일 output을 사용한다.
 
-현재 RC5 Schema Appendix는 앞의 두 output만 포함하므로 현 Schema로는 OOD Runtime Gate를 통과할 수 없다. 후속 Schema patch는 세 번째 output을 구조화된 원본에 추가하고 generated Python/C++/docs, UE descriptor, Golden output, Decision Contract Hash를 함께 갱신해야 한다.
+현재 RC5 Schema Appendix는 앞의 두 output만 포함한다. 따라서 현재 Schema로는 OOD Runtime Gate를 통과할 수 없다.
 
-`target_mask`, `event_mask`, `candidate_mask`는 attention·pooling·loss에 사용한다. Candidate Builder가 hard constraint를 소유한다. ONNX 출력은 272개 row로 고정하며 invalid row는 loss·선택·parameter decode에서 제외한다.
+후속 Schema patch는 `tactical_context` output을 구조화된 원본에 추가한다. generated Python/C++/docs, UE descriptor, Golden output, Decision Contract Hash도 같은 patch에서 갱신한다.
 
-ONNX가 `candidate_mask` 입력을 제거하지 않도록 마지막에 score는 `Where(candidate_mask, score, 0)`, parameter는 `Where(candidate_mask.unsqueeze(-1), parameter, 0)`를 적용한다. Invalid row의 score와 parameter는 정확히 0이지만 의미는 없으며, valid row만 Runtime에서 사용한다.
+`target_mask`, `event_mask`, `candidate_mask`는 attention·pooling·loss에 사용한다. Candidate Builder는 hard constraint를 소유한다.
+
+ONNX 출력은 272개 row로 고정한다. invalid row는 loss·선택·parameter decode에서 제외한다.
+
+ONNX가 `candidate_mask` 입력을 제거하지 않도록 score의 마지막 연산에 `Where(candidate_mask, score, 0)`를 적용한다. parameter의 마지막 연산에는 `Where(candidate_mask.unsqueeze(-1), parameter, 0)`를 적용한다.
+
+invalid row의 score와 parameter는 정확히 0이어야 한다. Runtime은 valid row만 사용한다.
 
 ### Candidate Parameter Proposal
 
@@ -999,7 +1015,9 @@ Calibrator는 **Adjusted Score로 최종 선택된 행동**을 기준으로 학�
 
 ## 6.4 Version과 Hash 책임 분리
 
-> **상태:** generated `ANPCDEC2`는 `ACTIVE RC5`, 아래 `ANPCFEAT1`·`ANPCDEC3` 공식은 `POST-RC5`다.
+> **상태:** [generated decision hash contract](../reference/ai_native_npc_contract_appendices_v0.4.6.md#d4-hash-decision_contract_hash)는 `ACTIVE RC5`다.
+>
+> 아래 `ANPCFEAT1`·`ANPCDEC3` 공식은 `POST-RC5`다.
 
 | 값 | 포함 내용 |
 |---|---|
@@ -1038,7 +1056,7 @@ decision_contract_hash = SHA256(
 
 - 각 입력은 decoded raw 32-byte digest다.
 - field order는 위 순서로 고정하고 length prefix는 사용하지 않는다. magic/version 변경 없이 field를 추가하지 않는다.
-- 현재 RC5 generated serializer의 `ANPCDEC2`는 현 active contract의 증거로 유지한다. 위 `ANPCDEC3`는 Schema/Generator/Python/C++/Golden을 함께 올린 뒤에만 active다.
+- 현재 RC5 generated serializer는 active decision hash contract의 증거로 유지한다. 위 `ANPCDEC3`는 Schema/Generator/Python/C++/Golden을 함께 올린 뒤에만 active다.
 - Python/C++은 `ANPCFEAT1`과 `ANPCDEC3` input bytes 및 digest를 byte-identical Golden으로 검증한다.
 
 ---
@@ -1095,9 +1113,15 @@ Non-material change:
 - 같은 Entity `IdentityKey`/Generation의 새 Belief Revision이면서 현재 허용 Perception이 유지되고 Candidate membership/order/mask와 Commit precondition이 그대로인 경우
 - 위 Entity 갱신 중 Schema에서 `staleness_class: continuous_nonmaterial`로 구조화한 float feature만 바뀐 경우
 
-허용된 Entity Revision 갱신은 `latest_snapshot_revision`을 올리지 않고 `dirty_flag`만 설정한다. 응답의 Candidate Hash는 요청 당시 pending hash와 비교하고, Commit에서는 최신 Entity Belief와 50ms age bound를 다시 검증한다. 다른 Target Kind의 Revision 변경이나 boolean·sentinel·eligibility 변화는 material이다.
+허용된 Entity Revision 갱신은 `latest_snapshot_revision`을 올리지 않는다. 이 갱신은 `dirty_flag`를 설정한다.
 
-V1 `max_nonmaterial_stale_ms`는 `50`이다. 이 값과 Schema staleness allowlist는 Decision Runtime Contract에 포함하며 변경 시 Decision Contract Hash를 갱신한다. 현재 RC5 Schema에 staleness class가 없으므로 후속 patch 전 구현은 수기 field 추정을 금지하고 non-material stale Commit을 승격 증거로 사용할 수 없다.
+응답의 Candidate Hash는 요청 당시 pending hash와 비교한다. Commit은 최신 Entity Belief와 50ms age bound를 다시 검증한다.
+
+다른 Target Kind의 Revision 변경은 material이다. boolean·sentinel·eligibility 변화도 material이다.
+
+V1 `max_nonmaterial_stale_ms`는 `50`이다. 이 값과 Schema staleness allowlist는 Decision Runtime Contract에 포함한다. 두 값 중 하나를 변경하면 Decision Contract Hash를 갱신한다.
+
+현재 RC5 Schema에는 staleness class가 없다. 후속 patch 전에는 수기 field 추정을 금지한다. 후속 patch 전의 non-material stale Commit은 승격 증거로 사용할 수 없다.
 
 ## 7.2 In-flight 정책
 
@@ -1109,7 +1133,9 @@ V1 `max_nonmaterial_stale_ms`는 `50`이다. 이 값과 Schema staleness allowli
 - 취소된 decision ID 또는 stale `snapshot_revision`은 영구적으로 Commit 불가하며 응답 도착 즉시 폐기한다.
 - 정책은 `latest-commit-relevant-snapshot-only`다.
 - continuous drift 허용 응답도 request deadline과 Kind별 최신 Commit 검증을 모두 통과해야 한다.
-- Commit 시 `current_server_monotonic_ms - snapshot_captured_at_monotonic_ms ≤ max_nonmaterial_stale_ms`를 checked uint64 subtraction으로 검증한다. clock 역행/overflow 또는 50ms 초과는 `SnapshotSuperseded`다.
+- Commit은 `current_server_monotonic_ms - snapshot_captured_at_monotonic_ms ≤ max_nonmaterial_stale_ms`를 검증한다.
+- 시간 차이는 checked uint64 subtraction으로 계산한다.
+- clock 역행, subtraction overflow, 50ms 초과는 `SnapshotSuperseded`로 처리한다.
 - Commit 성공 직후 `dirty_flag`가 있으면 새 요청을 발급한다.
 
 ## 7.3 원자적 Commit 경계
@@ -1258,7 +1284,20 @@ Teacher LLM은 개발 단계에서 Decision Snapshot의 행동 후보를 판정�
 
 #### 역할과 처리 흐름
 
-규범 Profile ID는 `teacher_silver_v1.0.0`이다. `ML/config/teacher_profile_v1.yaml`은 provider, 제공되는 exact model identifier/revision, prompt template SHA-256, response schema version, decoding config, prompt variant, consensus version, reason-tag allowlist를 잠근다. V1 `sample_count`는 5다.
+규범 Profile ID는 `teacher_silver_v1.0.0`이다.
+
+`ML/config/teacher_profile_v1.yaml`은 다음 값을 잠근다.
+
+- provider
+- provider가 제공하는 exact model identifier와 revision
+- prompt template SHA-256
+- response schema version
+- decoding config
+- prompt variant
+- consensus version
+- reason-tag allowlist
+
+V1 `sample_count`는 `5`다.
 
 ```text
 Decision Snapshot → request 생성 → 5개 응답 수집 → strict parse
@@ -1281,7 +1320,18 @@ Request builder는 Dataset Record의 10개 입력 Tensor와 generated Schema/Reg
 | `candidates` | index, Skill, Target, `candidate_mask`, switch-cost terms |
 | `current_action` | 현재 Candidate index 또는 null |
 
-Request에는 `schema_version`, `request_content_hash`, `teacher_profile_sha256`, `input_content_hash`, `feature_contract_hash`, `candidate_set_hash`와 위 view만 둔다. Feature 이름과 enum 이름은 generated contract에서 가져온다. Runtime Handle stable ID, Actor 이름, absolute world position, future event, hidden Ground Truth는 금지한다. Role·Personality·Relationship도 `global_state`에 들어간 값만 사용한다.
+Request에는 다음 값과 위 view만 둔다.
+
+- `schema_version`
+- `request_content_hash`
+- `teacher_profile_sha256`
+- `input_content_hash`
+- `feature_contract_hash`
+- `candidate_set_hash`
+
+Feature 이름과 enum 이름은 generated contract에서 가져온다.
+
+Request에는 Runtime Handle stable ID, Actor 이름, absolute world position, future event, hidden Ground Truth를 넣지 않는다. Role·Personality·Relationship은 `global_state`에 포함된 값만 사용한다.
 
 View builder는 원본 Tensor·mask·switch term과 lossless Golden parity를 통과해야 한다. `request_content_hash`는 해당 필드만 제외한 request object를 RFC 8785 JCS로 직렬화한 UTF-8 byte의 SHA-256이다.
 
@@ -1310,7 +1360,16 @@ View builder는 원본 Tensor·mask·switch term과 lossless Golden parity를 �
 | `abstain`, `ambiguous` | boolean |
 | `reason_tags` | Profile allowlist, unique, NFC UTF-8 byte 오름차순 |
 
-Unknown field, hash 불일치, duplicate, masked index, self/reverse pair는 응답 전체를 invalid로 만든다. `abstain=true`이면 acceptable candidate와 preference pair는 비어 있어야 한다. Teacher self-confidence와 free-text rationale는 training label로 받지 않는다.
+다음 조건 중 하나라도 발생하면 응답 전체를 invalid로 처리한다.
+
+- Unknown field
+- hash 불일치
+- duplicate
+- masked index
+- self pair
+- reverse pair
+
+`abstain=true`이면 acceptable candidate와 preference pair를 비워야 한다. Teacher self-confidence와 free-text rationale는 training label로 받지 않는다.
 
 Parameter Silver는 procedural/human path가 소유한다. Teacher record는 `parameter_target_norm=+0.0`, `parameter_label_mask=false`를 사용한다.
 
@@ -1326,11 +1385,20 @@ Valid response 수를 `m`이라 하고 `m >= 3`이어야 한다. 합의 임계�
 - `annotator_agreement`는 acceptable set의 모든 pairwise Jaccard 평균이다. empty–empty는 1, empty–nonempty는 0이다.
 - `label_confidence = clamp(valid_response_count / sample_count × annotator_agreement, 0, 1)`이다.
 
-`label_confidence < 0.60`, acceptable candidate·abstain 모두 합의 없음, preference cycle, hard conflict는 training에서 제외한다. 합의된 `abstain`은 acceptable mask가 0인 `abstain-only` record로 보존한다. `sample_count` 변경은 새 Teacher Profile version과 confidence 계약을 요구한다.
+다음 조건 중 하나라도 발생하면 record를 training에서 제외한다.
+
+- `label_confidence < 0.60`
+- acceptable candidate와 `abstain`이 모두 합의되지 않음
+- preference cycle
+- hard conflict
+
+합의된 `abstain`은 acceptable mask가 0인 `abstain-only` record로 보존한다. `sample_count`를 변경하면 새 Teacher Profile version을 발급하고 confidence 계약을 갱신한다.
 
 #### 검증·사용 범위
 
-Teacher는 hard mask와 hard rule을 바꿀 수 없다. Utility Baseline 불일치는 active learning과 Gold review 우선순위로 사용한다. Teacher Silver는 `train`과 `validation`에만 사용하며 `calibration`, `general_test`, `ood`, `critical` 정답으로 사용할 수 없다.
+Teacher는 hard mask와 hard rule을 바꿀 수 없다. Utility Baseline 불일치는 active learning과 Gold review 우선순위에 사용한다.
+
+Teacher Silver는 `train`과 `validation`에만 사용한다. `calibration`, `general_test`, `ood`, `critical`의 정답으로 사용하는 것을 금지한다.
 
 Teacher Profile은 고정된 `teacher_gold_validation_manifest.json`으로 승격한다.
 
@@ -1360,11 +1428,35 @@ Teacher Profile은 고정된 `teacher_gold_validation_manifest.json`으로 승�
 | `annotator_agreement`, `label_confidence` | 위 합의 결과 |
 | `generator_template_version` | scenario source template/version |
 
-`teacher_profile_sha256`는 Profile raw byte의 SHA-256이다. Valid response object의 RFC 8785 JCS UTF-8 byte로 `canonical_response_hash`를 계산한다. `annotator_set_hash`는 오름차순 정렬한 canonical response raw32 hash를 이어 붙인 byte의 SHA-256이다.
+`teacher_profile_sha256`는 Profile raw byte의 SHA-256이다.
 
-Annotation shard는 `annotator_set_hash`를 row key로 사용한다. 각 row는 `source_snapshot_shard_sha256`, `episode_id`, `decision_id`, `input_content_hash`, `request_content_hash`, Profile hash, canonical response hash, provider raw payload hash·위치를 기록한다. Raw payload hash는 저장한 provider response body exact byte의 SHA-256이다.
+`canonical_response_hash`는 Valid response object를 RFC 8785 JCS로 직렬화한 UTF-8 byte의 SHA-256이다.
 
-Dataset mapper는 source snapshot shard와 annotation shard를 `source_snapshot_shard_sha256 + episode_id + decision_id + input_content_hash`로 join한다. Snapshot의 Tensor, `candidate_set_canonical_bytes`, mask, switch term을 Dataset Record에 복사하고 hash를 다시 계산한다. Dataset Record의 `annotator_set_hash`는 annotation row를 가리킨다. Teacher Silver의 Loss `source_weight`는 `0.25`다.
+`annotator_set_hash`는 canonical response raw32 hash를 오름차순으로 정렬한 뒤 이어 붙인 byte의 SHA-256이다.
+
+Annotation shard는 `annotator_set_hash`를 row key로 사용한다.
+
+각 row는 다음 값을 기록한다.
+
+- `source_snapshot_shard_sha256`
+- `episode_id`
+- `decision_id`
+- `input_content_hash`
+- `request_content_hash`
+- Profile hash
+- canonical response hash
+- provider raw payload hash
+- provider raw payload 위치
+
+Raw payload hash는 저장한 provider response body exact byte의 SHA-256이다.
+
+Dataset mapper는 source snapshot shard와 annotation shard를 다음 key로 join한다.
+
+`source_snapshot_shard_sha256 + episode_id + decision_id + input_content_hash`
+
+Dataset mapper는 Snapshot의 Tensor, `candidate_set_canonical_bytes`, mask, switch term을 Dataset Record에 복사한다. 복사한 값으로 hash를 다시 계산한다.
+
+Dataset Record의 `annotator_set_hash`는 annotation row를 가리킨다. Teacher Silver의 Loss `source_weight`는 `0.25`다.
 
 ## 9.2 분할
 
@@ -1429,11 +1521,15 @@ Active Learning 우선순위는 calibrated confidence, OOD, Candidate/Target mis
 
 ## 9.8 ML 학습 파이프라인 구현
 
-학습 파이프라인과 split 공개 시점은 [구현 계획의 §3](../implementation/ai_native_npc_implementation_plan_v0.4.6.md)이 소유한다.
+학습 파이프라인과 split 공개 시점은 [구현 계획의 §4](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#ml-pipeline)가 소유한다.
 
 ## 9.9 Dataset Record v2
 
-저장 형식은 Zstandard 압축 Parquet이며 Tensor는 Arrow fixed-size list로 저장한다. 하나의 row는 한 번의 Decision Snapshot이다. 대용량 runtime handle과 debug payload는 별도 replay shard에 저장하고 학습 shard에는 필요한 hash와 model input만 둔다. 기존 `anpc_decision_record_v1`은 아래 Switch Cost와 content identity를 재현하지 못하므로 V1 Neural release 학습 입력으로 승격하지 않는다.
+저장 형식은 Zstandard 압축 Parquet이다. Tensor는 Arrow fixed-size list로 저장한다. 하나의 row는 한 번의 Decision Snapshot이다.
+
+대용량 runtime handle과 debug payload는 별도 replay shard에 저장한다. 학습 shard에는 필요한 hash와 model input만 저장한다.
+
+기존 `anpc_decision_record_v1`은 아래 Switch Cost와 content identity를 재현하지 못한다. 따라서 기존 record를 V1 Neural release 학습 입력으로 승격하지 않는다.
 
 필수 필드:
 
@@ -1565,7 +1661,9 @@ Label block 규칙:
 
 추가 규칙:
 
-- `candidate_set_canonical_bytes`는 Target Handle·Target Mask·Candidate Mask의 hash 입력을 보관하는 non-model metadata다. Dataset Validator는 여기서 `candidate_set_hash`를 다시 계산하되 이 byte를 모델에 전달하지 않는다.
+- `candidate_set_canonical_bytes`는 Target Handle·Target Mask·Candidate Mask의 hash 입력을 보관하는 non-model metadata다.
+- Dataset Validator는 이 byte에서 `candidate_set_hash`를 다시 계산한다.
+- `candidate_set_canonical_bytes`를 모델에 전달하는 것을 금지한다.
 - `switch_cost_terms[...,0..3]`은 각각 `skill_changed`, `target_changed`, `before_min_duration`, `releases_or_transfers_reservation`이다.
 - Validator는 §6.2의 계수로 `switch_cost`를 재계산하고 `captured_switch_cost`와 FP32 exact 또는 명시된 Golden tolerance로 대조한다. Continue candidate의 네 component와 cost는 모두 0이어야 한다.
 - `acceptable_candidate_mask`와 preference pair의 모든 index는 `candidate_mask=true`의 부분집합이어야 한다.
@@ -1584,9 +1682,17 @@ Label block 규칙:
 train | validation | calibration | general_test | ood | critical
 ```
 
-동일 episode, map seed, generator template의 근접 변형도 split을 넘지 못한다. `input_content_hash` exact duplicate와 `scenario_family_id` 교집합 검사는 여섯 split의 모든 pair 조합에 적용한다. 의도적 Critical mutation은 원본 `source_fixture_id`와 `mutation_id`를 case catalog에 기록할 수 있지만, Train/Validation/Calibration/General/OOD와 동일한 `input_content_hash`를 재사용할 수 없다.
+동일 episode, map seed, generator template의 근접 변형은 split을 넘지 못한다.
 
-In-distribution family는 사전에 검토한 `split_assignment.csv`로 Train 70%, Validation 10%, Calibration 10%, General Test 10%에 배치한다. `test_taxonomy_v1.yaml`은 OOD/Critical family 이름과 최소 분모를 소유한다. 실제 OOD 8 family와 Critical 8 family의 허용 사례는 후속 machine-readable `test_case_catalog_v1.yaml`에 다음을 명시해야 한다.
+`input_content_hash` exact duplicate와 `scenario_family_id` 교집합 검사는 여섯 split의 모든 pair 조합에 적용한다.
+
+의도적 Critical mutation은 원본 `source_fixture_id`와 `mutation_id`를 case catalog에 기록할 수 있다.
+
+Critical mutation은 Train·Validation·Calibration·General·OOD와 동일한 `input_content_hash`를 재사용할 수 없다.
+
+In-distribution family는 사전에 검토한 `split_assignment.csv`로 배치한다. 배치 비율은 Train 70%, Validation 10%, Calibration 10%, General Test 10%다.
+
+`test_taxonomy_v1.yaml`은 OOD/Critical family 이름과 최소 분모를 소유한다. 후속 machine-readable `test_case_catalog_v1.yaml`은 실제 OOD 8 family와 Critical 8 family의 허용 사례를 명시해야 한다.
 
 ```text
 case_id
@@ -1599,7 +1705,9 @@ expected_invariants
 owner
 ```
 
-Taxonomy family name만으로 “명시적 allowlist”를 충족했다고 보지 않는다. `test_case_catalog_v1.yaml`이 생성·Lock·Validator 대상에 포함되기 전 OOD/Critical split을 열 수 없다. 비율보다 Appendix E의 Role×Goal 최소 분모와 family 격리가 우선한다.
+명시적 allowlist 충족 여부는 Taxonomy family와 case catalog fixture entry를 함께 검사한다.
+
+`test_case_catalog_v1.yaml`이 생성·Lock·Validator 대상에 포함되기 전에는 OOD/Critical split을 열 수 없다. Appendix E의 Role×Goal 최소 분모와 family 격리는 split 비율보다 우선한다.
 
 Dataset Validator는 학습 전에 다음을 모두 검사한다.
 
@@ -1661,9 +1769,9 @@ L = sample_weight × (
 
 ## 9.12 Training Config와 Checkpoint·Report
 
-Training Config, checkpoint 선택 및 Training Report 절차는 [구현 계획의 §4](../implementation/ai_native_npc_implementation_plan_v0.4.6.md)가 소유한다.
+Training Config, checkpoint 선택 및 Training Report 절차는 [구현 계획의 §5](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#training-config)가 소유한다.
 
-## 9.14 Calibration과 OOD Asset
+## 9.13 Calibration과 OOD Asset
 
 Checkpoint를 동결한 뒤 순서대로 수행한다.
 
@@ -1687,15 +1795,36 @@ Checkpoint를 동결한 뒤 순서대로 수행한다.
 - coverage 분모는 contract-valid이고 `valid_candidate_count>0`인 Calibration state 전체다. `OOD≥0.80` 선행 abstain도 미수락으로 분모에 포함한다.
 - 전체 global threshold는 `accepted_count ≥400`, `coverage ≥0.80`, one-sided Wilson 95% risk upper bound `≤0.10`을 모두 만족하는 가장 낮은 threshold다.
 - Role×Goal override는 해당 group의 Calibration source state가 400개 이상이고, 후보 threshold에서 `accepted_count ≥100`, `coverage ≥0.80`, one-sided Wilson 95% risk upper bound `≤0.10`일 때만 만든다.
-- group override 승격 조건 미충족 시 global threshold를 적용한다. 실제 threshold에서 각 필수 Role×Goal group은 `accepted_count ≥100`, `coverage ≥0.80`, one-sided Wilson 95% risk upper bound `≤0.10`을 만족해야 한다.
+- group override 승격 조건을 충족하지 못하면 global threshold를 적용한다.
+- 실제 적용 threshold에서 각 필수 Role×Goal group은 `accepted_count ≥100`을 만족해야 한다.
+- 각 필수 Role×Goal group은 `coverage ≥0.80`도 만족해야 한다.
+- 각 필수 Role×Goal group의 one-sided Wilson 95% risk upper bound는 `≤0.10`이어야 한다.
 - global threshold 또는 실제 적용 threshold의 필수 group Gate 하나라도 실패하면 Release Gate를 실패시킨다. 0-coverage/0-accepted group을 fallback 성공으로 간주하지 않는다.
 - accepted count가 0이면 risk를 0으로 두지 않고 해당 threshold를 부적격 처리한다.
 
-여기서 risk는 threshold 이상으로 accept된 상태 중 선택 candidate가 acceptable set 밖인 비율이다. Capture 당시 source policy의 `selected_is_acceptable` 값은 분석용이며, 최종 Calibrator label은 frozen checkpoint로 다시 선택한 결과와 `acceptable_candidate_mask`에서 재계산한다.
+risk는 threshold 이상으로 accept된 상태 중 선택 candidate가 acceptable set 밖인 비율이다.
 
-Calibration/OOD asset은 scaler, weights, bias, group thresholds, mean, precision, q95/q99.9, fit dataset hash, checkpoint hash, library version을 포함한다. General Test와 OOD Test는 asset 동결 후 ECE, Brier, risk/coverage, OOD recall/FPR만 평가한다.
+Capture 당시 source policy의 `selected_is_acceptable` 값은 분석에만 사용한다.
 
-## 9.15 Export와 Model Bundle
+최종 Calibrator label은 frozen checkpoint로 candidate를 다시 선택해 계산한다. 선택 결과의 acceptable 여부는 `acceptable_candidate_mask`에서 다시 계산한다.
+
+Calibration/OOD asset은 다음 값을 포함한다.
+
+- scaler
+- weights
+- bias
+- group thresholds
+- mean
+- precision
+- `q95`
+- `q99.9`
+- fit dataset hash
+- checkpoint hash
+- library version
+
+General Test와 OOD Test는 asset 동결 후 ECE, Brier, risk/coverage, OOD recall, OOD FPR만 평가한다.
+
+## 9.14 Export와 Model Bundle
 
 ONNX 입력 이름·순서·dtype은 Schema 2.0의 다음 10개와 exact-match해야 한다.
 
@@ -1712,7 +1841,13 @@ candidate_pair_features     float32 [B,272,16]
 candidate_mask              bool    [B,272]
 ```
 
-목표 output은 `candidate_raw_scores [B,272]`, `candidate_parameter_proposals [B,272,4]`, `tactical_context [B,128]` 세 개다. Batch 축만 dynamic이며 나머지 축은 고정한다. OOD Runtime 승격은 세 번째 output을 등록한 Schema patch부터 적용한다.
+목표 output은 다음 세 개다.
+
+- `candidate_raw_scores float32 [B,272]`
+- `candidate_parameter_proposals float32 [B,272,4]`
+- `tactical_context float32 [B,128]`
+
+Batch 축만 dynamic으로 허용한다. 나머지 축은 고정한다. OOD Runtime 승격은 세 번째 output을 등록한 Schema patch부터 적용한다.
 
 Export 계약:
 
@@ -1750,9 +1885,9 @@ perf_manifest.json
 - `policy_manifest.json` 자체는 외부 release index 또는 Freeze Manifest가 기록한 `policy_manifest_sha256`으로 검증한다.
 - 파일 하나라도 바뀌면 기존 Decision Contract Hash와 Bundle 승인 hash를 재사용하지 않는다.
 
-## 9.16 구현 저장소 명령과 Phase 구분
+## 9.15 구현 저장소 명령과 Phase 구분
 
-구현 저장소 CLI와 Phase별 적용 범위는 [구현 계획의 §5](../implementation/ai_native_npc_implementation_plan_v0.4.6.md)가 소유한다.
+구현 저장소 CLI와 Phase별 적용 범위는 [구현 계획의 §6](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#implementation-cli)가 소유한다.
 
 # 10. Schema Generator와 Parity
 
@@ -1768,7 +1903,9 @@ contracts/current/skill_registry_v1.yaml
 contracts/current/goal_registry_v1.yaml
 ```
 
-평가 family·Critical/OOD 분모는 네 번째 YAML인 `contracts/current/test_taxonomy_v1.yaml`이 소유한다. 실제 OOD/Critical fixture allowlist는 후속 `contracts/current/test_case_catalog_v1.yaml`이 소유하며, 추가 즉시 Generator·Catalog·Lock·Archive·Validator 대상에 포함한다.
+평가 family와 Critical/OOD 분모는 `contracts/current/test_taxonomy_v1.yaml`이 소유한다.
+
+실제 OOD/Critical fixture allowlist는 후속 `contracts/current/test_case_catalog_v1.yaml`이 소유한다. case catalog를 추가할 때 Generator·Catalog·Lock·Archive·Validator 대상에도 즉시 포함한다.
 
 Schema YAML은 Normalizer, Range, Missing, Padding, Hash byte order, Target Slotter quantization을 구조화된 값으로 가진다. 생성기가 자연어 수식을 해석하거나 별도 상수를 하드코딩해서는 안 된다.
 
@@ -1786,7 +1923,9 @@ tests/golden/discrete_hash_vectors.json
 
 수동으로 C++/Python Enum, Shape, Index, Parameter 범위를 편집하지 않는다.
 
-정리된 `main`에서는 YAML 4개와 생성 Python/C++ 계약만 유지한다. Generator·Golden·Harness는 `archive/full-harness-v0.4.6`에 보존되어 있다. 계약 변경이 필요하면 보관본의 Generator로 전체 산출물과 증거를 재생성한 뒤 새 버전으로 승격해야 하며, `main`의 생성 파일만 손으로 고쳐서는 안 된다.
+정리된 `main`에서는 YAML 4개와 생성 Python/C++ 계약만 유지한다. Generator·Golden·Harness는 `archive/full-harness-v0.4.6`에 보존한다.
+
+계약을 변경할 때는 보관본의 Generator로 전체 산출물과 검증 증거를 재생성한다. 재생성한 산출물과 증거는 새 버전으로 승격한다. `main`의 생성 파일을 수동으로 고치는 것을 금지한다.
 
 ## 10.2 Golden Test 구분
 
@@ -1819,7 +1958,7 @@ Hash field/order/type/endianness는 YAML의 구조화된 배열이 단일 원본
 
 ## 10.5 Cross-Environment Release Pipeline
 
-Cross-Environment Release Pipeline과 단일 release 명령은 [구현 계획의 §6](../implementation/ai_native_npc_implementation_plan_v0.4.6.md)이 소유한다.
+Cross-Environment Release Pipeline과 단일 release 명령은 [구현 계획의 §7](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#release-pipeline)이 소유한다.
 
 ## 10.6 RC5 구조화 계약 Remediation Backlog
 
@@ -1835,7 +1974,6 @@ Cross-Environment Release Pipeline과 단일 release 명령은 [구현 계획의
 | `ASYNC-DEADLINE-001` | request deadline field와 40ms 계산이 구조화되지 않음 | `request_deadline_budget_ms=40`, checked absolute deadline, capture-to-Commit clock을 Decision Runtime Contract에 추가 | 39/40/41ms boundary·overflow·deadline miss Runtime test |
 | `FALLBACK-001` | timeout·abstain·supersede의 fallback 규칙과 failure code가 여러 절에 분산 | `CandidateHashMismatch`를 포함한 failure enum과 reason→기존 Skill 유지→latest snapshot Utility→Goal fallback 순서를 Decision Runtime Contract에 구조화 | hash mismatch·timeout·OOD·stale·urgent race Runtime test |
 | `EVENT-MOVING-001` | `source_moving_probability`가 bool | 확률이면 ratio `[0,1]`; boolean 의미를 유지하려면 `source_is_moving`으로 rename | Schema migration + Float Feature parity |
-| `DOC-GENERATOR-001` | generated Appendix `D.3` 중복 | Candidate Hash D.3, Decision Hash D.4, Normalizer D.5 | generated docs parity |
 | `TEST-CATALOG-001` | family taxonomy만 존재 | 실제 case allowlist YAML 추가 | Catalog/Lock/Archive validation |
 
 Auto-generated marker 내부를 수동 편집해 위 문제를 숨기지 않는다. 구조화된 원본과 Generator를 먼저 고치고 Appendix·Python·C++·Golden·Manifest를 함께 재생성한다.

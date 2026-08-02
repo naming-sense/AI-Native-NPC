@@ -16,7 +16,7 @@ AI Native NPC는 NPC가 알고 있는 정보와 현재 Goal을 바탕으로 실�
 1. [AI Native NPC 요구사항](docs/current/requirements/ai_native_npc_requirements_v0.4.6.md)
    - 시스템 목적, Runtime 동작, 권한, 입출력, 안전, 데이터·평가 요구사항을 정의합니다.
 2. [AI Native NPC 구현 계획](docs/current/implementation/ai_native_npc_implementation_plan_v0.4.6.md)
-   - Reference Model, Teacher LLM, 학습·릴리스 Pipeline, Phase·Owner·완료 절차를 정의합니다.
+   - Phase·Owner·완료 조건, Reference Model, Teacher LLM, 학습·릴리스 Pipeline을 정의합니다.
 3. [AI Native NPC Contract Appendices](docs/current/reference/ai_native_npc_contract_appendices_v0.4.6.md)
    - Schema·Registry의 생성 표와 품질·안전·성능 승인 기준을 제공합니다.
 4. [UE5.7 Manny 공간·시야·청각 구현 계획](docs/current/unreal/ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan_v0.4.6.md)
@@ -39,7 +39,7 @@ YAML 4개가 기계 판독 가능한 기준 계약입니다. 생성 Python 계�
 
 ## 전체 하네스 보관본
 
-검증 도구, Golden Vector, mutation test, Manifest, 과거 문서·계약을 포함한 90개 파일 전체는 다음 위치에 보존되어 있습니다.
+검증 도구, Golden Vector, mutation test, Manifest, 과거 문서·계약을 포함한 전체 하네스는 다음 위치에 보존되어 있습니다.
 
 - [보관 브랜치: archive/full-harness-v0.4.6](https://github.com/naming-sense/AI-Native-NPC/tree/archive/full-harness-v0.4.6)
 - [고정 태그: full-harness-v0.4.6-rc5](https://github.com/naming-sense/AI-Native-NPC/tree/full-harness-v0.4.6-rc5)

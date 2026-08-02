@@ -3,7 +3,7 @@
 - 현행 요구사항: `docs/current/requirements/ai_native_npc_requirements_v0.4.6.md`
 - 현행 구현 계획: `docs/current/implementation/ai_native_npc_implementation_plan_v0.4.6.md`
 - 현행 계약 부록: `docs/current/reference/ai_native_npc_contract_appendices_v0.4.6.md`
-- 이력 기준일: 2026-08-02
+- 이력 기준일: 2026-08-03
 - 성격: 감사와 변경 추적을 위한 참고 문서
 
 > 이 문서는 과거 판정과 검증 범위를 보존한다. 현재 구현 계약과 작업 가능 범위는 Requirements 본문 상단의 `현재 상태`를 따른다. 이력 문서의 과거 `GO`를 현재 Runtime 승인으로 해석하면 안 된다.
@@ -112,6 +112,8 @@ Remediation은 목표 계약을 Requirements에 기록했지만 RC5 YAML·Genera
 개발 단계의 `Teacher LLM Silver Label` 계약에는 입력 경계, strict response, 5-sample 합의, Dataset Record mapping, annotation provenance, Gold Validation 승격 Gate를 추가했다. Teacher Profile·request/response Schema·Golden parity가 구현되기 전 Teacher Silver 생성은 HOLD다.
 
 생성 Appendix의 단일 문서 경로 변경은 Schema와 Test Taxonomy의 `documentation_contract`에 반영했다.
+
+2026-08-03에는 `DOC-GENERATOR-001`을 완료했다. Candidate Hash는 Appendix D.3, Decision Hash는 D.4, Normalizer는 D.5에서 생성한다. Generator 회귀 테스트는 Appendix D 번호의 중복과 비연속을 차단한다.
 
 ---
 

@@ -5243,7 +5243,7 @@ documentation_contract:
   manual_hash_literal_policy:
     forbid_magic_value_ascii_json: true
     forbid_magic_literal_line: true
-    normative_location: Appendix D.3 generated from hash_contract
+    normative_location: Appendix D.3-D.4 generated from hash_contract
     forbid_known_value_ascii_token_anywhere_outside_generated_block: true
     forbid_general_magic_assignment_sentence: true
     value_ascii_token_sources:
