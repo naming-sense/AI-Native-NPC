@@ -2,20 +2,21 @@
 ## UE 클라이언트·신경망·Goal·Typed Target·Schema 2.0 통합 기준
 
 - 문서 버전: **v0.4.6**
-- 문서 상태: **UE 5.7 Client Implementation Profile / Schema 2.0 RC5 Validation Scope & Catalog Closure**
-- 개정일: 2026-07-30
-- 문서 보강: **ML/NNE Implementation Supplement 1 / Runtime Gate pending**
+- 문서 상태: **UE 5.7 RC5 Active Companion / Requirements Remediation Runtime Binding pending**
+- 개정일: 2026-08-02
+- 문서 보강: **ML/NNE Implementation Supplement 1 + Requirements Review Remediation Binding Notice**
 - 대체 문서: 기존 `ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan.md` v0.3
 - 상위 기준서: `ai_native_npc_requirements_implementation_plan_v0.4.6.md`
 - Tensor 단일 원본: `ai_native_npc_schema_v2_0.yaml`
-- 상위 기준서 SHA-256: `da69e31934d7549ab5cb5bce209bfb4e233731d88ddd3fc96318fabed3aa5ac4`
+- 상위 기준서 SHA-256: `84f3723ed776ef88958cc139f90f513c163e68f8ea1b39d810b82b17514fcaba`
 - Schema YAML SHA-256: `424898ba9e80ff8ac7ad4d48a806f8606d2c595ec892d2753becbdaa3e47b6cc`
 - Skill Registry SHA-256: `08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8`
 - Goal Registry SHA-256: `b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2`
 - Test Taxonomy SHA-256: `7e300d01d148129e0741f8e0c468eeb433d80fe9ef414c7be453c47960927155`
 - ML 구현 프로필: **`policy_arch_v1.0.0` / `policy_train_v1.0.0` / ONNX opset 17**
-- Phase 0 판정: **GO**
-- Schema 2.0 최종 Freeze: **생성 코드와 Unreal–Python Golden Test 통과 후 승인**
+- Phase 0 판정: **조건부 GO — Utility Baseline/RC5 smoke 한정**
+- V1 Neural/OOD 판정: **HOLD — Schema/Goal/Dataset remediation patch 필요**
+- Schema 2.0 최종 Freeze: **NO-GO — 생성 계약과 Unreal Runtime Gate 재승격 필요**
 
 > 이 문서는 Unreal Engine 5.7 Third Person 프로젝트에서 Quinn을 플레이어로 유지하고, Manny를 학습 기반 NPC로 적용하기 위한 엔진 구현 기준서다.  
 > Tensor·Enum·Padding·Normalization·Hash가 충돌하면 본문보다 `ai_native_npc_schema_v2_0.yaml`이 우선하고, Goal·Target·Commit 책임이 충돌하면 상위 v0.4.6 요구사항이 우선한다.
@@ -59,9 +60,21 @@ v0.4.6까지 누적된 추가 계약:
 - 자동 생성 Appendix 밖의 manual hash literal을 strict validation에서 거부
 - constant/missing/must_equal/padding_zero 의미 교차검증과 동적 mutation probe 추가
 
-Phase 0은 GO다. 다만 Float Tensor/ONNX parity, Target/Candidate Recall, Atomic Commit, Hidden Leakage Runtime 증거가 통과하기 전 대량 학습 데이터와 최종 Freeze는 보류한다.
+Phase 0은 조건부 GO다. Utility Baseline, Capture, fallback, atomic Commit 및 현 RC5 2-output score/parameter smoke는 진행할 수 있다. 그러나 Float Tensor/ONNX parity, Target/Candidate Recall, Atomic Commit, Hidden Leakage Runtime 증거와 Requirements Remediation이 통과하기 전 대량 학습 데이터와 최종 Freeze는 보류한다.
 
-2026-07-30 보강은 상위 요구사항 §6.1과 §9.8–§9.16의 재현 가능한 ML Training Contract를 Unreal 구현 절차로 연결한다. Schema·Registry 값은 그대로 유지하며, Phase 0에서는 fixture model로 ONNX Import→NNE→Post-process→Commit/Fallback 경로를 먼저 증명한다.
+2026-07-30 보강은 상위 요구사항 §6.1과 §9.8–§9.16의 재현 가능한 ML Training Contract를 Unreal 구현 절차로 연결했다. 현 RC5 Schema·Registry 값은 그대로 유지하며, Phase 0에서는 fixture model로 ONNX Import→NNE→score/parameter Post-process→Commit/Fallback 경로를 먼저 증명한다.
+
+## 0.1 Requirements Review Remediation Binding Notice
+
+2026-08-02 상위 기준서는 다음 목표 계약을 추가했으나 현재 RC5 YAML/Generated/UE Appendix에는 아직 반영되지 않았다.
+
+- 세 번째 ONNX output `tactical_context [B,128]`과 binary64/quantized OOD parity
+- Dataset Record v2 Switch Cost component와 feature/content/sample hash
+- Goal typed trigger·phase timer·revision/arbitration 계약
+- `IdentityKey` same-target 비교와 non-material stale 50ms contract
+- 실제 OOD/Critical case catalog와 non-vacuous Calibration group Gate
+
+따라서 이 문서의 기존 2-output descriptor, Goal Phase 표, latest-request-only 표현은 **RC5 active 구현 참고**일 뿐 새 목표 계약의 완료 증거가 아니다. 구조화된 Schema/Registry와 Generator를 patch하기 전 수기로 descriptor/Appendix를 바꾸지 않는다. 상위 Requirements §10.6 backlog를 닫고 새 Decision Contract Hash가 발급되면 이 UE 문서의 Runtime 절차와 generated Appendix를 함께 재생성·검증한다.
 
 ---
 
