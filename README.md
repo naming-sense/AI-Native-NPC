@@ -8,6 +8,7 @@ AI Native NPC는 NPC가 알고 있는 정보와 현재 Goal을 바탕으로 실�
 
 - 문서·Schema 계약: **v0.4.6 / Schema 2.0 RC5**
 - 기반 문서·Schema 하네스 검증: **보관 태그 기준 Freeze-ready**
+- 보스 전용 Pattern Selector 계약: **구조화 Schema·Python/C++ Golden 구현 / Unreal Runtime Gate 대기**
 - 현재 ML/NNE 구현 보강: **문서 반영 완료 / Runtime 증거 대기**
 - 실제 Unreal Runtime Gate: **구현 및 검증 대기**
 
@@ -29,13 +30,16 @@ Requirements가 공통 규범을 소유합니다. Implementation Plan과 UE Plan
 ## 구현 기준 파일
 
 - [Schema 2.0](contracts/current/ai_native_npc_schema_v2_0.yaml)
+- [Boss Pattern Policy Contract](contracts/current/boss_pattern_contract_v1.yaml)
 - [Skill Registry](contracts/current/skill_registry_v1.yaml)
 - [Goal Registry](contracts/current/goal_registry_v1.yaml)
 - [Test Taxonomy](contracts/current/test_taxonomy_v1.yaml)
 - [생성 Python 계약](generated/python/ai_native_npc_contracts_generated.py)
+- [생성 Boss Pattern Python 계약](generated/python/ai_native_npc_boss_pattern_contracts_generated.py)
 - [생성 C++ 계약 Header](generated/cpp/AINativeNPCContracts.generated.h)
+- [생성 Boss Pattern C++ 계약 Header](generated/cpp/AINativeNPCBossPatternContracts.generated.h)
 
-YAML 4개가 기계 판독 가능한 기준 계약입니다. 생성 Python 계약은 Dataset Builder·학습·ONNX Export에서, 생성 C++ Header는 Unreal Runtime에서 사용합니다. 두 생성 파일은 수동 수정하지 않습니다.
+YAML 5개가 기계 판독 가능한 기준 계약입니다. 공통 생성 계약은 272 Candidate를, Boss Pattern 생성 계약은 `Attack(Entity)` 하위의 별도 32 Pattern row를 정의합니다. 생성 Python 계약은 Dataset Builder·학습·ONNX Export에서, 생성 C++ Header는 Unreal Runtime에서 사용하며 수동 수정하지 않습니다.
 
 현재 `main`은 현행 문서와 계약 YAML·생성 계약을 유지합니다. 완료된 감사·계획 기록은 [`docs/history`](docs/history/README.md)에 분리합니다.
 

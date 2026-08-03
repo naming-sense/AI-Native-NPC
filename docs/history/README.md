@@ -12,8 +12,14 @@
 - [Requirements Review v0.4.6](reviews/requirements-review-v0.4.6.md)
   - 분리 전 결합 문서에 수행한 독립 검토와 당시 판정을 보존합니다.
 
+## 완료된 요구사항 기록
+
+- [보스 전용 Neural Pattern Selector 요구사항](requirements/2026-08-03-boss-pattern-neural-policy-requirements.md)
+  - 공통 272 Candidate를 유지하는 보스 전용 32-row Pattern 하위 정책의 완료 계약을 기록합니다.
+
 ## 완료된 작업 계획
 
+- [보스 전용 Neural Pattern Selector 구현 계획](plans/2026-08-03-boss-pattern-neural-policy-implementation-plan.md)
 - [문서 분리와 Teacher LLM 계약 계획](plans/2026-08-02-requirements-document-split.md)
 - [독자 중심 Requirements 재구성 계획](plans/2026-08-02-requirements-reader-first-restructure.md)
 - [Requirements 검토 remediation 계획](plans/2026-08-02-requirements-review-remediation.md)
