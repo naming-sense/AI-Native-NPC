@@ -1,5 +1,6 @@
 // AUTO-GENERATED Golden parity test. DO NOT EDIT.
 #include "../generated/cpp/AINativeNPCContracts.generated.h"
+#include "../generated/cpp/AINativeNPCBossPatternContracts.generated.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -71,6 +72,42 @@ int main(){
   DD.CalibrationOodAsset = std::array<std::uint8_t,32>{0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27,0x27};
   if(Hex(DecisionContractCanonicalBytes(DD))!="414e504344454332010056deff3a5f55ddad30864bcf7df4d100d2f1c5472f86f0a8b9e2599044c3738508141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac223232323232323232323232323232323232323232323232323232323232323232424242424242424242424242424242424242424242424242424242424242424252525252525252525252525252525252525252525252525252525252525252526262626262626262626262626262626262626262626262626262626262626262727272727272727272727272727272727272727272727272727272727272727") return Fail("decision canonical");
   if(DecisionContractHashHex(DD)!="0fcc5bfa2b527d4e611af6e2c6fd3b3a2b477a233370823d0fe464f1ebca3b1b") return Fail("decision hash");
+  std::array<std::uint8_t,32> BossAssetHash{0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31,0x31};
+  std::array<std::uint16_t,AINativeNPC::BossPatternV1::MaxPatternSlots> BossPatternIds{};
+  BossPatternIds.fill(AINativeNPC::BossPatternV1::InvalidPatternId);
+  std::array<bool,AINativeNPC::BossPatternV1::MaxPatternSlots> BossPatternMask{};
+  BossPatternIds[0]=101U;
+  BossPatternIds[1]=204U;
+  BossPatternIds[2]=409U;
+  BossPatternMask[0]=true;
+  BossPatternMask[1]=true;
+  FTargetHandleWire BossTarget{static_cast<ETargetKind>(1), 1234605616436508552ULL, 7U, 19ULL};
+  const auto BossCandidateBytes=AINativeNPC::BossPatternV1::PatternCandidateSetCanonicalBytes(BossAssetHash,BossPatternIds,BossPatternMask,BossTarget,static_cast<AINativeNPC::BossPatternV1::ESelectionBoundary>(1),11ULL,23ULL);
+  if(Hex(BossCandidateBytes)!="42504353455430310100e4f828c114fcc5db1cb04b5d0a6e2b3d29dada7e45c60a3dd18c674baa78c7893131313131313131313131313131313131313131313131313131313131313131206500cc009901ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff03000000018877665544332211070000001300000000000000010b000000000000001700000000000000") return Fail("boss pattern candidate canonical");
+  if(AINativeNPC::BossPatternV1::PatternCandidateSetHashHex(BossAssetHash,BossPatternIds,BossPatternMask,BossTarget,static_cast<AINativeNPC::BossPatternV1::ESelectionBoundary>(1),11ULL,23ULL)!="9dea4e83e91a2204f406b7f28b72606fa258e43545d1b7e86e49714c2fd93f6c") return Fail("boss pattern candidate hash");
+  auto InvalidBossPatternIds=BossPatternIds; std::swap(InvalidBossPatternIds[0],InvalidBossPatternIds[1]);
+  if(AINativeNPC::BossPatternV1::IsPatternSlotLayoutValid(InvalidBossPatternIds,BossPatternMask)) return Fail("boss unsorted pattern layout accepted");
+  if(!AINativeNPC::BossPatternV1::PatternCandidateSetCanonicalBytes(BossAssetHash,InvalidBossPatternIds,BossPatternMask,BossTarget,AINativeNPC::BossPatternV1::ESelectionBoundary::PreAttack,1ULL,1ULL).empty()) return Fail("boss invalid layout serialized");
+  auto InvalidBossPatternMask=BossPatternMask; InvalidBossPatternMask[31]=true;
+  if(AINativeNPC::BossPatternV1::IsPatternSlotLayoutValid(BossPatternIds,InvalidBossPatternMask)) return Fail("boss invalid padding mask accepted");
+  std::array<std::uint16_t,AINativeNPC::BossPatternV1::MaxPatternSlots> AllPaddingBossPatternIds{}; AllPaddingBossPatternIds.fill(AINativeNPC::BossPatternV1::InvalidPatternId);
+  std::array<bool,AINativeNPC::BossPatternV1::MaxPatternSlots> AllPaddingBossPatternMask{};
+  if(AINativeNPC::BossPatternV1::IsPatternSlotLayoutValid(AllPaddingBossPatternIds,AllPaddingBossPatternMask)) return Fail("boss all-padding pattern layout accepted");
+  if(!AINativeNPC::BossPatternV1::PatternCandidateSetCanonicalBytes(BossAssetHash,AllPaddingBossPatternIds,AllPaddingBossPatternMask,BossTarget,AINativeNPC::BossPatternV1::ESelectionBoundary::PreAttack,1ULL,1ULL).empty()) return Fail("boss all-padding layout serialized");
+  AINativeNPC::BossPatternV1::FBossPatternDecisionDigests BossDD{};
+  BossDD.PatternModel=std::array<std::uint8_t,32>{0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41,0x41};
+  BossDD.PatternNormalizationContract=std::array<std::uint8_t,32>{0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42,0x42};
+  BossDD.PatternPostprocessContract=std::array<std::uint8_t,32>{0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43,0x43};
+  BossDD.PatternCalibrationOodAsset=std::array<std::uint8_t,32>{0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44,0x44};
+  BossDD.PatternExecutorContract=std::array<std::uint8_t,32>{0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45,0x45};
+  if(Hex(AINativeNPC::BossPatternV1::BossPatternDecisionContractCanonicalBytes(BossDD))!="42504443545230310100e4f828c114fcc5db1cb04b5d0a6e2b3d29dada7e45c60a3dd18c674baa78c78941414141414141414141414141414141414141414141414141414141414141414242424242424242424242424242424242424242424242424242424242424242434343434343434343434343434343434343434343434343434343434343434344444444444444444444444444444444444444444444444444444444444444444545454545454545454545454545454545454545454545454545454545454545") return Fail("boss pattern decision canonical");
+  if(AINativeNPC::BossPatternV1::BossPatternDecisionContractHashHex(BossDD)!="c0d66194dd8aca02fc48cf76bab4a0b72e80ea418bed7dbea8e74851a9d49bfd") return Fail("boss pattern decision hash");
+  float BossNorm=0.0f;
+  if(!AINativeNPC::BossPatternV1::TryNormalizeFeature(5000.0f,AINativeNPC::BossPatternV1::PatternContextNormalizers[static_cast<std::size_t>(AINativeNPC::BossPatternV1::EPatternContextFeature::target_distance_planar)],BossNorm)||!Almost(BossNorm,0.5,1e-7,1e-7)) return Fail("boss context distance normalizer");
+  if(!AINativeNPC::BossPatternV1::TryNormalizeFeature(-1000.0f,AINativeNPC::BossPatternV1::PatternContextNormalizers[static_cast<std::size_t>(AINativeNPC::BossPatternV1::EPatternContextFeature::target_relative_speed)],BossNorm)||!Almost(BossNorm,-0.5,1e-7,1e-7)) return Fail("boss context speed normalizer");
+  if(!AINativeNPC::BossPatternV1::TryNormalizeFeature(15.0f,AINativeNPC::BossPatternV1::PatternFeatureNormalizers[static_cast<std::size_t>(AINativeNPC::BossPatternV1::EPatternFeature::telegraph_duration)],BossNorm)||!Almost(BossNorm,0.5,1e-7,1e-7)) return Fail("boss duration normalizer");
+  if(!AINativeNPC::BossPatternV1::TryNormalizeFeature(999.0f,AINativeNPC::BossPatternV1::PatternFeatureNormalizers[static_cast<std::size_t>(AINativeNPC::BossPatternV1::EPatternFeature::reserved_zero)],BossNorm)||BossNorm!=0.0f) return Fail("boss constant-zero normalizer");
+  if(AINativeNPC::BossPatternV1::TryNormalizeFeature(std::nanf(""),AINativeNPC::BossPatternV1::PatternContextNormalizers[0],BossNorm)) return Fail("boss nonfinite normalizer");
   if(QuantizeConfidence(-0.1)!=0) return Fail("quant confidence 0");
   if(QuantizeConfidence(0.0)!=0) return Fail("quant confidence 1");
   if(QuantizeConfidence(0.0005)!=1) return Fail("quant confidence 2");

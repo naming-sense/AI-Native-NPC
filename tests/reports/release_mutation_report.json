@@ -15,9 +15,9 @@
   ],
   "contract_revision": "2.0.0-rc5",
   "input_hashes": {
-    "contractlib": "9b8fb4a72c0727004e4d6660b96656c5269d56816c1aa61aa2707ae3fc0ede7e",
-    "doc_harness": "73eb7d9f3714159d3f9fcd10dd095f9d5ed79f965e95866a19b7971ef54cb5b4",
-    "readme": "4bda081a509ac035644dff0a4f8b3d933b37663d464fd6d9b292f35204ee2f26",
+    "contractlib": "04b5f120a4fd4c74ffd57b5441d23bc7ee216f58ddb945a0bbd359b51587839b",
+    "doc_harness": "438c6aa363720b26fdc5fe30585c2463d943f4e094f4abf5369a3dfaa35fcd64",
+    "readme": "45a12aca31c751b8faf82097bca66fa6c91683b8e19a53d7cfe53924ef7c1e6c",
     "schema": "56deff3a5f55ddad30864bcf7df4d100d2f1c5472f86f0a8b9e2599044c37385"
   },
   "report_version": 1,

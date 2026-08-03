@@ -54,6 +54,7 @@ Phase 0은 Perception→Utility Baseline→Commit 연결과 데이터 Capture를
 - Cover/SmartObject reservation
 - 멀티플레이 서버 권위
 - DAgger와 정식 KPI Gate
+- 선택적 Boss Pattern Policy: 공통 `Attack(Entity)` 하위 32 Pattern row, 별도 Model Bundle과 Utility fallback
 
 완료 조건:
 
@@ -71,6 +72,7 @@ Phase 0은 Perception→Utility Baseline→Commit 연결과 데이터 Capture를
 | Utility Baseline | AI Designer | 1주 | 2주 | Candidate pipeline |
 | Feature Builder/Golden Test | ML + Gameplay AI | 2주 | 2주 | schema.yaml generator |
 | Neural Model/Export | ML | 2주 | 4주 | Golden Feature parity |
+| Boss Pattern Model/Utility/Executor | ML + Combat AI + Animation + QA | - | 4주 | 공통 Attack Commit + Boss Pattern Contract |
 | Async Commit/Reservation | Gameplay/Server | 2주 | 4주 | Skill contract |
 | Gold/DAgger Tool | Tech Designer | 1주 | 4주 | Inspector/Replay |
 | QA/KPI Automation | QA + ML | 2주 | 지속 | Critical Suite |
@@ -200,6 +202,68 @@ RawScore = clamp(
 - Cosine temperature: 0.5
 - Bias와 Raw Score clamp는 모델 계약에 포함한다.
 - 해당 값이 바뀌면 model/post-process 계약과 Calibration을 함께 갱신한다.
+
+## 3.2 `boss_pattern_arch_v1.0.0` 선택적 하위 모델
+
+이 모델은 공통 `policy_arch_v1.0.0`을 대체하지 않는다. 공통 Policy가 `Attack(Entity)`를 Commit해 Attack Skill이 `ReadyToSelect`에 들어간 보스 요청만 별도 Model Bundle로 처리한다.
+
+```text
+Pattern Context
+  pattern_context [B,32]
+  → Linear(32,64) → LayerNorm → ReLU
+  → Linear(64,64) → LayerNorm → ReLU
+  = context [B,64]
+
+Pattern Row
+  pattern_features [B,32,24]
+  → shared Linear(24,64) → LayerNorm → ReLU
+  = pattern [B,32,64]
+
+Context×Pattern
+  pattern_pair_features [B,32,16]
+  → shared Linear(16,32) → LayerNorm → ReLU
+  concat(context broadcast 64, pattern 64, pair 32) = 160
+  → shared Linear(160,64) → LayerNorm → ReLU
+
+Heads
+  score: Linear(64,1) → pattern_raw_scores [B,32]
+  parameter: Linear(64,4) → Sigmoid → pattern_parameter_proposals [B,32,4]
+```
+
+- Python과 Unreal Feature Builder는 generated Boss Pattern normalizer table을 사용한다. 거리·속도·시간 divisor, clamp, non-finite reject, zero padding이 일치하지 않으면 Float parity Gate를 실패시킨다.
+- `target_health_ratio_estimate`는 confidence를 동반하며 confidence 0의 추정값을 확정 정보로 해석하지 않는다.
+- post-lock 현재 Target transform은 결정론적 Combat Executor의 bounded tracking에만 쓰며 Pattern Model 입력이나 재선택 조건으로 되먹이지 않는다.
+- `pattern_mask=false` row는 loss, softmax/ranking, parameter decode에서 제외한다.
+- model output은 Pattern ID를 직접 생성하지 않는다. row score만 출력하고 stable `pattern_id`는 request snapshot에서 읽는다.
+- Parameter 0은 authored tracking 상한을 줄이는 비율이다.
+- Parameter 1·2는 Telegraph·Recovery의 authored extension 상한 안에서 시간을 늘리는 비율이다.
+- Parameter 3은 reserved zero다.
+- Damage·Hitbox·Active window·Root Motion·interruptibility·Phase transition 출력 head는 금지한다.
+- 모델이 abstain하거나 계약·OOD·Calibration Gate를 통과하지 못하면 동일 32 row와 mask를 사용하는 Boss Pattern Utility Baseline으로 fallback한다. Utility 동점은 adjusted score 내림차순 후 `pattern_id` 오름차순으로 해소한다.
+- valid row 0개는 모델과 Utility를 모두 건너뛰고 `PatternUnavailable`을 반환한다. Authored safe default는 Utility 자체가 실패했고 해당 default row가 현재 valid일 때만 사용한다.
+
+### 3.2.1 학습·Bundle 분리
+
+Boss Pattern Dataset은 공통 272 Candidate Dataset과 별도 record type으로 저장한다. 각 record는 Pattern candidate-set hash, Pattern asset-bundle hash, Attack Target Belief snapshot, Boss/Combat revision, valid mask, acceptable Pattern set, 선택 boundary, 실행 결과를 포함한다.
+
+`boss_pattern_model_bundle_v1`은 다음 digest를 묶는다.
+
+- Boss Pattern Contract
+- Pattern model
+- Pattern normalization contract
+- Pattern post-process contract
+- Pattern Calibration/OOD asset
+- 결정론적 Pattern Executor contract
+
+공통 Tactical Model Bundle을 바꾸지 않고 보스별 Pattern Asset bundle을 교체할 수 있다. Pattern Asset 교체는 `pattern_candidate_set_hash`를 바꾸며 pending 응답을 stale로 만든다.
+
+### 3.2.2 품질·공정성 평가
+
+- Pattern recall과 mask 위반을 Boss Phase×거리×이전 Pattern×selection boundary별로 보고한다.
+- Telegraph 시작 후 Pattern 변경, Active 중 재선택, 허용되지 않은 interrupt는 Critical miss다.
+- 공격별 Telegraph 최소 시간, Recovery 최소 시간, post-lock tracking 상한을 Runtime trace로 검증한다.
+- 짧은 Pattern 반복, 같은 family 연속 사용, 특정 거리에서의 단일 Pattern collapse를 별도 분포 metric으로 보고한다.
+- Utility Baseline 대비 승률만 높이는 모델은 통과하지 않는다. Player hit rate와 함께 readability, punish-window 보존, 반복도, Pattern 다양성, hard-constraint 위반 0건을 함께 만족해야 한다.
 
 
 ---
@@ -413,6 +477,12 @@ Schema 2.0 Freeze는 다음 항목을 모두 요구한다.
 - [ ] Candidate Hash mismatch가 `CandidateHashMismatch`로 거부되고 Neural 실패→latest Utility→Goal fallback 순서 테스트 통과
 - [ ] Atomic Commit rollback·lease·urgent cancellation 테스트 통과
 - [ ] Hidden Information Leakage Test 통과
+- [x] `boss_pattern_contract_v1.yaml` validator와 별도 Python/C++/Markdown·Candidate/Decision hash Golden 생성
+- [ ] Pattern Asset Bundle canonical digest Python↔Unreal Build Commandlet parity 통과
+- [ ] Boss Pattern Float Tensor Python↔Unreal parity 통과
+- [ ] Boss Pattern ONNX Runtime↔Unreal NNE output parity 통과
+- [ ] Telegraph/Active/Recovery lock·interrupt cleanup·stale Commit Runtime 테스트 통과
+- [ ] Boss Pattern readability·punish-window·반복도·다양성·성능 Gate 통과
 - [ ] Appendix E의 실제 Baseline/CI/표본 Gate 통과
 - [ ] 보관 validation report의 pending Runtime/Formal Gate가 실제 evidence로 모두 종료
 

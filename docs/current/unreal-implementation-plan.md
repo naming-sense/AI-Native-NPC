@@ -10,11 +10,12 @@
 - 공통 구현 계획: `implementation-plan.md`
 - 계약 부록: `contract-appendices.md`
 - Tensor 단일 원본: `ai_native_npc_schema_v2_0.yaml`
-- Requirements SHA-256: `835bc86d1e068d8978c02363a1b009a742236918bbe6d70e3aa6066dea3e7482`
+- Requirements SHA-256: `d266edcc5927aa5f062326247a956a29361a360b3a471b302cc6ea3187a972a0`
 - Schema YAML SHA-256: `56deff3a5f55ddad30864bcf7df4d100d2f1c5472f86f0a8b9e2599044c37385`
+- Boss Pattern Contract SHA-256: `e4f828c114fcc5db1cb04b5d0a6e2b3d29dada7e45c60a3dd18c674baa78c789`
 - Skill Registry SHA-256: `08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8`
 - Goal Registry SHA-256: `b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2`
-- Test Taxonomy SHA-256: `391b31036d6911e2e646d44f81f010e565e4fc587a6475fe6904d935aafb98ef`
+- Test Taxonomy SHA-256: `2c4f911c23c8502231351fd2a1ffc606a04c29c4c3e39ea384099462811dad79`
 - ML 구현 프로필: **`policy_arch_v1.0.0` / `policy_train_v1.0.0` / ONNX opset 17**
 - Phase 0 판정: **조건부 GO — Utility Baseline/RC5 smoke 한정**
 - V1 Neural/OOD 판정: **HOLD — Schema/Goal/Dataset remediation patch 필요**
@@ -113,6 +114,8 @@ Phase 0은 조건부 GO다.
 | Post-process | switch cost, adjusted score, OOD, calibration, abstain |
 | Commit Coordinator | stale 검증, 자원 예약, Skill 시작의 짧은 원자 Commit |
 | Skill Executor | Tick, Complete, Fail, Cancel, 물리·애니메이션 실행 |
+| Boss Pattern Builder/Selector | `Attack(Entity)` 내부에서 별도 32 Pattern row를 mask·rank |
+| Boss Pattern Commit/Executor | Pattern hash·revision·resource 검증, Telegraph/Active/Recovery 잠금과 결정론적 전투 실행 |
 
 ## 1.2 런타임 흐름
 
@@ -2405,7 +2408,116 @@ snapshot 위치 검증
 
 Attack은 현재 허용된 Entity Perception과 Combat Module의 authoritative 판정을 요구한다.
 
-## 19.5 StateTree
+## 19.5 보스 전용 Neural Pattern 실행
+
+보스는 공통 `Attack(Entity)` Candidate를 그대로 사용한다. `QuickSlash`, `DelayedHeavy`, `GapCloser` 같은 공격 절차는 Target Slot이나 273번째 Candidate가 아니라 Attack Skill 내부의 `UBossPatternDataAsset`이다.
+
+### 19.5.1 Unreal 소유 객체
+
+| 타입 | 책임 |
+|---|---|
+| `UBossPatternSetDataAsset` | 보스 archetype의 stable `pattern_id` 목록, `SafeDefaultPatternId`, Utility profile, optional Model Bundle, bundle hash |
+| `UBossPatternDataAsset` | 거리·Phase·선후행·Montage·timing·tracking·Hitbox·Damage·Interrupt 규칙 |
+| `FBossPatternDecisionSnapshot` | 32 Pattern ID·mask, Belief 기반 Attack Target, boundary, Boss/Combat revision, hash |
+| `UBossPatternCandidateBuilderComponent` | stable ID 정렬, `[B,32,*]` Tensor, hard mask 생성 |
+| `UBossPatternPolicyComponent` | Utility Baseline 또는 별도 NNE Model Bundle 실행, OOD/Calibration/fallback |
+| `UBossPatternCommitCoordinator` | latest request·contract·candidate-set·revision·resource CAS 검증 |
+| `UBossPatternExecutorComponent` | 선택 잠금, Montage/Root Motion, Hitbox, Damage, tracking, interrupt cleanup |
+
+공통 `UDecisionSubsystem`과 Boss Pattern Policy는 request ID, model bundle, pending response queue를 공유하지 않는다. Boss Pattern에는 별도 `pattern_decision_id`와 `boss_pattern_decision_contract_hash`를 사용한다.
+
+`UBossPatternCandidateBuilderComponent`는 `AINativeNPCBossPatternContracts.generated.h`의 normalizer table을 직접 사용한다. 거리·속도·시간 divisor와 clamp를 수동 복제하지 않는다. non-finite feature는 request 전체를 거부하고, 비어 있는 Pattern row는 feature 0·`invalid_pattern_id`·`pattern_mask=false`로 채운다. Target 관련 field는 parent Attack의 허용된 Belief snapshot만 읽으며 `target_health_ratio_estimate`와 confidence를 함께 기록한다.
+
+### 19.5.2 Attack 시작 흐름
+
+```text
+공통 CommitCoordinator가 Attack(Entity)를 Commit
+→ Attack Skill State = ReadyToSelect
+→ BossPatternCandidateBuilder가 immutable Pattern snapshot 생성
+→ valid row 0개면 PatternUnavailable
+→ Pattern Utility 또는 NNE dispatch
+→ GameThread에서 BossPatternCommitCoordinator 재검증
+→ 선택 Pattern과 제한 parameter를 executor에 잠금
+→ StateTree/C++ Combat Executor 시작
+```
+
+NNE timeout, NaN, contract mismatch, OOD/Calibration abstain은 valid row가 하나 이상일 때만 같은 snapshot의 Utility Baseline으로 fallback한다. Utility 동점은 adjusted score 내림차순 후 `pattern_id` 오름차순으로 해소한다. Utility 자체가 실패하면 `UBossPatternSetDataAsset.SafeDefaultPatternId` row가 현재 valid일 때만 사용한다. valid row가 0개면 NNE와 Utility를 모두 건너뛰고 Attack Skill을 `Failed(PatternUnavailable)`로 종료해 최신 공통 Tactical decision을 요청한다. `BranchWindow` 응답이 window 종료 뒤 도착하면 `PatternBoundaryClosed`로 거부하고 현재 Pattern의 authored 종료 경로를 계속한다.
+
+### 19.5.3 Pattern Data Asset
+
+각 `UBossPatternDataAsset`은 Contract Appendices BP의 필수 필드를 가진다. 최소 실행 필드는 다음과 같다.
+
+```cpp
+UCLASS(BlueprintType)
+class UBossPatternDataAsset : public UPrimaryDataAsset
+{
+    GENERATED_BODY()
+public:
+    UPROPERTY(EditDefaultsOnly) uint16 PatternId;
+    UPROPERTY(EditDefaultsOnly) FGameplayTagContainer FamilyTags;
+    UPROPERTY(EditDefaultsOnly) TArray<int32> AllowedBossPhases;
+    UPROPERTY(EditDefaultsOnly) TArray<uint16> AllowedPredecessors;
+    UPROPERTY(EditDefaultsOnly) TArray<uint16> AllowedSuccessors;
+    UPROPERTY(EditDefaultsOnly) FVector2D PreferredDistanceCm;
+    UPROPERTY(EditDefaultsOnly) float StartupTelegraphSeconds;
+    UPROPERTY(EditDefaultsOnly) float ActiveSeconds;
+    UPROPERTY(EditDefaultsOnly) float RecoverySeconds;
+    UPROPERTY(EditDefaultsOnly) float TelegraphExtensionMaxSeconds;
+    UPROPERTY(EditDefaultsOnly) float RecoveryExtensionMaxSeconds;
+    UPROPERTY(EditDefaultsOnly) FPatternTrackingLimits TrackingByPhase;
+    UPROPERTY(EditDefaultsOnly) TObjectPtr<UAnimMontage> Montage;
+    UPROPERTY(EditDefaultsOnly) FName MontageSection;
+    UPROPERTY(EditDefaultsOnly) FHitboxWindowProfile HitboxWindows;
+    UPROPERTY(EditDefaultsOnly) TObjectPtr<UDamageProfile> DamageProfile;
+    UPROPERTY(EditDefaultsOnly) TArray<FPatternBranchWindow> BranchWindows;
+    UPROPERTY(EditDefaultsOnly) FPatternInterruptPolicy InterruptPolicy;
+};
+```
+
+Editor validation과 Cook validation은 ID 중복, 32개 초과, 음수·NaN timing, 최소 Telegraph 0 이하, invalid 선후행 참조, load 불가능한 Montage/Hitbox/Damage, Contract tracking 상한 초과를 hard error로 처리한다.
+
+### 19.5.4 제한 Parameter decode
+
+NNE의 4개 proposal은 Commit 시 Data Asset 범위 안에서 decode한다.
+
+```text
+tracking = authored_tracking_limit × clamp01(output[0])
+telegraph = startup_telegraph_seconds
+          + telegraph_extension_max_seconds × clamp01(output[1])
+recovery = recovery_seconds
+         + recovery_extension_max_seconds × clamp01(output[2])
+output[3] = 0
+```
+
+모델은 최소 Telegraph와 Recovery를 줄일 수 없다. Active duration, Hitbox, Damage, Root Motion, Interruptibility, Phase transition은 Data Asset과 Combat Module만 소유한다.
+
+### 19.5.5 StateTree 잠금
+
+`ST_BossAttack`은 선택이 Commit된 뒤 다음 deterministic task만 실행한다.
+
+```text
+ReadyToSelect
+→ BossPatternCommit    # Pattern 잠금과 PreAttackTurn 진입을 원자적으로 수행
+→ PreAttackTurn       # 잠금 유지, authored tracking 상한
+→ StartupTelegraph    # 잠금 유지, Montage와 cue 시작
+→ Active              # Hitbox window와 Damage Profile 적용
+→ Recovery            # punish window 유지
+→ authored BranchWindow이면 successor 선택 요청
+→ 아니면 Completed 후 RecoveryEnd 선택 또는 공통 Tactical 재판단
+```
+
+- Pattern Commit 성공과 `PreAttackTurn` 진입은 같은 transaction이다.
+- `PreAttackTurn`, `StartupTelegraph`, `Active`에서는 Pattern 재선택을 금지한다.
+- 일반 플레이어 이동과 새 Neural score는 interrupt 사유가 아니다.
+- 플레이어 추적은 Data Asset의 Phase별 yaw/pitch/speed 상한 안에서만 수행한다.
+- 추적용 현재 transform은 서버 Combat Targeting 정책이 Executor에만 제공한다. Pattern Model request로 되먹이지 않고 재선택에도 사용하지 않는다.
+- 강제 중단은 Death, Actor destruction, authority loss다.
+- Stun, Posture Break, scripted Phase transition, Arena reset은 현재 Pattern의 allowlist와 interrupt point를 만족해야 한다.
+- 중단 cleanup 순서는 Hitbox off → Montage 정책 적용 → Root Motion 해제 → reservation 해제 → Event 발행 → Executor state 전환이다.
+
+서버가 Pattern Commit, 실행 Phase, Hitbox, Damage, interrupt 결과를 권위 있게 소유한다. 클라이언트는 committed Pattern ID·start time·phase와 authored cue를 복제받으며 Pattern inference를 Gameplay 권위로 사용하지 않는다.
+
+## 19.6 StateTree
 
 복합 Skill 내부 절차에만 사용한다.
 
@@ -2533,6 +2645,25 @@ CoverSlot Target
 → Tick 중 lease renew
 ```
 
+## 21.7 Boss Pattern 선택과 잠금
+
+```text
+공통 Candidate: Attack(Quinn Entity) Commit
+→ Pattern Slot 0 QuickSlash: valid
+→ Pattern Slot 1 DelayedHeavy: valid
+→ Pattern Slot 2 GapCloser: distance mask=false
+→ Neural/Utility가 DelayedHeavy 선택
+→ BossPatternCommit에서 Target/Phase/Combat revision과 hash 일치
+→ Pattern 잠금과 `PreAttackTurn` 진입을 원자적으로 수행
+→ StartupTelegraph에서 잠금 유지, Montage와 cue 시작
+→ Quinn이 측면 이동: authored tracking 상한 안에서만 회전
+→ Active: Pattern 변경 없이 Hitbox/Damage Profile 실행
+→ Recovery: punish window 유지
+→ RecoveryEnd에서 다음 Pattern request 생성
+```
+
+Telegraph 중 새 추론에서 QuickSlash 점수가 높아져도 현재 DelayedHeavy를 바꾸지 않는다. Stun이 발생하면 Data Asset의 interrupt allowlist와 현재 interrupt point를 확인한 뒤에만 cleanup 순서로 중단한다.
+
 ---
 
 # 22. Debug, 로그, 데이터 캡처
@@ -2562,6 +2693,11 @@ CoverSlot Target
 - reservation lease
 - Skill failure taxonomy
 - model/schema/registry/hash
+- Boss Pattern ID/slot/mask reason/raw·adjusted score
+- Pattern selection boundary·executor phase·lock state
+- Pattern candidate-set/decision-contract/asset-bundle hash
+- authored Telegraph/Active/Recovery와 실제 phase timestamp
+- tracking clamp·interrupt allow/deny·cleanup 결과
 
 ## 22.2 DrawDebug
 
@@ -2719,6 +2855,7 @@ NPC별 주요 상태:
 - Candidate mask 272 bit
 - Decision request lifecycle
 - active Skill
+- 선택적 보스: Pattern snapshot 32 row, pending Pattern request, locked Pattern executor state
 - no GRU hidden
 
 모델과 NNE instance는 World 단위로 공유한다.
@@ -2826,6 +2963,23 @@ FP32 model output: abs ≤1e-4 or rel ≤1e-4
 14. 30 NPC
 15. Typical/Burst
 
+### 25.7.1 Boss Pattern
+
+- 32 Pattern slot 정렬·padding·mask와 Python/C++ hash Golden
+- generated normalizer field closure, distance·speed·time clamp, non-finite reject, Python↔C++ smoke parity
+- Pattern Asset normalized manifest→definition digest→bundle digest Python↔Build Commandlet parity
+- Ground Truth source 주입 거부와 Target estimate confidence 처리
+- Float Tensor Python↔Unreal parity와 ORT↔NNE output parity
+- Phase·거리·각도·LOS·cooldown·resource·predecessor·Branch Window mask
+- latest request, candidate-set hash, Boss/Combat revision stale rejection
+- Telegraph 시작 뒤 재선택 0건, Active 중 Pattern 변경 0건
+- 최소 Telegraph/Recovery 단축 0건, tracking authored 상한 위반 0건
+- Hitbox·Damage·Root Motion·interruptibility Neural 출력 경로 0건
+- 강제/allowlist interrupt와 cleanup 순서
+- Utility fallback과 all-masked `PatternUnavailable`
+- 서버 권위 Commit·복제·save/load/hot-swap
+- Phase×거리×이전 Pattern×boundary별 recall, 반복도, 다양성, readability, punish-window, latency
+
 <!-- BEGIN AUTO-GENERATED TEST TAXONOMY KPI: UNREAL -->
 
 ## 25.8 KPI
@@ -2844,7 +2998,7 @@ Gate:
 
 - General Target Recall 20,000 states: point ≥99.5%, Wilson lower ≥99.0%
 - Candidate Recall 동일
-- Critical Suite 512 sequences: 100%
+- Critical Suite 576 sequences: 100%
 - Safety Fuzz 100,000 decisions: hard-constraint Commit 0
 - Hidden Leakage 10,000 pair: 0
 - ECE ≤0.05
@@ -2859,7 +3013,7 @@ Gate:
 
 ## 25.9 고정 Critical/OOD Family
 
-Critical 8 family와 OOD 8 family 이름은 `test_taxonomy_v1.yaml`을 단일 원본으로 사용한다. Critical은 family당 최소 64 case, 총 최소 512 sequences다.
+Critical 9 family와 OOD 9 family 이름은 `test_taxonomy_v1.yaml`을 단일 원본으로 사용한다. Critical은 family당 최소 64 case, 총 최소 576 sequences다.
 
 Critical family:
 
@@ -2871,6 +3025,7 @@ Critical family:
 - `hidden_information_boundary`
 - `skill_parameter_and_resource_cas`
 - `save_load_hot_swap_recovery`
+- `boss_pattern_mask_lock_interrupt_fairness`
 
 OOD family:
 
@@ -2882,6 +3037,7 @@ OOD family:
 - `environment_layout_density_shift`
 - `event_sequence_shift`
 - `sensor_noise_shift`
+- `boss_pattern_phase_composition_shift`
 
 <!-- END AUTO-GENERATED TEST TAXONOMY KPI: UNREAL -->
 
@@ -2956,6 +3112,8 @@ OOD family:
 - Gold/DAgger
 - `policy_train_v1.0.0` 학습과 frozen Model Bundle
 - Calibration/OOD asset과 General/OOD/Critical 평가
+- 선택적 Boss Pattern Utility/NNE/Commit/StateTree/Combat Executor 수직 슬라이스
+- Boss Pattern Float/ONNX/Runtime/Fairness/Performance Gate
 - KPI/성능 Gate
 
 ## Owner·기간·의존성
@@ -2968,6 +3126,7 @@ OOD family:
 | Utility Baseline | AI Designer | 1주 | 2주 | Candidate Pipeline |
 | Feature/Golden | ML + Gameplay AI | 2주 | 2주 | Schema Generator |
 | Neural Model/Export | ML | 2주 | 4주 | Feature Parity |
+| Boss Pattern Policy/Executor | Combat AI + ML + Animation + QA | - | 4주 | 공통 Attack Commit + Boss Pattern Contract |
 | NNE/Commit/Reservation | Gameplay + Server | 2주 | 4주 | Skill/Target 계약 |
 | Label/DAgger Tool | Tech Designer | 1주 | 4주 | Inspector/Replay |
 | QA/KPI | QA + ML | 2주 | 지속 | Critical Suite |
@@ -2987,6 +3146,8 @@ ML/configs/phase0_fixture.json
 ML/src/anpc_ml/dataset/record_v1.py
 ML/src/anpc_ml/dataset/validate.py
 ML/src/anpc_ml/models/policy_v1.py
+ML/src/anpc_ml/models/boss_pattern_policy_v1.py
+ML/src/anpc_ml/dataset/boss_pattern_record_v1.py
 ML/src/anpc_ml/losses.py
 ML/src/anpc_ml/train.py
 ML/src/anpc_ml/calibration.py
@@ -2999,7 +3160,9 @@ ML/tests/
 
 ```text
 External/AI-Native-NPC/generated/cpp/AINativeNPCContracts.generated.h
+External/AI-Native-NPC/generated/cpp/AINativeNPCBossPatternContracts.generated.h
 Source/AINativeNPCContracts/Public/AINPCContracts.h
+Source/AINativeNPCContracts/Public/AINPCBossPatternContracts.h
 ```
 
 `AINPCContracts.h`는 Unreal type adapter와 static assert만 소유하고 Enum·Index·Normalizer·Hash 상수를 복제하지 않는다.
@@ -3027,6 +3190,13 @@ Inference/NPCInferenceTypes.h
 Execution/NPCCommitCoordinatorComponent.h
 Execution/NPCSkillExecutorComponent.h
 Execution/NPCResourceReservationSubsystem.h
+Boss/BossPatternDataAsset.h
+Boss/BossPatternSetDataAsset.h
+Boss/BossPatternTypes.h
+Boss/BossPatternCandidateBuilderComponent.h
+Boss/BossPatternPolicyComponent.h
+Boss/BossPatternCommitCoordinator.h
+Boss/BossPatternExecutorComponent.h
 Skills/NPCSkill.h
 Debug/NPCDebugComponent.h
 ```
@@ -3047,6 +3217,11 @@ Inference/NPCInferenceWorldSubsystem.cpp
 Inference/NPCPolicyDataAsset.cpp
 Execution/NPCCommitCoordinatorComponent.cpp
 Execution/NPCSkillExecutorComponent.cpp
+Boss/BossPatternDataAsset.cpp
+Boss/BossPatternCandidateBuilderComponent.cpp
+Boss/BossPatternPolicyComponent.cpp
+Boss/BossPatternCommitCoordinator.cpp
+Boss/BossPatternExecutorComponent.cpp
 Skills/NPCSkill_Idle.cpp
 Skills/NPCSkill_TurnTo.cpp
 Skills/NPCSkill_Approach.cpp

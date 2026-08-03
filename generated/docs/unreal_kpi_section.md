@@ -14,7 +14,7 @@ Gate:
 
 - General Target Recall 20,000 states: point ≥99.5%, Wilson lower ≥99.0%
 - Candidate Recall 동일
-- Critical Suite 512 sequences: 100%
+- Critical Suite 576 sequences: 100%
 - Safety Fuzz 100,000 decisions: hard-constraint Commit 0
 - Hidden Leakage 10,000 pair: 0
 - ECE ≤0.05
@@ -29,7 +29,7 @@ Gate:
 
 ## 25.9 고정 Critical/OOD Family
 
-Critical 8 family와 OOD 8 family 이름은 `test_taxonomy_v1.yaml`을 단일 원본으로 사용한다. Critical은 family당 최소 64 case, 총 최소 512 sequences다.
+Critical 9 family와 OOD 9 family 이름은 `test_taxonomy_v1.yaml`을 단일 원본으로 사용한다. Critical은 family당 최소 64 case, 총 최소 576 sequences다.
 
 Critical family:
 
@@ -41,6 +41,7 @@ Critical family:
 - `hidden_information_boundary`
 - `skill_parameter_and_resource_cas`
 - `save_load_hot_swap_recovery`
+- `boss_pattern_mask_lock_interrupt_fairness`
 
 OOD family:
 
@@ -52,3 +53,4 @@ OOD family:
 - `environment_layout_density_shift`
 - `event_sequence_shift`
 - `sensor_noise_shift`
+- `boss_pattern_phase_composition_shift`

@@ -10,7 +10,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from contractlib import TOOL_VERSION, critical_suite_metrics, default_paths, load_contracts, load_yaml, sha256_file, validate_contracts
+from contractlib import TOOL_VERSION, critical_suite_metrics, default_paths, load_boss_pattern_contract, load_contracts, load_yaml, sha256_file, validate_contracts
+from generate_boss_pattern_contracts import generate_boss_cpp, generate_boss_markdown, generate_boss_python
 
 
 def py_identifier(value: str) -> str:
@@ -767,17 +768,22 @@ def produce(root: Path, out_root: Path) -> dict[str, str]:
     if errors:
         raise SystemExit("Contract validation failed before generation:\n- " + "\n- ".join(errors))
     schema, skills, goals = load_contracts(paths)
+    boss_pattern = load_boss_pattern_contract(paths)
     taxonomy = load_yaml(paths.test_taxonomy)
     source_hashes = {
         "schema": sha256_file(paths.schema),
         "skill_registry": sha256_file(paths.skill_registry),
         "goal_registry": sha256_file(paths.goal_registry),
+        "boss_pattern_contract": sha256_file(paths.boss_pattern_contract),
         "test_taxonomy": sha256_file(paths.test_taxonomy),
     }
     outputs = {
         "generated/python/ai_native_npc_contracts_generated.py": generate_python(schema, skills, goals, source_hashes),
         "generated/cpp/AINativeNPCContracts.generated.h": generate_cpp(schema, skills, goals, source_hashes),
         "generated/docs/schema_reference.md": generate_markdown(schema, skills, goals, source_hashes),
+        "generated/python/ai_native_npc_boss_pattern_contracts_generated.py": generate_boss_python(boss_pattern, source_hashes["boss_pattern_contract"], TOOL_VERSION),
+        "generated/cpp/AINativeNPCBossPatternContracts.generated.h": generate_boss_cpp(boss_pattern, source_hashes["boss_pattern_contract"], TOOL_VERSION),
+        "generated/docs/boss_pattern_reference.md": generate_boss_markdown(boss_pattern, source_hashes["boss_pattern_contract"], TOOL_VERSION),
         "generated/docs/requirements_kpi_appendix.md": generate_requirements_kpi(taxonomy),
         "generated/docs/unreal_kpi_section.md": generate_unreal_kpi(taxonomy),
     }
@@ -807,6 +813,9 @@ def check(root: Path) -> list[str]:
             "generated/python/ai_native_npc_contracts_generated.py",
             "generated/cpp/AINativeNPCContracts.generated.h",
             "generated/docs/schema_reference.md",
+            "generated/python/ai_native_npc_boss_pattern_contracts_generated.py",
+            "generated/cpp/AINativeNPCBossPatternContracts.generated.h",
+            "generated/docs/boss_pattern_reference.md",
             "generated/docs/requirements_kpi_appendix.md",
             "generated/docs/unreal_kpi_section.md",
             "generated/contract_manifest.json",

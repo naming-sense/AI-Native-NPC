@@ -151,6 +151,12 @@ Commit Coordinator
          ↓
 Skill Executor
     └─ 이동, 시선, 대화, 엄폐, 전투를 실제로 실행
+         ↓ Attack(Entity) + BossPatternPolicy인 경우만
+Boss Pattern Candidate Builder → Utility/Neural Pattern Selector
+    └─ Boss Data Asset의 최대 32 Pattern row를 hard mask하고 순위 결정
+         ↓
+Boss Pattern Commit → StateTree/C++ Combat Executor
+    └─ Telegraph·Active·Recovery 잠금, Hitbox·Damage·Interrupt를 결정론적으로 실행
 ```
 
 예: Hearing이 `SoundEvent`를 만들면 Goal Manager가 `InvestigateDisturbance`를 활성화한다.
@@ -185,6 +191,9 @@ Runtime Snapshot과 Candidate
 | Post-process | Switch Cost·OOD·Calibration 적용 | 선택 후보 또는 fallback | Neural 수용 여부 |
 | Commit Coordinator | 최신 상태 검증과 자원 예약 | Skill 시작 또는 실패 코드 | 원자적 Skill 시작 |
 | Skill Executor | Skill tick·완료·실패·취소 처리 | Gameplay 결과 | 이동·애니메이션·전투 실행 |
+| Boss Pattern Candidate Builder | `Attack(Entity)` 내부의 authored Pattern을 최대 32행으로 고정·mask | `pattern_mask`와 Pattern snapshot hash | Pattern 실행 가능성 |
+| Boss Pattern Selector | valid Pattern의 전투 맥락별 선호 계산 | Pattern raw score와 제한된 extension proposal | Pattern ranking만 |
+| Boss Pattern Commit·Executor | Pattern stale 검증·예약·잠금·전투 실행 | Pattern 시작 또는 실패 코드 | Telegraph·Active·Recovery·Hitbox·Damage·Interrupt |
 
 각 계층은 Target miss, mask 오류, ranking 오류, stale 응답, Skill 실패를 따로 기록한다.
 
@@ -202,6 +211,8 @@ Neural Policy의 권한은 Candidate ranking으로 제한한다. Goal 생성은 
 | Typed Target | 종류가 다른 Target을 공통 Handle과 Feature 형식으로 표현한 것 |
 | Target Slot | 이번 의사결정에서 모델에 보여주는 Target의 고정 위치 |
 | Candidate | `Skill + Target Slot` 조합. 예: `Investigate + SoundEvent slot 3` |
+| Boss Pattern | `Attack(Entity)`가 선택된 뒤 보스가 실행할 authored 공격 절차. Target Slot이나 공통 Candidate가 아님 |
+| Pattern Slot | 한 보스의 현재 Pattern Data Asset을 stable `pattern_id` 순으로 배치한 별도 고정 row. 최대 32개 |
 | Hard Mask | Candidate의 실행 가능 여부를 고정한 표 |
 | Commit | 선택된 Candidate를 최신 상태로 재검증하고 실제 Skill 시작을 확정하는 짧은 트랜잭션 |
 | OOD | 학습 분포 밖의 입력에서 Neural 선택을 거부하는 신호 |
@@ -563,7 +574,7 @@ Target Recall denominator = Σ_s |R(s)|
 - `R(s)=∅` state는 Target Recall에서 제외하고 분모를 별도 보고한다.
 - 만료·파괴 등 label 시점에 유효하지 않은 Target은 `R(s)`에 넣지 않는다. 사후 임의 제외를 금지한다.
 - General Target Recall point estimate ≥99.5%, relevant-target trial Wilson 95% lower bound ≥99.0%다.
-- Critical Suite는 512 sequence의 모든 decision·relevant-target trial을 보고하고 miss 0건이어야 한다.
+- Critical Suite는 576 sequence의 모든 decision·relevant-target trial을 보고하고 miss 0건이어야 한다.
 - 보고서는 target-trial micro, decision-state micro, Role×Goal macro, sequence별 miss를 모두 포함한다.
 - episode-cluster bootstrap 10,000회 CI를 민감도 분석으로 함께 보고하며 Wilson만으로 상관 구조를 숨기지 않는다.
 - miss reason: `PerceptionMiss`, `ExpiredBelief`, `MandatoryOverflow`, `QuotaDrop`, `DedupeError`, `SlotterMismatch`, `UnsupportedKind`
@@ -657,6 +668,80 @@ Full Acceptable Recall denominator = Σ_s |G(s)|
 - Full Acceptable Recall은 승격 절대 Gate는 아니지만 전체, Role×Goal, Target Kind, valid-count bucket별 필수 보고 metric이다.
 - Critical Suite는 sequence·decision·acceptable-candidate 분모를 모두 보고하며 Any-Acceptable miss 0건이어야 한다.
 - episode-cluster bootstrap 10,000회 CI를 함께 보고한다.
+
+## 4.7 보스 전용 Neural Pattern Selector
+
+보스 패턴은 공통 Candidate Universe를 확장하지 않는다. 공통 Policy가 `Attack(Entity)`를 선택하고 Attack Skill이 `ReadyToSelect`에 진입한 뒤, `BossPatternPolicy` capability가 있는 보스만 별도 Pattern Selector를 실행한다.
+
+```text
+공통 Policy: Attack(Player Entity) 선택
+→ 공통 Commit: Attack precondition과 Target 검증
+→ BossPatternCandidateBuilder: 최대 32 Pattern row + hard mask
+→ Pattern Utility Baseline 또는 Neural Pattern Selector
+→ BossPatternCommitCoordinator: request/hash/revision/asset/resource 재검증
+→ StateTree/C++ Combat Executor: Telegraph → Active → Recovery
+```
+
+`QuickSlash`, `DelayedHeavy`, `GapCloser`는 Target Slot이 아니다. 모두 같은 `Attack(Player)` 안에서 선택하는 보스 전용 Pattern Data Asset이다. 일반 NPC와 보스 모두 공통 `candidate_count=272`를 유지하며 Pattern row는 별도 `[B,32,*]` namespace를 사용한다.
+
+### 4.7.1 Pattern Candidate와 hard mask
+
+- 한 보스의 활성 Data Asset을 stable `pattern_id` 오름차순으로 최대 32 slot에 배치한다.
+- 빈 row는 `invalid_pattern_id`와 `pattern_mask=false`로 padding한다.
+- Phase, Target identity/generation, 거리, 각도, 고도, LOS, cooldown, stamina, predecessor/successor, Branch Window, arena/nav 안전, asset load, executor lock, reservation을 결정론적으로 mask한다.
+- 선호도는 mask에 넣지 않는다. 예를 들어 “근거리에서 QuickSlash가 더 좋다”는 Utility/Neural ranking이 판단한다.
+- valid row가 0개면 inference와 Utility를 만들지 않고 `PatternUnavailable`로 Attack Skill을 종료해 최신 공통 fallback으로 복귀한다.
+- valid row가 있는 inference/response 실패는 같은 immutable snapshot의 Utility를 사용한다. 동점은 adjusted score 내림차순 후 `pattern_id` 오름차순으로 고른다.
+- Utility도 실패하면 `PatternSetDataAsset.safe_default_pattern_id`가 현재 valid인 경우에만 사용한다.
+
+### 4.7.2 별도 신경망 I/O
+
+```text
+pattern_context             float32 [B,32]
+pattern_features            float32 [B,32,24]
+pattern_pair_features       float32 [B,32,16]
+pattern_ids                 int64   [B,32]
+pattern_mask                bool    [B,32]
+
+pattern_raw_scores          float32 [B,32]
+pattern_parameter_proposals float32 [B,32,4]
+```
+
+Feature divisor·clamp·padding은 `boss_pattern_contract_v1.yaml`에서 생성한다. 모든 field는 정확히 하나의 normalizer에 배정되며 Python Builder와 Unreal Builder가 generated spec을 공유한다. 외부 대상 정보는 허용된 Belief 또는 locked Attack Target source만 사용할 수 있고 Ground Truth source는 validator가 거부한다. `target_health_ratio_estimate`는 `target_health_estimate_confidence`와 함께 입력한다. 빈 Pattern row의 feature는 정규화 후 전부 0이며 masked score는 ranking 전에 `-∞`로 바꾼다.
+
+Pattern Policy는 ranking과 다음 제한값만 제안한다.
+
+1. authored tracking 상한을 넘지 않는 `tracking_fraction`
+2. Telegraph를 줄이지 않고 authored 상한 안에서만 늘리는 `telegraph_extension_fraction`
+3. Recovery를 줄이지 않고 authored 상한 안에서만 늘리는 `recovery_extension_fraction`
+4. 항상 0인 reserved parameter
+
+Damage, Hitbox, Active window, Root Motion, interruptibility, Phase transition은 신경망 출력이 아니다.
+
+### 4.7.3 Telegraph 일치와 실행 잠금
+
+- 선택 request는 `PreAttack`, authored `BranchWindow`, `RecoveryEnd`에서만 만든다.
+- Pattern Commit 성공 transaction이 Pattern·Target identity·제한 parameter를 원자적으로 잠그고 `PreAttackTurn`에 진입한다.
+- `PreAttackTurn`, `Startup/Telegraph`, `Active`에서는 Pattern을 변경하지 않는다.
+- `Recovery`는 authored Branch Window에서만 successor 선택을 허용한다.
+- 일반 플레이어 이동, 새 Tactical score, 새 Pattern score는 실행 중 Pattern을 중단하지 않는다.
+- 잠금 뒤 Target identity와 Pattern은 유지한다. 선택용 Belief snapshot은 immutable이다.
+- 결정론적 Executor만 Combat Targeting 정책이 허용한 현재 Target transform을 읽어 Data Asset의 Phase별 각도·속도 상한 안에서 추적할 수 있다.
+- Executor가 읽은 현재 transform은 Pattern Model 입력으로 되먹이지 않으며 Pattern 변경 사유가 아니다.
+- 강제 중단은 `Death`, `ActorDestroyed`, `AuthorityLost`다. `Stun`, `PostureBreak`, scripted Phase transition, Arena reset은 해당 Pattern Data Asset의 allowlist가 허용할 때만 중단한다.
+- 중단 시 Hitbox 비활성화 → Montage/Root Motion 정리 → reservation 해제 → 결과 Event 발행 순서를 지킨다.
+
+이 규칙은 플레이어가 본 Telegraph와 실제 공격 결과가 일치하도록 보장한다.
+
+### 4.7.4 정보 경계·Hash·승격
+
+Pattern request는 공통 Attack Target의 허용된 Belief snapshot만 사용한다. 보이지 않는 플레이어의 실제 Transform, 미래 입력, ground-truth 상태는 사용할 수 없다.
+
+`pattern_candidate_set_hash`는 Contract hash, Pattern Asset bundle hash, 32개 Pattern ID·mask, Attack Target Handle, selection boundary, Boss Phase revision, Combat State revision을 고정 순서로 묶는다. 응답은 같은 hash와 `boss_pattern_decision_contract_hash`를 반환해야 하며 Commit에서 latest request와 다시 비교한다.
+
+`BranchWindow`가 응답 전에 닫히거나 Phase/Combat revision이 바뀌면 `PatternBoundaryClosed` 또는 stale failure로 거부한다. 현재 Pattern은 재선택 없이 authored 종료 경로를 계속하고 다음 유효 boundary에서 새 request를 만든다.
+
+정확한 Tensor field, enum, Data Asset 필드, hash 직렬화는 [Contract Appendices BP](contract-appendices.md#bp-auto-generated-boss-pattern-selector-계약)가 소유한다. Schema Harness 통과는 구조·생성·Python/C++ Candidate/Decision hash Golden 완료만 뜻한다. Pattern Asset Bundle digest의 Python↔Unreal Build Commandlet parity, Unreal Float parity, ONNX output parity, Unreal Pattern Runtime, fairness/quality, performance Gate는 실제 엔진 증거 전까지 pending이다.
 
 ---
 

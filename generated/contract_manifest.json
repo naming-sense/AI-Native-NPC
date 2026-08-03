@@ -3,16 +3,20 @@
   "generator": "tools/generate_contracts.py",
   "generator_version": "0.4.6",
   "output_hashes": {
+    "generated/cpp/AINativeNPCBossPatternContracts.generated.h": "ba2aad4af720c1a4662bde9fc0c4644e8d11cc14d7bbeffa135a84267c17cdfa",
     "generated/cpp/AINativeNPCContracts.generated.h": "6224f8f02b03351d7bbf682e33f51ffdad4e0810688e0801f4e87f52a016e7d8",
-    "generated/docs/requirements_kpi_appendix.md": "0d0db488b1463479ebcd3f8aef23692288f44f6df84fa4322408feb355d07d89",
-    "generated/docs/schema_reference.md": "a0e6d0faa7a374557b055a3cca10c6dfe9d6ece47cfb5223b90f7cf678018050",
-    "generated/docs/unreal_kpi_section.md": "01b3ca92e8fd94e8e6a1b176ec8174c3fb7eb5ef71081904e51d1e9fea3dd3ee",
+    "generated/docs/boss_pattern_reference.md": "f4230b78b79051a4de428c563d79322d4484e41e5c7cb029a6247772be698e2e",
+    "generated/docs/requirements_kpi_appendix.md": "a7f410d5d7aa1667fbeddd1dff1913272af8ffd6345603b5b3211d18ba2ba39c",
+    "generated/docs/schema_reference.md": "a6d65d3d7841298291b262fdf4100de3f901e362ed2e2ba55f599c90d613fb38",
+    "generated/docs/unreal_kpi_section.md": "1f19be6568de349916f8d2b0939a77a2b6549e1c364cd8eeb2ee18f32bcb28a3",
+    "generated/python/ai_native_npc_boss_pattern_contracts_generated.py": "6320e0199d118f1ec1c1cbed4d064964fcb0b3741dd76d0392ac07583b405041",
     "generated/python/ai_native_npc_contracts_generated.py": "68db1ed7f97fcd1b51a063e47446da1f001902f511a15c0e74b31c30f467e2b4"
   },
   "source_hashes": {
+    "boss_pattern_contract": "e4f828c114fcc5db1cb04b5d0a6e2b3d29dada7e45c60a3dd18c674baa78c789",
     "goal_registry": "b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2",
     "schema": "56deff3a5f55ddad30864bcf7df4d100d2f1c5472f86f0a8b9e2599044c37385",
     "skill_registry": "08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8",
-    "test_taxonomy": "391b31036d6911e2e646d44f81f010e565e4fc587a6475fe6904d935aafb98ef"
+    "test_taxonomy": "2c4f911c23c8502231351fd2a1ffc606a04c29c4c3e39ea384099462811dad79"
   }
 }

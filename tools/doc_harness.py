@@ -42,6 +42,7 @@ CURRENT_IMPLEMENTATION_PATH = ROOT / "docs/current/implementation-plan.md"
 CURRENT_APPENDICES_PATH = ROOT / "docs/current/contract-appendices.md"
 CURRENT_UNREAL_PATH = ROOT / "docs/current/unreal-implementation-plan.md"
 GENERATED_SCHEMA_REFERENCE_PATH = ROOT / "generated/docs/schema_reference.md"
+GENERATED_BOSS_PATTERN_REFERENCE_PATH = ROOT / "generated/docs/boss_pattern_reference.md"
 GENERATED_REQUIREMENTS_KPI_PATH = ROOT / "generated/docs/requirements_kpi_appendix.md"
 GENERATED_UNREAL_KPI_PATH = ROOT / "generated/docs/unreal_kpi_section.md"
 
@@ -56,11 +57,14 @@ INTEGRITY_EXCLUSIONS = {
 PASS_GATE_IDS = {
     "document_harness_integrity",
     "schema_semantic_validation",
+    "boss_pattern_contract_validation",
     "skill_registry_validation",
     "goal_registry_validation",
     "test_taxonomy_validation",
     "generated_python_contract",
+    "generated_boss_pattern_python_contract",
     "generated_cpp_contract",
+    "generated_boss_pattern_cpp_contract",
     "generated_code_reproducibility",
     "golden_fixture_reproducibility",
     "python_golden_parity",
@@ -71,6 +75,9 @@ PASS_GATE_IDS = {
     "normalizer_semantic_hardening",
     "hash_contract_codegen_parity",
     "decision_contract_hash_golden",
+    "boss_pattern_hash_golden",
+    "boss_pattern_normalizer_codegen_parity",
+    "boss_pattern_document_appendix_parity",
     "semantic_mutation_regression",
     "manual_hash_literal_guard",
     "normalizer_constraint_closure",
@@ -86,6 +93,12 @@ PASS_GATE_IDS = {
 PENDING_GATE_IDS = {
     "float_tensor_python_unreal_parity",
     "onnx_unreal_output_parity",
+    "boss_pattern_float_tensor_python_unreal_parity",
+    "boss_pattern_asset_bundle_digest_parity",
+    "boss_pattern_onnx_unreal_output_parity",
+    "boss_pattern_runtime_lock_interrupt",
+    "boss_pattern_fairness_quality",
+    "boss_pattern_performance_budget",
     "target_recall",
     "candidate_recall",
     "critical_suite",
@@ -224,7 +237,7 @@ def build_archive_catalog(root: Path = ROOT) -> list[dict[str, Any]]:
 
 def validate_catalog_data(root: Path, catalog: dict[str, Any]) -> list[str]:
     errors: list[str] = []
-    expected_roles = {"requirements", "unreal_profile", "schema", "skill_registry", "goal_registry", "test_taxonomy"}
+    expected_roles = {"requirements", "unreal_profile", "schema", "boss_pattern_contract", "skill_registry", "goal_registry", "test_taxonomy"}
     canonical = catalog.get("canonical", {})
     if set(canonical) != expected_roles:
         errors.append("catalog canonical role set mismatch")
@@ -333,6 +346,11 @@ def documentation_contract() -> dict[str, Any]:
     return schema["documentation_contract"]
 
 
+def boss_pattern_documentation_contract() -> dict[str, Any]:
+    contract = load_yaml(default_paths(ROOT).boss_pattern_contract)
+    return contract["documentation_contract"]
+
+
 def taxonomy_documentation_contract() -> dict[str, Any]:
     taxonomy = load_yaml(default_paths(ROOT).test_taxonomy)
     return taxonomy["documentation_contract"]
@@ -341,6 +359,12 @@ def taxonomy_documentation_contract() -> dict[str, Any]:
 def generated_appendix_block() -> str:
     contract = documentation_contract()
     generated = GENERATED_SCHEMA_REFERENCE_PATH.read_text(encoding="utf-8").rstrip()
+    return f"{contract['marker_begin']}\n\n{generated}\n\n{contract['marker_end']}"
+
+
+def generated_boss_pattern_block() -> str:
+    contract = boss_pattern_documentation_contract()
+    generated = GENERATED_BOSS_PATTERN_REFERENCE_PATH.read_text(encoding="utf-8").rstrip()
     return f"{contract['marker_begin']}\n\n{generated}\n\n{contract['marker_end']}"
 
 
@@ -366,9 +390,14 @@ def sync_document_appendices() -> None:
     if declared_paths != expected_paths:
         raise SystemExit(f"documentation_contract required_documents mismatch: {sorted(declared_paths)}")
     schema_block = generated_appendix_block()
+    boss_contract = boss_pattern_documentation_contract()
+    if boss_contract["required_document"] != rel(CURRENT_APPENDICES_PATH):
+        raise SystemExit(f"boss pattern documentation path mismatch: {boss_contract['required_document']}")
+    boss_block = generated_boss_pattern_block()
     for path in [CURRENT_APPENDICES_PATH]:
         text = path.read_text(encoding="utf-8")
         text = _replace_marked_block(text, contract["marker_begin"], contract["marker_end"], schema_block, rel(path))
+        text = _replace_marked_block(text, boss_contract["marker_begin"], boss_contract["marker_end"], boss_block, rel(path))
         path.write_text(text, encoding="utf-8")
 
     taxonomy_contract = taxonomy_documentation_contract()
@@ -401,6 +430,8 @@ def validate_document_appendices() -> list[str]:
     schema = load_yaml(default_paths(ROOT).schema)
     contract = schema["documentation_contract"]
     schema_block = generated_appendix_block()
+    boss_contract = boss_pattern_documentation_contract()
+    boss_block = generated_boss_pattern_block()
     taxonomy = load_yaml(default_paths(ROOT).test_taxonomy)
     taxonomy_contract = taxonomy["documentation_contract"]
     role_paths = {"requirements": CURRENT_APPENDICES_PATH, "unreal": CURRENT_UNREAL_PATH}
@@ -412,6 +443,15 @@ def validate_document_appendices() -> list[str]:
             continue
         text = path.read_text(encoding="utf-8")
         errors.extend(validate_generated_block(text, contract["marker_begin"], contract["marker_end"], schema_block, declared))
+
+    boss_document = boss_contract.get("required_document")
+    if boss_document != rel(CURRENT_APPENDICES_PATH):
+        errors.append(f"boss pattern documentation path mismatch: {boss_document}")
+    elif not CURRENT_APPENDICES_PATH.exists():
+        errors.append(f"boss pattern generated appendix document missing: {boss_document}")
+    else:
+        boss_text = CURRENT_APPENDICES_PATH.read_text(encoding="utf-8")
+        errors.extend(validate_generated_block(boss_text, boss_contract["marker_begin"], boss_contract["marker_end"], boss_block, str(boss_document)))
 
     for role, path in role_paths.items():
         spec = taxonomy_contract[role]
@@ -431,6 +471,7 @@ def update_ue_dependency_hashes() -> None:
     text = ue.read_text(encoding="utf-8")
     text = replace_markdown_value(text, "Requirements SHA-256", sha256_file(req))
     text = replace_markdown_value(text, "Schema YAML SHA-256", sha256_file(paths.schema))
+    text = replace_markdown_value(text, "Boss Pattern Contract SHA-256", sha256_file(paths.boss_pattern_contract))
     text = replace_markdown_value(text, "Skill Registry SHA-256", sha256_file(paths.skill_registry))
     text = replace_markdown_value(text, "Goal Registry SHA-256", sha256_file(paths.goal_registry))
     text = replace_markdown_value(text, "Test Taxonomy SHA-256", sha256_file(paths.test_taxonomy))
@@ -441,8 +482,12 @@ def _strip_allowed_generated_blocks(path: Path, text: str) -> str:
     if path not in {CURRENT_APPENDICES_PATH, CURRENT_UNREAL_PATH}:
         return text
     schema_contract = documentation_contract()
+    boss_contract = boss_pattern_documentation_contract()
     taxonomy_contract = taxonomy_documentation_contract()
-    blocks = [(schema_contract["marker_begin"], schema_contract["marker_end"])]
+    blocks = [
+        (schema_contract["marker_begin"], schema_contract["marker_end"]),
+        (boss_contract["marker_begin"], boss_contract["marker_end"]),
+    ]
     for spec in taxonomy_contract.values():
         if isinstance(spec, dict) and "marker_begin" in spec and "marker_end" in spec:
             blocks.append((spec["marker_begin"], spec["marker_end"]))
@@ -464,13 +509,18 @@ def validate_all_markdown_semantics() -> list[str]:
     for path in semantic_markdown_files():
         text = path.read_text(encoding="utf-8")
         if path in {CURRENT_APPENDICES_PATH, CURRENT_UNREAL_PATH}:
-            taxonomy_blocks = [
+            extra_generated_blocks = [
+                (
+                    boss_pattern_documentation_contract()["marker_begin"],
+                    boss_pattern_documentation_contract()["marker_end"],
+                )
+            ] + [
                 (spec["marker_begin"], spec["marker_end"])
                 for spec in taxonomy_documentation_contract().values()
                 if isinstance(spec, dict) and "marker_begin" in spec
             ]
             errors.extend(validate_manual_hash_literal_policy(
-                schema, text, rel(path), known_tokens, taxonomy_blocks, allow_schema_generated_block=True
+                schema, text, rel(path), known_tokens, extra_generated_blocks, allow_schema_generated_block=True
             ))
         else:
             errors.extend(validate_manual_hash_literal_policy(
@@ -494,6 +544,7 @@ def source_file_map_text() -> str:
         f"| Contract Appendices | `{rel(CURRENT_APPENDICES_PATH)}` |",
         f"| Unreal Profile | `{rel(CURRENT_UNREAL_PATH)}` |",
         "| Schema | `contracts/current/ai_native_npc_schema_v2_0.yaml` |",
+        "| Boss Pattern Contract | `contracts/current/boss_pattern_contract_v1.yaml` |",
         "| Skill Registry | `contracts/current/skill_registry_v1.yaml` |",
         "| Goal Registry | `contracts/current/goal_registry_v1.yaml` |",
         "| Test Taxonomy | `contracts/current/test_taxonomy_v1.yaml` |",
@@ -532,6 +583,7 @@ def update_catalog() -> None:
         "requirements": CURRENT_REQUIREMENTS_PATH,
         "unreal_profile": CURRENT_UNREAL_PATH,
         "schema": paths.schema,
+        "boss_pattern_contract": paths.boss_pattern_contract,
         "skill_registry": paths.skill_registry,
         "goal_registry": paths.goal_registry,
         "test_taxonomy": paths.test_taxonomy,
@@ -540,6 +592,7 @@ def update_catalog() -> None:
         "requirements": "0.4.6",
         "unreal_profile": "0.4.6",
         "schema": "2.0.0-rc5",
+        "boss_pattern_contract": str(load_yaml(paths.boss_pattern_contract)["contract"]["version"]),
         "skill_registry": str(load_yaml(paths.skill_registry)["registry"]["version"]),
         "goal_registry": str(load_yaml(paths.goal_registry)["registry"]["version"]),
         "test_taxonomy": str(load_yaml(paths.test_taxonomy)["registry"]["version"]),
@@ -548,6 +601,7 @@ def update_catalog() -> None:
         "requirements": "current",
         "unreal_profile": "current",
         "schema": "rc5",
+        "boss_pattern_contract": "current_static_contract_runtime_pending",
         "skill_registry": "current",
         "goal_registry": "current",
         "test_taxonomy": "current",
@@ -576,6 +630,9 @@ def update_catalog() -> None:
             "event_feature_count": 24,
             "candidate_pair_feature_count": 16,
             "candidate_formula": "skill_count * total_target_slots",
+            "boss_pattern_slot_count": 32,
+            "boss_pattern_separate_from_common_candidate_layout": True,
+            "boss_pattern_parent_activation": "Attack(Entity)",
         },
         "archives": build_archive_catalog(ROOT),
         "excluded_duplicates": [],
@@ -596,6 +653,8 @@ def update_freeze_status() -> None:
             "mass_training_data_generation": "HOLD",
             "schema_final_freeze_decision": "NO_GO_CONDITIONAL",
             "schema_harness_freeze_readiness": "FREEZE_READY_RUNTIME_GATES_PENDING",
+            "boss_pattern_static_harness": "PASS",
+            "boss_pattern_unreal_runtime_gates": "PENDING",
             "semantic_closure_decision": "PASS",
             "release_pipeline": "v0.4.6_semantic_closure",
         },
@@ -625,11 +684,14 @@ def update_freeze_manifest() -> None:
     pass_defs = {
         "document_harness_integrity": ("tools/doc_harness.py", "tests/reports/harness_integrity_evidence.json"),
         "schema_semantic_validation": ("tools/validate_schema.py", "tests/reports/schema_semantic_validation.json"),
+        "boss_pattern_contract_validation": ("tools/validate_schema.py", "tests/reports/schema_semantic_validation.json"),
         "skill_registry_validation": ("tools/validate_schema.py", "tests/reports/schema_semantic_validation.json"),
         "goal_registry_validation": ("tools/validate_schema.py", "tests/reports/schema_semantic_validation.json"),
         "test_taxonomy_validation": ("tools/validate_schema.py", "tests/reports/schema_semantic_validation.json"),
         "generated_python_contract": ("tools/generate_contracts.py", "generated/python/ai_native_npc_contracts_generated.py"),
+        "generated_boss_pattern_python_contract": ("tools/generate_contracts.py", "generated/python/ai_native_npc_boss_pattern_contracts_generated.py"),
         "generated_cpp_contract": ("tools/generate_contracts.py", "generated/cpp/AINativeNPCContracts.generated.h"),
+        "generated_boss_pattern_cpp_contract": ("tools/generate_contracts.py", "generated/cpp/AINativeNPCBossPatternContracts.generated.h"),
         "generated_code_reproducibility": ("tools/run_contract_tests.py", "tests/reports/contract_test_report.json"),
         "golden_fixture_reproducibility": ("tools/run_contract_tests.py", "tests/reports/contract_test_report.json"),
         "python_golden_parity": ("tools/run_contract_tests.py", "tests/reports/contract_test_report.json"),
@@ -640,6 +702,9 @@ def update_freeze_manifest() -> None:
         "normalizer_semantic_hardening": ("tools/validate_schema.py", "tests/reports/schema_semantic_validation.json"),
         "hash_contract_codegen_parity": ("tools/run_contract_tests.py", "tests/reports/contract_test_report.json"),
         "decision_contract_hash_golden": ("tools/run_contract_tests.py", "tests/reports/contract_test_report.json"),
+        "boss_pattern_hash_golden": ("tools/run_contract_tests.py", "tests/reports/contract_test_report.json"),
+        "boss_pattern_normalizer_codegen_parity": ("tools/run_contract_tests.py", "tests/reports/contract_test_report.json"),
+        "boss_pattern_document_appendix_parity": ("tools/doc_harness.py", "generated/docs/boss_pattern_reference.md"),
         "semantic_mutation_regression": ("tools/run_contract_tests.py", "tests/reports/contract_test_report.json"),
         "manual_hash_literal_guard": ("tools/run_contract_tests.py", "tests/reports/contract_test_report.json"),
         "normalizer_constraint_closure": ("tools/run_contract_tests.py", "tests/reports/contract_test_report.json"),
@@ -655,6 +720,12 @@ def update_freeze_manifest() -> None:
     planned = {
         "float_tensor_python_unreal_parity": "tests/reports/python_unreal_float_parity.json",
         "onnx_unreal_output_parity": "tests/reports/onnx_unreal_output_parity.json",
+        "boss_pattern_float_tensor_python_unreal_parity": "tests/reports/boss_pattern_python_unreal_float_parity.json",
+        "boss_pattern_asset_bundle_digest_parity": "tests/reports/boss_pattern_asset_bundle_digest_parity.json",
+        "boss_pattern_onnx_unreal_output_parity": "tests/reports/boss_pattern_onnx_unreal_output_parity.json",
+        "boss_pattern_runtime_lock_interrupt": "tests/reports/boss_pattern_runtime_lock_interrupt.json",
+        "boss_pattern_fairness_quality": "tests/reports/boss_pattern_fairness_quality.json",
+        "boss_pattern_performance_budget": "tests/reports/boss_pattern_performance_budget.json",
         "target_recall": "tests/reports/target_recall.json",
         "candidate_recall": "tests/reports/candidate_recall.json",
         "critical_suite": "tests/reports/critical_suite.json",
@@ -671,7 +742,7 @@ def update_freeze_manifest() -> None:
     gates = [_gate(gate_id, "pass", tool, evidence, executed_at) for gate_id, (tool, evidence) in pass_defs.items()]
     gates.extend(_gate(gate_id, "pending", "pending", path, executed_at) for gate_id, path in planned.items())
     manifest = {
-        "manifest_version": 5,
+        "manifest_version": 6,
         "bundle_version": cfg["bundle_version"],
         "schema_contract_revision": cfg["schema_contract_revision"],
         "release_stage": "RC5",
@@ -681,6 +752,12 @@ def update_freeze_manifest() -> None:
         "schema_final_freeze_decision": "NO_GO_CONDITIONAL",
         "mass_training_data_generation": "HOLD",
         "schema_harness_freeze_readiness": "FREEZE_READY_RUNTIME_GATES_PENDING",
+        "boss_pattern_contract": {
+            "path": "contracts/current/boss_pattern_contract_v1.yaml",
+            "sha256": sha256_file(ROOT / "contracts/current/boss_pattern_contract_v1.yaml"),
+            "static_harness": "pass",
+            "unreal_runtime_gates": "pending",
+        },
         "test_taxonomy": {
             "path": "contracts/current/test_taxonomy_v1.yaml",
             "sha256": sha256_file(ROOT / "contracts/current/test_taxonomy_v1.yaml"),
@@ -725,11 +802,14 @@ def write_validation_report() -> None:
         "- Phase 0: GO",
         "- Schema design RC5: Conditional GO",
         "- Schema contract harness: FREEZE-READY / Runtime gates pending",
+        "- Boss Pattern static contract/codegen/Golden harness: PASS",
+        "- Boss Pattern Asset Digest/Unreal Float/ONNX/Runtime/Fairness/Performance gates: PENDING",
         "- Mass training data: HOLD",
         "- Final Schema Freeze: NO-GO / Conditional",
         "", "## Remaining Runtime Evidence", "",
         "- Python–Unreal Float Tensor parity",
         "- ONNX–Unreal output parity",
+        "- Boss Pattern Asset Bundle digest parity, Float/ONNX parity, lock·interrupt Runtime, fairness·quality, performance",
         "- Target/Candidate Recall",
         f'- Critical Suite {metrics["required_family_count"]} family × {metrics["minimum_cases_per_family"]} case = {metrics["critical_minimum_sequence_count"]} sequences',
         "- Goal FSM / Atomic Commit / Hidden Leakage",
@@ -833,6 +913,12 @@ def validate_freeze_manifest() -> list[str]:
         errors.append("freeze manifest semantic_closure_decision must be PASS")
     if manifest.get("schema_final_freeze_decision") != "NO_GO_CONDITIONAL":
         errors.append("freeze manifest final decision must remain NO_GO_CONDITIONAL")
+    boss = manifest.get("boss_pattern_contract", {})
+    boss_path = ROOT / boss.get("path", "")
+    if not boss_path.exists() or boss.get("sha256") != sha256_file(boss_path):
+        errors.append("freeze manifest boss pattern contract hash mismatch")
+    if boss.get("static_harness") != "pass" or boss.get("unreal_runtime_gates") != "pending":
+        errors.append("freeze manifest boss pattern release status mismatch")
     taxonomy = manifest.get("test_taxonomy", {})
     taxonomy_path = ROOT / taxonomy.get("path", "")
     if not taxonomy_path.exists() or taxonomy.get("sha256") != sha256_file(taxonomy_path):
@@ -930,6 +1016,8 @@ def run_validation(strict: bool = False, check_lock: bool = True, local_checks: 
         errors.append("mass training data must remain HOLD")
     if freeze.get("schema_harness_freeze_readiness") != "FREEZE_READY_RUNTIME_GATES_PENDING":
         errors.append("schema harness readiness must be READY_RUNTIME_GATES_PENDING")
+    if freeze.get("boss_pattern_static_harness") != "PASS" or freeze.get("boss_pattern_unreal_runtime_gates") != "PENDING":
+        errors.append("boss pattern static/runtime gate status mismatch")
     if freeze.get("semantic_closure_decision") != "PASS":
         errors.append("semantic closure decision must be PASS")
     warnings.append("Unreal Float/ONNX/Runtime gates remain pending; Schema harness is RC5 Freeze-ready; Unreal Runtime gates remain pending.")
@@ -1050,6 +1138,8 @@ def status() -> None:
     print(f"Phase 0: {freeze['phase0_decision']}")
     print(f"Schema design RC5: {freeze['schema_design_rc5_decision']}")
     print(f"Schema harness: {freeze['schema_harness_freeze_readiness']}")
+    print(f"Boss Pattern static harness: {freeze['boss_pattern_static_harness']}")
+    print(f"Boss Pattern Unreal Runtime gates: {freeze['boss_pattern_unreal_runtime_gates']}")
     print(f"Code generation: {freeze['schema_code_generation_decision']}")
     print(f"Mass training data: {freeze['mass_training_data_generation']}")
     print(f"Final Freeze: {freeze['schema_final_freeze_decision']}")

@@ -24,6 +24,17 @@ def load_generated(root: Path):
     return module
 
 
+def load_boss_generated(root: Path):
+    path = root / "generated/python/ai_native_npc_boss_pattern_contracts_generated.py"
+    spec = importlib.util.spec_from_file_location("ai_native_npc_boss_pattern_contracts_generated", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 def make_handles(g: Any, rows: list[tuple[int, int, int, int, int]]):
     handles = [g.TargetHandle(0, 0, 0, 0) for _ in range(g.CONSTANTS["total_target_slots"])]
     for slot, kind, stable, generation, revision in rows:
@@ -145,6 +156,53 @@ def build_discrete(root: Path) -> dict[str, Any]:
     }
 
 
+def build_boss_pattern(root: Path) -> dict[str, Any]:
+    boss = load_boss_generated(root)
+    pattern_ids = [101, 204, 409] + [boss.CONSTANTS["invalid_pattern_id"]] * 29
+    pattern_mask = [True, True, False] + [False] * 29
+    handle = boss.TargetHandle(kind=1, stable_id=0x1122334455667788, generation=7, revision=19)
+    asset_hash = (bytes([0x31]) * 32).hex()
+    canonical = boss.pattern_candidate_set_canonical_bytes(
+        asset_hash,
+        pattern_ids,
+        pattern_mask,
+        handle,
+        int(boss.SelectionBoundary.BranchWindow),
+        11,
+        23,
+    )
+    digest_names = [
+        field["name"]
+        for field in boss.BOSS_PATTERN_DECISION_HASH_CONTRACT["fields"]
+        if field["type"] == "bytes[32]" and field["name"] != "boss_pattern_contract_sha256"
+    ]
+    digests = {name: (bytes([0x41 + index]) * 32).hex() for index, name in enumerate(digest_names)}
+    decision_canonical = boss.boss_pattern_decision_contract_canonical_bytes(digests)
+    return {
+        "fixture_version": 1,
+        "contract_revision": boss.CONTRACT_REVISION,
+        "boss_pattern_contract_sha256": boss.BOSS_PATTERN_CONTRACT_SHA256,
+        "generated_python_sha256": hashlib.sha256((root / "generated/python/ai_native_npc_boss_pattern_contracts_generated.py").read_bytes()).hexdigest(),
+        "generated_cpp_sha256": hashlib.sha256((root / "generated/cpp/AINativeNPCBossPatternContracts.generated.h").read_bytes()).hexdigest(),
+        "candidate_set": {
+            "pattern_asset_bundle_sha256": asset_hash,
+            "pattern_ids": pattern_ids,
+            "pattern_mask": pattern_mask,
+            "attack_target_handle": {"kind": handle.kind, "stable_id": handle.stable_id, "generation": handle.generation, "revision": handle.revision},
+            "selection_boundary": int(boss.SelectionBoundary.BranchWindow),
+            "boss_phase_revision": 11,
+            "combat_state_revision": 23,
+            "canonical_bytes_hex": canonical.hex(),
+            "sha256": boss.pattern_candidate_set_hash(asset_hash, pattern_ids, pattern_mask, handle, int(boss.SelectionBoundary.BranchWindow), 11, 23),
+        },
+        "decision_contract": {
+            "digests": digests,
+            "canonical_bytes_hex": decision_canonical.hex(),
+            "sha256": boss.boss_pattern_decision_contract_hash(digests),
+        },
+    }
+
+
 def representative_values(spec: dict[str, Any]) -> list[tuple[float, bool]]:
     typ = spec["type"]
     if typ == "constant":
@@ -203,10 +261,11 @@ def cpp_bool(value: bool) -> str:
     return "true" if value else "false"
 
 
-def generate_cpp_test(discrete: dict[str, Any], normalizers: dict[str, Any]) -> str:
+def generate_cpp_test(discrete: dict[str, Any], normalizers: dict[str, Any], boss_pattern: dict[str, Any]) -> str:
     lines = [
         "// AUTO-GENERATED Golden parity test. DO NOT EDIT.",
         '#include "../generated/cpp/AINativeNPCContracts.generated.h"',
+        '#include "../generated/cpp/AINativeNPCBossPatternContracts.generated.h"',
         "#include <algorithm>",
         "#include <array>",
         "#include <cmath>",
@@ -273,6 +332,65 @@ def generate_cpp_test(discrete: dict[str, Any], normalizers: dict[str, Any]) -> 
         f"  if(DecisionContractHashHex(DD)!=\"{decision['sha256']}\") return Fail(\"decision hash\");",
     ])
 
+    boss_candidate = boss_pattern["candidate_set"]
+    asset_values = ",".join(f"0x{boss_candidate['pattern_asset_bundle_sha256'][index:index+2]}" for index in range(0, 64, 2))
+    lines.extend([
+        f"  std::array<std::uint8_t,32> BossAssetHash{{{asset_values}}};",
+        "  std::array<std::uint16_t,AINativeNPC::BossPatternV1::MaxPatternSlots> BossPatternIds{};",
+        "  BossPatternIds.fill(AINativeNPC::BossPatternV1::InvalidPatternId);",
+        "  std::array<bool,AINativeNPC::BossPatternV1::MaxPatternSlots> BossPatternMask{};",
+    ])
+    for index, pattern_id in enumerate(boss_candidate["pattern_ids"]):
+        if pattern_id != 65535:
+            lines.append(f"  BossPatternIds[{index}]={pattern_id}U;")
+    for index, enabled in enumerate(boss_candidate["pattern_mask"]):
+        if enabled:
+            lines.append(f"  BossPatternMask[{index}]=true;")
+    handle = boss_candidate["attack_target_handle"]
+    lines.append(
+        "  FTargetHandleWire BossTarget{"
+        f"static_cast<ETargetKind>({handle['kind']}), {handle['stable_id']}ULL, {handle['generation']}U, {handle['revision']}ULL"
+        "};"
+    )
+    lines.extend([
+        "  const auto BossCandidateBytes=AINativeNPC::BossPatternV1::PatternCandidateSetCanonicalBytes("
+        f"BossAssetHash,BossPatternIds,BossPatternMask,BossTarget,static_cast<AINativeNPC::BossPatternV1::ESelectionBoundary>({boss_candidate['selection_boundary']}),{boss_candidate['boss_phase_revision']}ULL,{boss_candidate['combat_state_revision']}ULL);",
+        f"  if(Hex(BossCandidateBytes)!=\"{boss_candidate['canonical_bytes_hex']}\") return Fail(\"boss pattern candidate canonical\");",
+        "  if(AINativeNPC::BossPatternV1::PatternCandidateSetHashHex("
+        f"BossAssetHash,BossPatternIds,BossPatternMask,BossTarget,static_cast<AINativeNPC::BossPatternV1::ESelectionBoundary>({boss_candidate['selection_boundary']}),{boss_candidate['boss_phase_revision']}ULL,{boss_candidate['combat_state_revision']}ULL)!=\"{boss_candidate['sha256']}\") return Fail(\"boss pattern candidate hash\");",
+        "  auto InvalidBossPatternIds=BossPatternIds; std::swap(InvalidBossPatternIds[0],InvalidBossPatternIds[1]);",
+        "  if(AINativeNPC::BossPatternV1::IsPatternSlotLayoutValid(InvalidBossPatternIds,BossPatternMask)) return Fail(\"boss unsorted pattern layout accepted\");",
+        "  if(!AINativeNPC::BossPatternV1::PatternCandidateSetCanonicalBytes(BossAssetHash,InvalidBossPatternIds,BossPatternMask,BossTarget,AINativeNPC::BossPatternV1::ESelectionBoundary::PreAttack,1ULL,1ULL).empty()) return Fail(\"boss invalid layout serialized\");",
+        "  auto InvalidBossPatternMask=BossPatternMask; InvalidBossPatternMask[31]=true;",
+        "  if(AINativeNPC::BossPatternV1::IsPatternSlotLayoutValid(BossPatternIds,InvalidBossPatternMask)) return Fail(\"boss invalid padding mask accepted\");",
+        "  std::array<std::uint16_t,AINativeNPC::BossPatternV1::MaxPatternSlots> AllPaddingBossPatternIds{}; AllPaddingBossPatternIds.fill(AINativeNPC::BossPatternV1::InvalidPatternId);",
+        "  std::array<bool,AINativeNPC::BossPatternV1::MaxPatternSlots> AllPaddingBossPatternMask{};",
+        "  if(AINativeNPC::BossPatternV1::IsPatternSlotLayoutValid(AllPaddingBossPatternIds,AllPaddingBossPatternMask)) return Fail(\"boss all-padding pattern layout accepted\");",
+        "  if(!AINativeNPC::BossPatternV1::PatternCandidateSetCanonicalBytes(BossAssetHash,AllPaddingBossPatternIds,AllPaddingBossPatternMask,BossTarget,AINativeNPC::BossPatternV1::ESelectionBoundary::PreAttack,1ULL,1ULL).empty()) return Fail(\"boss all-padding layout serialized\");",
+        "  AINativeNPC::BossPatternV1::FBossPatternDecisionDigests BossDD{};",
+    ])
+    boss_member_map = {
+        "pattern_model_sha256": "PatternModel",
+        "pattern_normalization_contract_sha256": "PatternNormalizationContract",
+        "pattern_postprocess_contract_sha256": "PatternPostprocessContract",
+        "pattern_calibration_ood_asset_sha256": "PatternCalibrationOodAsset",
+        "pattern_executor_contract_sha256": "PatternExecutorContract",
+    }
+    boss_decision = boss_pattern["decision_contract"]
+    for name, hex_value in boss_decision["digests"].items():
+        values = ",".join(f"0x{hex_value[index:index+2]}" for index in range(0, len(hex_value), 2))
+        lines.append(f"  BossDD.{boss_member_map[name]}=std::array<std::uint8_t,32>{{{values}}};")
+    lines.extend([
+        f"  if(Hex(AINativeNPC::BossPatternV1::BossPatternDecisionContractCanonicalBytes(BossDD))!=\"{boss_decision['canonical_bytes_hex']}\") return Fail(\"boss pattern decision canonical\");",
+        f"  if(AINativeNPC::BossPatternV1::BossPatternDecisionContractHashHex(BossDD)!=\"{boss_decision['sha256']}\") return Fail(\"boss pattern decision hash\");",
+        "  float BossNorm=0.0f;",
+        "  if(!AINativeNPC::BossPatternV1::TryNormalizeFeature(5000.0f,AINativeNPC::BossPatternV1::PatternContextNormalizers[static_cast<std::size_t>(AINativeNPC::BossPatternV1::EPatternContextFeature::target_distance_planar)],BossNorm)||!Almost(BossNorm,0.5,1e-7,1e-7)) return Fail(\"boss context distance normalizer\");",
+        "  if(!AINativeNPC::BossPatternV1::TryNormalizeFeature(-1000.0f,AINativeNPC::BossPatternV1::PatternContextNormalizers[static_cast<std::size_t>(AINativeNPC::BossPatternV1::EPatternContextFeature::target_relative_speed)],BossNorm)||!Almost(BossNorm,-0.5,1e-7,1e-7)) return Fail(\"boss context speed normalizer\");",
+        "  if(!AINativeNPC::BossPatternV1::TryNormalizeFeature(15.0f,AINativeNPC::BossPatternV1::PatternFeatureNormalizers[static_cast<std::size_t>(AINativeNPC::BossPatternV1::EPatternFeature::telegraph_duration)],BossNorm)||!Almost(BossNorm,0.5,1e-7,1e-7)) return Fail(\"boss duration normalizer\");",
+        "  if(!AINativeNPC::BossPatternV1::TryNormalizeFeature(999.0f,AINativeNPC::BossPatternV1::PatternFeatureNormalizers[static_cast<std::size_t>(AINativeNPC::BossPatternV1::EPatternFeature::reserved_zero)],BossNorm)||BossNorm!=0.0f) return Fail(\"boss constant-zero normalizer\");",
+        "  if(AINativeNPC::BossPatternV1::TryNormalizeFeature(std::nanf(\"\"),AINativeNPC::BossPatternV1::PatternContextNormalizers[0],BossNorm)) return Fail(\"boss nonfinite normalizer\");",
+    ])
+
     quant_functions = {
         "confidence": "QuantizeConfidence",
         "age_seconds": "QuantizeAgeSeconds",
@@ -313,10 +431,12 @@ def generate_cpp_test(discrete: dict[str, Any], normalizers: dict[str, Any]) -> 
 def build_all(root: Path) -> dict[str, str]:
     discrete = build_discrete(root)
     normalizers = build_normalizers(root)
+    boss_pattern = build_boss_pattern(root)
     outputs = {
         "tests/golden/discrete_hash_vectors.json": json.dumps(discrete, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
         "tests/golden/normalizer_vectors.json": json.dumps(normalizers, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
-        "tests/generated_cpp_golden_test.cpp": generate_cpp_test(discrete, normalizers),
+        "tests/golden/boss_pattern_hash_vectors.json": json.dumps(boss_pattern, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+        "tests/generated_cpp_golden_test.cpp": generate_cpp_test(discrete, normalizers, boss_pattern),
     }
     return outputs
 

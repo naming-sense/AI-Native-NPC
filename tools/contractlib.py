@@ -32,6 +32,7 @@ class ContractPaths:
     schema: Path
     skill_registry: Path
     goal_registry: Path
+    boss_pattern_contract: Path
     test_taxonomy: Path
 
 
@@ -42,6 +43,7 @@ def default_paths(root: Path) -> ContractPaths:
         schema=current / "ai_native_npc_schema_v2_0.yaml",
         skill_registry=current / "skill_registry_v1.yaml",
         goal_registry=current / "goal_registry_v1.yaml",
+        boss_pattern_contract=current / "boss_pattern_contract_v1.yaml",
         test_taxonomy=current / "test_taxonomy_v1.yaml",
     )
 
@@ -63,6 +65,10 @@ def load_yaml(path: Path) -> dict[str, Any]:
 
 def load_contracts(paths: ContractPaths) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     return load_yaml(paths.schema), load_yaml(paths.skill_registry), load_yaml(paths.goal_registry)
+
+
+def load_boss_pattern_contract(paths: ContractPaths) -> dict[str, Any]:
+    return load_yaml(paths.boss_pattern_contract)
 
 
 def _walk_value_ascii(value: Any) -> Iterable[str]:
@@ -463,13 +469,433 @@ def _shape_equals(shape: Any, expected: list[Any]) -> bool:
     return isinstance(shape, list) and shape == expected
 
 
+def validate_boss_pattern_contract(contract: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    meta = contract.get("contract", {})
+    constants = contract.get("constants", {})
+    enums = contract.get("enums", {})
+
+    _expect(meta.get("name") == "ai_native_npc_boss_pattern_policy", "boss pattern contract name mismatch", errors)
+    _expect(meta.get("version") == "1.0.0", "boss pattern contract version mismatch", errors)
+    _expect(meta.get("contract_revision") == "2.0.0-rc5", "boss pattern contract revision mismatch", errors)
+    _expect(meta.get("endianness") == "little", "boss pattern endianness must be little", errors)
+
+    required_constants = {
+        "max_pattern_slots": 32,
+        "pattern_context_feature_count": 32,
+        "pattern_feature_count": 24,
+        "pattern_pair_feature_count": 16,
+        "pattern_parameter_count": 4,
+        "max_pattern_duration_s": 30.0,
+        "max_pattern_cooldown_s": 120.0,
+        "max_tracking_yaw_deg_s": 720.0,
+        "max_tracking_speed_cm_s": 1200.0,
+        "max_target_distance_cm": 10000.0,
+        "max_target_relative_speed_cm_s": 2000.0,
+        "max_encounter_elapsed_s": 1800.0,
+        "invalid_pattern_id": 65535,
+    }
+    for name, expected in required_constants.items():
+        _expect(constants.get(name) == expected, f"boss pattern constants.{name} expected {expected}, got {constants.get(name)}", errors)
+
+    expected_enums = {
+        "selection_boundary": ["PreAttack", "BranchWindow", "RecoveryEnd"],
+        "execution_phase": ["ReadyToSelect", "PreAttackTurn", "StartupTelegraph", "Active", "Recovery", "BranchWindow", "Completed", "Interrupted"],
+        "interrupt_kind": ["Death", "ActorDestroyed", "AuthorityLost", "Stun", "PostureBreak", "ScriptedPhaseTransition", "ArenaReset"],
+        "mask_reason": ["None", "Unoccupied", "WrongBossPhase", "TargetInvalid", "RangeMismatch", "AngleMismatch", "ElevationMismatch", "LineOfSightMissing", "CooldownActive", "ResourceUnavailable", "PredecessorMismatch", "BranchNotAllowed", "ArenaUnsafe", "NavigationUnavailable", "AssetUnavailable", "NotSelectionBoundary", "ReservationConflict", "ExecutorLocked"],
+    }
+    for name, expected_names in expected_enums.items():
+        rows = enums.get(name, [])
+        _validate_enum(f"boss_pattern.{name}", rows, errors)
+        names = [row.get("name") for row in rows if isinstance(row, dict)]
+        _expect(names == expected_names, f"boss pattern enum {name} mismatch", errors)
+
+    activation = contract.get("activation_contract", {})
+    _expect(activation.get("parent_skill") == "Attack", "boss pattern parent skill must be Attack", errors)
+    _expect(activation.get("required_target_kind") == "Entity", "boss pattern target kind must be Entity", errors)
+    _expect(activation.get("selector_invoked_after_parent_attack_commit") is True, "boss pattern selector must run after parent Attack commit", errors)
+    _expect(activation.get("selector_invoked_during_locked_execution") is False, "boss pattern selector cannot run during locked execution", errors)
+    common = activation.get("common_candidate_layout_unchanged", {})
+    _expect(common == {"skill_count": 16, "target_slot_count": 17, "candidate_count": 272}, "boss pattern common candidate layout must remain 16 x 17 = 272", errors)
+
+    slots = contract.get("slot_assignment_contract", {})
+    _expect(slots.get("max_occupied_slots_ref") == "max_pattern_slots", "boss pattern slot max reference mismatch", errors)
+    _expect(slots.get("minimum_occupied_slots") == 1, "boss pattern slot layout must contain at least one occupied row", errors)
+    _expect(slots.get("occupied_order") == "pattern_id_ascending", "boss pattern slots must be ordered by pattern_id", errors)
+    _expect(slots.get("padding_pattern_id_ref") == "invalid_pattern_id", "boss pattern padding id reference mismatch", errors)
+    _expect(slots.get("layout_validation_before_hash") is True, "boss pattern slot layout must validate before hash", errors)
+    _expect(slots.get("row_removal_forbidden") is True and slots.get("invalid_row_policy") == "pattern_mask_false", "boss pattern invalid rows must remain masked", errors)
+
+    expected_tensors = {
+        "pattern_context": (["B", 32], "float32", 32),
+        "pattern_features": (["B", 32, 24], "float32", 24),
+        "pattern_pair_features": (["B", 32, 16], "float32", 16),
+        "pattern_ids": (["B", 32], "int64", None),
+        "pattern_mask": (["B", 32], "bool", None),
+    }
+    tensors = contract.get("tensors", {})
+    for name, (shape, dtype, field_count) in expected_tensors.items():
+        tensor = tensors.get(name, {})
+        _expect(_shape_equals(tensor.get("shape"), shape), f"boss pattern tensor {name} shape expected {shape}, got {tensor.get('shape')}", errors)
+        _expect(tensor.get("dtype") == dtype, f"boss pattern tensor {name} dtype expected {dtype}", errors)
+        if field_count is not None:
+            fields = tensor.get("fields", [])
+            _expect(len(fields) == field_count, f"boss pattern tensor {name} field count expected {field_count}", errors)
+            names: list[Any] = []
+            for index, field in enumerate(fields):
+                if not isinstance(field, dict):
+                    errors.append(f"boss pattern tensor {name} field {index} must be mapping")
+                    continue
+                _expect(field.get("index") == index, f"boss pattern tensor {name} field index {index} mismatch", errors)
+                _expect(isinstance(field.get("name"), str) and bool(field.get("name")), f"boss pattern tensor {name} field {index} name missing", errors)
+                _expect(isinstance(field.get("source"), str) and bool(field.get("source")), f"boss pattern tensor {name} field {index} source missing", errors)
+                names.append(field.get("name"))
+            _expect(len(names) == len(set(names)), f"boss pattern tensor {name} duplicate field name", errors)
+
+    expected_tensor_fields = {
+        "pattern_context": [
+            "boss_health_ratio", "boss_stamina_ratio", "boss_posture_ratio", "target_health_ratio_estimate",
+            "target_distance_planar", "target_distance_3d", "target_bearing_sin", "target_bearing_cos",
+            "target_elevation_sin", "target_elevation_cos", "target_relative_speed", "target_approach_velocity",
+            "target_lateral_velocity", "has_line_of_sight", "path_available", "arena_edge_risk",
+            "boss_phase_normalized", "elapsed_encounter_time", "elapsed_since_last_pattern", "same_pattern_streak_ratio",
+            "recent_fast_pattern_ratio", "recent_heavy_pattern_ratio", "recent_gap_closer_ratio", "player_recent_damage_ratio",
+            "boss_recent_damage_ratio", "selection_boundary_pre_attack", "selection_boundary_branch_window",
+            "selection_boundary_recovery_end", "previous_pattern_family_fast", "previous_pattern_family_heavy",
+            "previous_pattern_family_gap_closer", "target_health_estimate_confidence",
+        ],
+        "pattern_features": [
+            "preferred_distance_min", "preferred_distance_max", "allowed_bearing_abs_max", "allowed_elevation_abs_max",
+            "telegraph_duration", "active_duration", "recovery_duration", "cooldown_duration", "stamina_cost_ratio",
+            "startup_tracking_yaw_ratio", "active_tracking_yaw_ratio", "recovery_tracking_yaw_ratio",
+            "startup_tracking_speed_ratio", "active_tracking_speed_ratio", "area_pressure_ratio", "gap_close_ratio",
+            "damage_pressure_ratio", "posture_pressure_ratio", "family_fast", "family_heavy", "family_gap_closer",
+            "family_area_control", "branch_capable", "reserved_zero",
+        ],
+        "pattern_pair_features": [
+            "distance_fit", "bearing_fit", "elevation_fit", "line_of_sight_fit", "phase_allowed", "cooldown_ready",
+            "resource_ready", "predecessor_allowed", "branch_allowed", "arena_safe", "navigation_available",
+            "repetition_penalty_feature", "timing_variety_feature", "target_motion_fit", "selection_boundary_fit", "reserved_zero",
+        ],
+    }
+    for tensor_name, expected_names in expected_tensor_fields.items():
+        actual_names = [row.get("name") for row in tensors.get(tensor_name, {}).get("fields", []) if isinstance(row, dict)]
+        _expect(actual_names == expected_names, f"boss pattern tensor {tensor_name} semantic field order mismatch", errors)
+
+    normalization = contract.get("normalization_contract", {})
+    _expect(normalization.get("output_dtype") == "float32", "boss pattern normalizer output dtype mismatch", errors)
+    _expect(normalization.get("nonfinite_input") == "hard_reject_pattern_request", "boss pattern nonfinite input policy mismatch", errors)
+    _expect(normalization.get("all_fields_assigned_exactly_once") is True, "boss pattern normalizer closure flag must be true", errors)
+    expected_normalizers = {
+        "ratio_01": {"kind": "clamp", "min": 0.0, "max": 1.0, "divisor": 1.0},
+        "signed_unit": {"kind": "clamp", "min": -1.0, "max": 1.0, "divisor": 1.0},
+        "distance_cm": {"kind": "divide_clamp", "min": 0.0, "max": 1.0, "divisor_ref": "max_target_distance_cm"},
+        "signed_speed_cm_s": {"kind": "divide_clamp", "min": -1.0, "max": 1.0, "divisor_ref": "max_target_relative_speed_cm_s"},
+        "encounter_elapsed_s": {"kind": "divide_clamp", "min": 0.0, "max": 1.0, "divisor_ref": "max_encounter_elapsed_s"},
+        "cooldown_seconds": {"kind": "divide_clamp", "min": 0.0, "max": 1.0, "divisor_ref": "max_pattern_cooldown_s"},
+        "bearing_degrees": {"kind": "divide_clamp", "min": 0.0, "max": 1.0, "divisor": 180.0},
+        "elevation_degrees": {"kind": "divide_clamp", "min": 0.0, "max": 1.0, "divisor": 90.0},
+        "pattern_duration_s": {"kind": "divide_clamp", "min": 0.0, "max": 1.0, "divisor_ref": "max_pattern_duration_s"},
+        "constant_zero": {"kind": "constant", "min": 0.0, "max": 0.0, "divisor": 1.0, "value": 0.0},
+    }
+    definitions = normalization.get("definitions", {})
+    _expect(definitions == expected_normalizers, "boss pattern normalizer definition mismatch", errors)
+    for normalizer_name, spec in definitions.items() if isinstance(definitions, dict) else []:
+        divisor = spec.get("divisor")
+        if "divisor_ref" in spec:
+            divisor = constants.get(spec.get("divisor_ref"))
+        _expect(isinstance(divisor, (int, float)) and math.isfinite(float(divisor)) and float(divisor) > 0.0, f"boss pattern normalizer {normalizer_name} divisor must be finite and > 0", errors)
+        _expect(spec.get("kind") in {"clamp", "divide_clamp", "constant"}, f"boss pattern normalizer {normalizer_name} kind invalid", errors)
+        _expect(isinstance(spec.get("min"), (int, float)) and isinstance(spec.get("max"), (int, float)) and float(spec["min"]) <= float(spec["max"]), f"boss pattern normalizer {normalizer_name} range invalid", errors)
+
+    assignments = normalization.get("assignments", {})
+    _expect(set(assignments) == set(expected_tensor_fields) if isinstance(assignments, dict) else False, "boss pattern normalizer tensor assignment set mismatch", errors)
+    for tensor_name, expected_names in expected_tensor_fields.items():
+        groups = assignments.get(tensor_name, {}) if isinstance(assignments, dict) else {}
+        assigned: list[str] = []
+        for normalizer_name, names in groups.items() if isinstance(groups, dict) else []:
+            _expect(normalizer_name in expected_normalizers, f"boss pattern tensor {tensor_name} unknown normalizer {normalizer_name}", errors)
+            _expect(isinstance(names, list), f"boss pattern tensor {tensor_name} normalizer {normalizer_name} assignments must be list", errors)
+            if isinstance(names, list):
+                assigned.extend(names)
+        _expect(len(assigned) == len(set(assigned)), f"boss pattern tensor {tensor_name} normalizer assignment duplicate", errors)
+        _expect(set(assigned) == set(expected_names), f"boss pattern tensor {tensor_name} normalizer assignment closure mismatch", errors)
+
+    _expect(normalization.get("padding") == {
+        "pattern_context": "no_row_padding",
+        "unoccupied_pattern_features": "all_zero_after_normalization",
+        "unoccupied_pattern_pair_features": "all_zero_after_normalization",
+        "unoccupied_pattern_id": "invalid_pattern_id",
+        "unoccupied_pattern_mask": False,
+        "masked_score_postprocess": "negative_infinity_before_ranking",
+        "masked_parameter_proposals": "ignored_and_zeroed_before_logging",
+    }, "boss pattern padding/masked-row contract mismatch", errors)
+
+    expected_source_policy = {
+        "forbidden_tokens": ["ground_truth", "omniscient", "hidden_actor", "raw_player_transform"],
+        "allowed_by_tensor": {
+            "pattern_context": [
+                "observable_authoritative_self_state", "permitted_belief_snapshot", "locked_attack_target_snapshot",
+                "authoritative_path_query", "authoritative_arena_query", "authoritative_boss_phase",
+                "server_monotonic_time", "committed_pattern_history", "observable_committed_combat_history",
+                "authoritative_self_history", "selection_boundary_one_hot",
+            ],
+            "pattern_features": ["pattern_data_asset", "pattern_data_asset_tag", "constant_zero"],
+            "pattern_pair_features": ["deterministic_builder", "committed_pattern_history", "permitted_belief_snapshot", "constant_zero"],
+        },
+    }
+    source_policy = contract.get("feature_source_policy", {})
+    _expect(source_policy == expected_source_policy, "boss pattern feature source policy mismatch", errors)
+    forbidden_tokens = expected_source_policy["forbidden_tokens"]
+    for tensor_name, allowed_sources in expected_source_policy["allowed_by_tensor"].items():
+        for field in tensors.get(tensor_name, {}).get("fields", []):
+            source = str(field.get("source", ""))
+            _expect(source in allowed_sources, f"boss pattern tensor {tensor_name} field {field.get('name')} source not allowed", errors)
+            _expect(not any(token in source.lower() for token in forbidden_tokens), f"boss pattern tensor {tensor_name} field {field.get('name')} forbidden source", errors)
+
+    outputs = contract.get("outputs", {})
+    _expect(_shape_equals(outputs.get("pattern_raw_scores", {}).get("shape"), ["B", 32]), "boss pattern raw score shape mismatch", errors)
+    proposals = outputs.get("pattern_parameter_proposals", {})
+    _expect(_shape_equals(proposals.get("shape"), ["B", 32, 4]), "boss pattern parameter proposal shape mismatch", errors)
+    expected_parameters = [
+        {"index": 0, "name": "tracking_fraction", "decode": "authored_tracking_limit * clamp01(x)", "authority": "may_reduce_authored_maximum_only"},
+        {"index": 1, "name": "telegraph_extension_fraction", "decode": "telegraph_extension_max_s * clamp01(x)", "authority": "extension_only"},
+        {"index": 2, "name": "recovery_extension_fraction", "decode": "recovery_extension_max_s * clamp01(x)", "authority": "extension_only"},
+        {"index": 3, "name": "reserved_zero", "decode": "constant_zero", "authority": "none"},
+    ]
+    _expect(proposals.get("parameters") == expected_parameters, "boss pattern parameter authority contract mismatch", errors)
+    _expect(proposals.get("forbidden_outputs") == ["damage", "hitbox", "active_window", "root_motion", "interruptibility", "phase_transition"], "boss pattern forbidden output list mismatch", errors)
+    _expect(proposals.get("commit_policy") == "decode_and_clamp_inside_pattern_data_asset_bounds", "boss pattern parameter proposals must clamp to authored bounds", errors)
+
+    pattern_set = contract.get("pattern_set_asset_contract", {})
+    _expect(pattern_set == {
+        "storage": "Unreal_PrimaryDataAsset",
+        "required_fields": ["pattern_set_id", "patterns", "safe_default_pattern_id", "utility_profile_reference", "optional_model_bundle_reference"],
+        "invariants": {
+            "pattern_count": "between_1_and_max_pattern_slots",
+            "pattern_ids": "unique_uint16_and_strictly_ascending_after_canonicalization",
+            "safe_default_pattern_id": "references_exactly_one_pattern_in_set",
+            "pattern_references": "all_loaded_and_validated_before_request",
+        },
+    }, "boss pattern set asset contract mismatch", errors)
+
+    asset = contract.get("pattern_asset_contract", {})
+    required_asset_fields = [
+        "pattern_id", "pattern_name", "pattern_family_tags", "allowed_boss_phases",
+        "allowed_predecessor_pattern_ids", "allowed_successor_pattern_ids", "preferred_distance_cm",
+        "allowed_bearing_degrees", "allowed_elevation_degrees", "requires_line_of_sight",
+        "stamina_cost", "cooldown_seconds", "startup_telegraph_seconds", "active_seconds",
+        "recovery_seconds", "telegraph_extension_max_s", "recovery_extension_max_s",
+        "montage_reference", "montage_section", "root_motion_mode",
+        "hitbox_window_reference", "damage_profile_reference", "phase_tracking_limits",
+        "branch_windows", "interruptibility_allowlist", "interrupt_cleanup_policy",
+        "arena_safety_policy", "navigation_policy",
+    ]
+    _expect(asset.get("required_fields") == required_asset_fields, "boss pattern asset required field order mismatch", errors)
+    invariants = asset.get("invariants", {})
+    _expect(invariants.get("startup_telegraph_seconds") == "finite_and_greater_than_zero", "boss pattern startup telegraph invariant must remain finite and > 0", errors)
+    _expect(invariants.get("active_seconds") == "finite_and_greater_than_zero", "boss pattern active duration invariant must remain finite and > 0", errors)
+    _expect(invariants.get("recovery_seconds") == "finite_and_greater_than_or_equal_to_zero", "boss pattern recovery invariant mismatch", errors)
+    _expect(invariants.get("telegraph_extension_max_s") == "finite_and_greater_than_or_equal_to_zero", "boss pattern telegraph extension invariant mismatch", errors)
+    _expect(invariants.get("recovery_extension_max_s") == "finite_and_greater_than_or_equal_to_zero", "boss pattern recovery extension invariant mismatch", errors)
+    _expect(invariants.get("tracking_limits") == "finite_nonnegative_and_bounded_by_contract_maxima", "boss pattern tracking limit invariant mismatch", errors)
+
+    expected_mask_rules = [
+        "SlotOccupied", "BossPhaseAllowed", "AttackTargetIdentityAndGenerationValid", "RangeAllowed",
+        "BearingAllowed", "ElevationAllowed", "LineOfSightSatisfied", "CooldownReady",
+        "ResourceReservable", "PredecessorAllowed", "BranchAllowedAtBoundary", "ArenaSafe",
+        "NavigationAvailable", "AuthoredAssetsLoaded", "SelectionBoundaryEligible", "ExecutorUnlocked",
+        "ReservationAvailable",
+    ]
+    mask = contract.get("hard_mask_contract", {})
+    _expect(mask.get("owner") == "BossPatternCandidateBuilder", "boss pattern hard mask owner mismatch", errors)
+    _expect(mask.get("rules_in_order") == expected_mask_rules, "boss pattern hard mask rule order mismatch", errors)
+    _expect(mask.get("zero_valid_rows", {}).get("inference_request_created") is False, "boss pattern zero-valid rows must skip inference", errors)
+
+    authority = contract.get("authority_contract", {})
+    _expect(authority == {
+        "neural_and_utility_outputs": "advisory_only",
+        "pattern_commit": "server_authority_only",
+        "executor_phase": "server_authority_only",
+        "hitbox_damage_root_motion": "deterministic_server_combat_module",
+        "interrupt_result": "server_authority_only",
+        "client_inference_gameplay_authority": False,
+        "replicated_fields": ["committed_pattern_id", "pattern_start_server_time", "executor_phase", "authored_cue_state"],
+        "save_load_policy": "pending_requests_discarded_locked_executor_state_restored_by_runtime_contract",
+    }, "boss pattern authority contract mismatch", errors)
+
+    lock = contract.get("selection_lock_contract", {})
+    _expect(lock.get("inference_boundaries") == ["PreAttack", "BranchWindow", "RecoveryEnd"], "boss pattern inference boundary list mismatch", errors)
+    phase_rules = lock.get("phase_rules", {})
+    _expect(lock.get("lock_acquired_at") == "successful_pattern_commit_before_pre_attack_turn", "boss pattern lock acquisition point mismatch", errors)
+    _expect(phase_rules.get("ReadyToSelect") == "selection_allowed_until_successful_commit", "boss pattern ReadyToSelect rule mismatch", errors)
+    _expect(phase_rules.get("PreAttackTurn") == "selection_locked", "boss pattern PreAttackTurn must remain selection_locked", errors)
+    _expect(phase_rules.get("StartupTelegraph") == "selection_locked", "boss pattern StartupTelegraph must remain selection_locked", errors)
+    _expect(phase_rules.get("Active") == "selection_locked", "boss pattern Active must remain selection_locked", errors)
+    _expect(phase_rules.get("Recovery") == "selection_locked_except_authored_branch_window", "boss pattern Recovery lock rule mismatch", errors)
+    _expect(lock.get("ordinary_target_movement_interrupts") is False, "ordinary target movement cannot interrupt boss pattern", errors)
+    _expect(lock.get("new_tactical_score_interrupts") is False and lock.get("new_pattern_score_interrupts") is False, "new scores cannot interrupt locked boss pattern", errors)
+    _expect(lock.get("late_branch_response") == "reject_and_continue_authored_pattern_termination", "boss pattern late BranchWindow response policy mismatch", errors)
+
+    hidden = contract.get("hidden_information_contract", {})
+    for flag in ("ground_truth_target_transform_allowed", "post_lock_player_input_reselection_allowed", "post_lock_executor_transform_fed_back_to_model", "post_lock_executor_transform_may_change_pattern", "model_can_shorten_telegraph_or_recovery", "model_can_modify_active_window", "model_can_modify_hitbox_damage_root_motion"):
+        _expect(hidden.get(flag) is False, f"boss pattern hidden-information/authority flag {flag} must be false", errors)
+    _expect(hidden.get("model_may_extend_telegraph_or_recovery_inside_authored_bounds") is True, "boss pattern extension-only authority flag must be true", errors)
+    _expect(hidden.get("post_lock_tracking") == "bounded_by_authored_phase_tracking_limits", "boss pattern post-lock tracking must be authored and bounded", errors)
+    _expect(hidden.get("post_lock_executor_target_transform_source") == "authoritative_combat_targeting_policy_only", "boss pattern executor target transform source mismatch", errors)
+
+    interrupts = contract.get("interrupt_contract", {})
+    valid_interrupts = set(expected_enums["interrupt_kind"])
+    forced = interrupts.get("forced", [])
+    authored = interrupts.get("authored_allowlist_only", [])
+    for value in forced:
+        _expect(value in valid_interrupts, f"boss pattern unknown forced interrupt {value}", errors)
+    for value in authored:
+        _expect(value in valid_interrupts, f"boss pattern unknown authored interrupt {value}", errors)
+    _expect(forced == ["Death", "ActorDestroyed", "AuthorityLost"], "boss pattern forced interrupt order mismatch", errors)
+    _expect(authored == ["Stun", "PostureBreak", "ScriptedPhaseTransition", "ArenaReset"], "boss pattern authored interrupt allowlist mismatch", errors)
+
+    request_fields = contract.get("request_contract", {}).get("fields", [])
+    response_fields = contract.get("response_contract", {}).get("fields", [])
+    _expect(request_fields == ["pattern_decision_id", "selection_boundary", "attack_target_handle", "boss_phase_revision", "combat_state_revision", "pattern_candidate_set_hash", "boss_pattern_decision_contract_hash"], "boss pattern request field order mismatch", errors)
+    _expect(response_fields == ["pattern_decision_id", "selected_pattern_slot", "selected_pattern_id", "selected_parameter_proposals", "pattern_candidate_set_hash", "boss_pattern_decision_contract_hash"], "boss pattern response field order mismatch", errors)
+
+    expected_commit_order = [
+        "LatestPendingPatternDecisionIdMatches", "PatternDecisionContractHashMatches",
+        "PatternCandidateSetHashMatches", "SelectionBoundaryStillEligible", "BossPhaseRevisionMatches",
+        "CombatStateRevisionMatches", "AttackTargetIdentityAndGenerationMatch", "SelectedSlotAndPatternIdMatch",
+        "SelectedPatternMaskStillTrue", "ResourcesCompareAndSwap", "ExecutorStillUnlocked",
+    ]
+    commit = contract.get("commit_validation", {})
+    _expect(commit.get("owner") == "BossPatternCommitCoordinator", "boss pattern commit owner mismatch", errors)
+    _expect(commit.get("order") == expected_commit_order, "boss pattern commit validation order mismatch", errors)
+    _expect(commit.get("success_action") == "atomically_lock_pattern_and_enter_pre_attack_turn", "boss pattern commit success action mismatch", errors)
+    _expect(commit.get("failure_action") == "reject_response_without_mutating_locked_pattern", "boss pattern commit failure action mismatch", errors)
+
+    asset_bundle_digest = contract.get("pattern_asset_bundle_digest_contract", {})
+    _expect(asset_bundle_digest == {
+        "algorithm": "SHA-256",
+        "status": "pending_unreal_commandlet_and_python_parity",
+        "build_owner": "BossPatternValidationCommandlet",
+        "pattern_set_id_digest": {
+            "algorithm": "SHA-256",
+            "source_type": "string",
+            "text_encoding": "UTF-8",
+            "unicode_normalization": "NFC",
+            "case_policy": "case_sensitive",
+            "whitespace_policy": "preserve",
+            "input_bytes": "normalized_utf8_without_bom",
+            "empty_allowed": False,
+        },
+        "canonical_manifest": {
+            "byte_order": "little",
+            "fields": [
+                {"name": "magic", "type": "bytes[8]", "value_ascii": "BPABND01"},
+                {"name": "serialization_version", "type": "uint16", "value": 1},
+                {"name": "boss_pattern_contract_sha256", "type": "bytes[32]"},
+                {"name": "pattern_set_id_sha256", "type": "bytes[32]"},
+                {"name": "safe_default_pattern_id", "type": "uint16"},
+                {"name": "occupied_pattern_count", "type": "uint8"},
+                {"name": "pattern_ids", "type": "uint16[32]", "padding_value_ref": "invalid_pattern_id"},
+                {"name": "pattern_definition_sha256", "type": "bytes[32][32]", "padding_value": "all_zero"},
+            ],
+        },
+        "pattern_definition_digest": {
+            "canonicalization": "RFC8785_JCS_UTF8",
+            "field_set_ref": "pattern_asset_contract.required_fields",
+            "numeric_policy": "finite_values_only_and_contract_units",
+            "asset_reference_identity": "cooked_content_sha256_not_object_path",
+            "asset_reference_substitution": {
+                "jcs_value_type": "string",
+                "jcs_string_format": "lowercase_hex_64_no_prefix",
+                "source_digest_algorithm": "SHA-256",
+                "source_digest_bytes": 32,
+                "object_path_in_digest": False,
+            },
+        },
+        "pattern_order": "pattern_id_ascending",
+        "runtime_source": "validated_pattern_set_data_asset_embedded_digest",
+    }, "boss pattern asset bundle digest contract mismatch", errors)
+
+    hashes = contract.get("hash_contract", {})
+    expected_hash_fields = {
+        "pattern_candidate_set_hash": [
+            "magic", "serialization_version", "boss_pattern_contract_sha256", "pattern_asset_bundle_sha256",
+            "pattern_slot_count", "pattern_ids", "pattern_mask", "attack_target_handle", "selection_boundary",
+            "boss_phase_revision", "combat_state_revision",
+        ],
+        "boss_pattern_decision_contract_hash": [
+            "magic", "serialization_version", "boss_pattern_contract_sha256", "pattern_model_sha256",
+            "pattern_normalization_contract_sha256", "pattern_postprocess_contract_sha256",
+            "pattern_calibration_ood_asset_sha256", "pattern_executor_contract_sha256",
+        ],
+    }
+    for hash_name, expected_names in expected_hash_fields.items():
+        spec = hashes.get(hash_name, {})
+        _expect(spec.get("algorithm") == "SHA-256", f"boss pattern {hash_name} algorithm mismatch", errors)
+        _expect(spec.get("raw_float_included") is False, f"boss pattern {hash_name} must exclude raw float", errors)
+        _expect(spec.get("byte_order") == "little", f"boss pattern {hash_name} byte order mismatch", errors)
+        fields = spec.get("fields", [])
+        names = [row.get("name") for row in fields if isinstance(row, dict)]
+        _expect(names == expected_names, f"boss pattern {hash_name} field order mismatch: {names}", errors)
+        if len(fields) >= 2 and isinstance(fields[0], dict) and isinstance(fields[1], dict):
+            magic_match = re.fullmatch(r"bytes\[(\d+)\]", str(fields[0].get("type")))
+            _expect(bool(magic_match), f"boss pattern {hash_name} magic type invalid", errors)
+            if magic_match:
+                _expect(len(str(fields[0].get("value_ascii", "")).encode("ascii", "ignore")) == int(magic_match.group(1)), f"boss pattern {hash_name} magic size mismatch", errors)
+            _expect(fields[1].get("name") == "serialization_version" and fields[1].get("type") == "uint16", f"boss pattern {hash_name} serialization version invalid", errors)
+
+    candidate_fields = {row.get("name"): row for row in hashes.get("pattern_candidate_set_hash", {}).get("fields", []) if isinstance(row, dict)}
+    _expect(candidate_fields.get("pattern_slot_count", {}).get("value_ref") == "max_pattern_slots", "boss pattern candidate hash slot count reference mismatch", errors)
+    _expect(candidate_fields.get("pattern_ids", {}).get("type") == "uint16[32]", "boss pattern candidate hash pattern id array mismatch", errors)
+    _expect(candidate_fields.get("pattern_mask", {}).get("bit_count") == 32, "boss pattern candidate hash mask bit count mismatch", errors)
+
+    fallback = contract.get("fallback_contract", {})
+    _expect(fallback.get("zero_valid_rows") == "ReturnPatternUnavailableToAttackSkillWithoutInferenceOrUtility", "boss pattern zero-valid fallback mismatch", errors)
+    _expect(fallback.get("order") == ["UtilityBaselineOnSameValidMask", "AuthoredSafeDefaultIfStillValid", "ReturnPatternUnavailableToAttackSkill", "ParentTacticalPolicyReplan"], "boss pattern fallback order mismatch", errors)
+    _expect(fallback.get("utility_tie_break") == "adjusted_score_desc_then_pattern_id_asc", "boss pattern Utility tie-break mismatch", errors)
+    _expect(fallback.get("authored_safe_default_source") == "PatternSetDataAsset.safe_default_pattern_id", "boss pattern safe-default source mismatch", errors)
+    _expect(fallback.get("authored_safe_default_constraint") == "referenced_pattern_must_be_occupied_and_currently_valid", "boss pattern safe-default constraint mismatch", errors)
+    _expect(fallback.get("fallback_snapshot_policy") == "same_immutable_request_only", "boss pattern fallback snapshot policy mismatch", errors)
+    _expect(fallback.get("inference_failure_during_locked_pattern") == "continue_locked_pattern", "boss pattern locked inference failure must continue current pattern", errors)
+
+    codegen = contract.get("code_generation", {})
+    _expect(codegen.get("source_of_truth") == "contracts/current/boss_pattern_contract_v1.yaml", "boss pattern codegen source-of-truth mismatch", errors)
+    _expect(codegen.get("generator") == "tools/generate_contracts.py", "boss pattern codegen generator mismatch", errors)
+    _expect(codegen.get("outputs") == [
+        "generated/python/ai_native_npc_boss_pattern_contracts_generated.py",
+        "generated/cpp/AINativeNPCBossPatternContracts.generated.h",
+        "generated/docs/boss_pattern_reference.md",
+        "tests/golden/boss_pattern_hash_vectors.json",
+    ], "boss pattern codegen output list mismatch", errors)
+    _expect(codegen.get("generated_files_edit_policy") == "do_not_edit", "boss pattern generated file edit policy mismatch", errors)
+    docs = contract.get("documentation_contract", {})
+    _expect(docs == {
+        "marker_begin": "<!-- BEGIN AUTO-GENERATED BOSS PATTERN CONTRACT -->",
+        "marker_end": "<!-- END AUTO-GENERATED BOSS PATTERN CONTRACT -->",
+        "generated_reference": "generated/docs/boss_pattern_reference.md",
+        "required_document": "docs/current/contract-appendices.md",
+        "strict_policy": "marker_content_must_equal_generated_reference",
+    }, "boss pattern documentation marker contract mismatch", errors)
+
+    release = contract.get("release_status", {})
+    _expect(release.get("static_schema_generator_harness") == "pass", "boss pattern static harness status mismatch", errors)
+    for gate in ("asset_bundle_digest_parity", "unreal_float_parity", "onnx_output_parity", "unreal_pattern_runtime", "fairness_quality", "performance_budget"):
+        _expect(release.get(gate) == "pending", f"boss pattern release gate {gate} must remain pending", errors)
+
+    return errors
+
+
 def validate_contracts(paths: ContractPaths) -> list[str]:
     errors: list[str] = []
     try:
         schema, skills, goals = load_contracts(paths)
+        boss_pattern = load_boss_pattern_contract(paths)
         taxonomy = load_yaml(paths.test_taxonomy)
     except Exception as exc:
         return [f"YAML parse/load failure: {exc}"]
+
+    errors.extend(validate_boss_pattern_contract(boss_pattern))
 
     s_meta = schema.get("schema", {})
     constants = schema.get("constants", {})

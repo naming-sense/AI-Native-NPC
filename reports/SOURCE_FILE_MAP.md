@@ -9,6 +9,7 @@
 | Contract Appendices | `docs/current/contract-appendices.md` |
 | Unreal Profile | `docs/current/unreal-implementation-plan.md` |
 | Schema | `contracts/current/ai_native_npc_schema_v2_0.yaml` |
+| Boss Pattern Contract | `contracts/current/boss_pattern_contract_v1.yaml` |
 | Skill Registry | `contracts/current/skill_registry_v1.yaml` |
 | Goal Registry | `contracts/current/goal_registry_v1.yaml` |
 | Test Taxonomy | `contracts/current/test_taxonomy_v1.yaml` |

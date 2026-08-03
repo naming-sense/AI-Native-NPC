@@ -24,6 +24,9 @@ from generate_golden import check as check_golden
 
 PYTHON_TEST_IDS = [
     "candidate_formula",
+    "boss_pattern_bindings",
+    "boss_pattern_hash_vectors",
+    "boss_pattern_semantic_mutations",
     "contract_revision",
     "discrete_hash_vectors",
     "decision_contract_hash",
@@ -45,6 +48,8 @@ PYTHON_TEST_IDS = [
 ]
 CPP_TEST_IDS = [
     "candidate_index",
+    "boss_pattern_candidate_set_sha256",
+    "boss_pattern_decision_contract_sha256",
     "target_mask_lsb_pack",
     "candidate_mask_lsb_pack",
     "target_handle_canonical_serialization",
@@ -73,18 +78,23 @@ def input_hashes(root: Path) -> dict[str, str]:
     paths = default_paths(root)
     files = {
         "schema": paths.schema,
+        "boss_pattern_contract": paths.boss_pattern_contract,
         "skill_registry": paths.skill_registry,
         "goal_registry": paths.goal_registry,
         "test_taxonomy": paths.test_taxonomy,
         "generated_python": root / "generated/python/ai_native_npc_contracts_generated.py",
+        "generated_boss_pattern_python": root / "generated/python/ai_native_npc_boss_pattern_contracts_generated.py",
         "generated_cpp": root / "generated/cpp/AINativeNPCContracts.generated.h",
+        "generated_boss_pattern_cpp": root / "generated/cpp/AINativeNPCBossPatternContracts.generated.h",
         "golden_discrete": root / "tests/golden/discrete_hash_vectors.json",
+        "golden_boss_pattern": root / "tests/golden/boss_pattern_hash_vectors.json",
         "golden_normalizers": root / "tests/golden/normalizer_vectors.json",
         "cpp_golden_source": root / "tests/generated_cpp_golden_test.cpp",
         "python_test_source": root / "tests/test_generated_contract.py",
         "semantic_hardening_test_source": root / "tests/test_semantic_hardening.py",
         "contractlib": root / "tools/contractlib.py",
         "generator": root / "tools/generate_contracts.py",
+        "boss_pattern_generator": root / "tools/generate_boss_pattern_contracts.py",
         "golden_generator": root / "tools/generate_golden.py",
         "test_runner": root / "tools/run_contract_tests.py",
         "release_mutation_tool": root / "tools/run_release_mutation_tests.py",

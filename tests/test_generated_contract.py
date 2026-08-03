@@ -24,6 +24,71 @@ class ContractGoldenTests(unittest.TestCase):
         cls.discrete = json.loads((ROOT / "tests/golden/discrete_hash_vectors.json").read_text(encoding="utf-8"))
         cls.normalizers = json.loads((ROOT / "tests/golden/normalizer_vectors.json").read_text(encoding="utf-8"))
 
+    def test_boss_pattern_generated_bindings_exist(self) -> None:
+        self.assertTrue((ROOT / "generated/python/ai_native_npc_boss_pattern_contracts_generated.py").is_file())
+        self.assertTrue((ROOT / "generated/cpp/AINativeNPCBossPatternContracts.generated.h").is_file())
+        self.assertTrue((ROOT / "generated/docs/boss_pattern_reference.md").is_file())
+
+    def test_boss_pattern_hash_vectors(self) -> None:
+        boss_gen = ROOT / "generated/python/ai_native_npc_boss_pattern_contracts_generated.py"
+        boss_spec = importlib.util.spec_from_file_location("ai_native_npc_boss_pattern_contracts_generated_test", boss_gen)
+        assert boss_spec and boss_spec.loader
+        boss = importlib.util.module_from_spec(boss_spec)
+        sys.modules[boss_spec.name] = boss
+        boss_spec.loader.exec_module(boss)
+        fixture = json.loads((ROOT / "tests/golden/boss_pattern_hash_vectors.json").read_text(encoding="utf-8"))
+        self.assertEqual(boss.CONSTANTS["max_pattern_slots"], 32)
+        self.assertEqual(boss.PatternParameter.reserved_zero, 3)
+        self.assertEqual(boss.ExecutionPhase.PreAttackTurn, 1)
+        self.assertEqual(boss.PATTERN_PARAMETERS[0]["name"], "tracking_fraction")
+        self.assertEqual(boss.PATTERN_PARAMETERS[3]["authority"], "none")
+        self.assertEqual(boss.TENSOR_SHAPES["pattern_mask"], ["B", 32])
+        self.assertAlmostEqual(boss.normalize_feature("pattern_context", boss.PatternContextFeature.target_distance_planar, 5000.0), 0.5)
+        self.assertAlmostEqual(boss.normalize_feature("pattern_context", boss.PatternContextFeature.target_relative_speed, -1000.0), -0.5)
+        self.assertAlmostEqual(boss.normalize_feature("pattern_features", boss.PatternFeature.telegraph_duration, 15.0), 0.5)
+        self.assertEqual(boss.normalize_feature("pattern_pair_features", boss.PatternPairFeature.distance_fit, 1.5), 1.0)
+        self.assertEqual(boss.normalize_feature("pattern_features", boss.PatternFeature.reserved_zero, 999.0), 0.0)
+        with self.assertRaises(ValueError):
+            boss.normalize_feature("pattern_context", 0, math.nan)
+        vector = fixture["candidate_set"]
+        handle = boss.TargetHandle(**vector["attack_target_handle"])
+        raw = boss.pattern_candidate_set_canonical_bytes(
+            vector["pattern_asset_bundle_sha256"],
+            vector["pattern_ids"],
+            vector["pattern_mask"],
+            handle,
+            vector["selection_boundary"],
+            vector["boss_phase_revision"],
+            vector["combat_state_revision"],
+        )
+        self.assertEqual(raw.hex(), vector["canonical_bytes_hex"])
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), vector["sha256"])
+        unsorted_ids = list(vector["pattern_ids"])
+        unsorted_ids[0], unsorted_ids[1] = unsorted_ids[1], unsorted_ids[0]
+        with self.assertRaises(ValueError):
+            boss.validate_pattern_slot_layout(unsorted_ids, list(vector["pattern_mask"]))
+        padding_mask = list(vector["pattern_mask"])
+        padding_mask[-1] = True
+        with self.assertRaises(ValueError):
+            boss.validate_pattern_slot_layout(list(vector["pattern_ids"]), padding_mask)
+        non_bool_mask = list(vector["pattern_mask"])
+        non_bool_mask[0] = 1
+        with self.assertRaises(ValueError):
+            boss.validate_pattern_slot_layout(list(vector["pattern_ids"]), non_bool_mask)
+        all_padding_ids = [boss.CONSTANTS["invalid_pattern_id"]] * boss.CONSTANTS["max_pattern_slots"]
+        all_padding_mask = [False] * boss.CONSTANTS["max_pattern_slots"]
+        with self.assertRaises(ValueError):
+            boss.validate_pattern_slot_layout(all_padding_ids, all_padding_mask)
+        with self.assertRaises(ValueError):
+            boss.pattern_candidate_set_canonical_bytes(
+                vector["pattern_asset_bundle_sha256"], all_padding_ids, all_padding_mask, handle,
+                vector["selection_boundary"], vector["boss_phase_revision"], vector["combat_state_revision"],
+            )
+        decision = fixture["decision_contract"]
+        decision_raw = boss.boss_pattern_decision_contract_canonical_bytes(decision["digests"])
+        self.assertEqual(decision_raw.hex(), decision["canonical_bytes_hex"])
+        self.assertEqual(hashlib.sha256(decision_raw).hexdigest(), decision["sha256"])
+
     def test_contract_revision(self) -> None:
         self.assertEqual(self.discrete["contract_revision"], g.CONTRACT_REVISION)
         self.assertEqual(self.discrete["schema_source_sha256"], g.SCHEMA_SOURCE_SHA256)

@@ -14,11 +14,14 @@
 |---|---|---|
 | `document_harness_integrity` | pass | `tests/reports/harness_integrity_evidence.json` |
 | `schema_semantic_validation` | pass | `tests/reports/schema_semantic_validation.json` |
+| `boss_pattern_contract_validation` | pass | `tests/reports/schema_semantic_validation.json` |
 | `skill_registry_validation` | pass | `tests/reports/schema_semantic_validation.json` |
 | `goal_registry_validation` | pass | `tests/reports/schema_semantic_validation.json` |
 | `test_taxonomy_validation` | pass | `tests/reports/schema_semantic_validation.json` |
 | `generated_python_contract` | pass | `generated/python/ai_native_npc_contracts_generated.py` |
+| `generated_boss_pattern_python_contract` | pass | `generated/python/ai_native_npc_boss_pattern_contracts_generated.py` |
 | `generated_cpp_contract` | pass | `generated/cpp/AINativeNPCContracts.generated.h` |
+| `generated_boss_pattern_cpp_contract` | pass | `generated/cpp/AINativeNPCBossPatternContracts.generated.h` |
 | `generated_code_reproducibility` | pass | `tests/reports/contract_test_report.json` |
 | `golden_fixture_reproducibility` | pass | `tests/reports/contract_test_report.json` |
 | `python_golden_parity` | pass | `tests/reports/contract_test_report.json` |
@@ -29,6 +32,9 @@
 | `normalizer_semantic_hardening` | pass | `tests/reports/schema_semantic_validation.json` |
 | `hash_contract_codegen_parity` | pass | `tests/reports/contract_test_report.json` |
 | `decision_contract_hash_golden` | pass | `tests/reports/contract_test_report.json` |
+| `boss_pattern_hash_golden` | pass | `tests/reports/contract_test_report.json` |
+| `boss_pattern_normalizer_codegen_parity` | pass | `tests/reports/contract_test_report.json` |
+| `boss_pattern_document_appendix_parity` | pass | `generated/docs/boss_pattern_reference.md` |
 | `semantic_mutation_regression` | pass | `tests/reports/contract_test_report.json` |
 | `manual_hash_literal_guard` | pass | `tests/reports/contract_test_report.json` |
 | `normalizer_constraint_closure` | pass | `tests/reports/contract_test_report.json` |
@@ -42,6 +48,12 @@
 | `source_file_map_currentness` | pass | `reports/SOURCE_FILE_MAP.md` |
 | `float_tensor_python_unreal_parity` | pending | `tests/reports/python_unreal_float_parity.json` |
 | `onnx_unreal_output_parity` | pending | `tests/reports/onnx_unreal_output_parity.json` |
+| `boss_pattern_float_tensor_python_unreal_parity` | pending | `tests/reports/boss_pattern_python_unreal_float_parity.json` |
+| `boss_pattern_asset_bundle_digest_parity` | pending | `tests/reports/boss_pattern_asset_bundle_digest_parity.json` |
+| `boss_pattern_onnx_unreal_output_parity` | pending | `tests/reports/boss_pattern_onnx_unreal_output_parity.json` |
+| `boss_pattern_runtime_lock_interrupt` | pending | `tests/reports/boss_pattern_runtime_lock_interrupt.json` |
+| `boss_pattern_fairness_quality` | pending | `tests/reports/boss_pattern_fairness_quality.json` |
+| `boss_pattern_performance_budget` | pending | `tests/reports/boss_pattern_performance_budget.json` |
 | `target_recall` | pending | `tests/reports/target_recall.json` |
 | `candidate_recall` | pending | `tests/reports/candidate_recall.json` |
 | `critical_suite` | pending | `tests/reports/critical_suite.json` |
@@ -58,15 +70,17 @@
 ## Taxonomy-derived Critical Contract
 
 - Critical contract: `critical_suite_v1`
-- Family count: `8`
+- Family count: `9`
 - Minimum cases per family: `64`
-- Critical minimum sequences: `512`
+- Critical minimum sequences: `576`
 
 ## Decision
 
 - Phase 0: GO
 - Schema design RC5: Conditional GO
 - Schema contract harness: FREEZE-READY / Runtime gates pending
+- Boss Pattern static contract/codegen/Golden harness: PASS
+- Boss Pattern Asset Digest/Unreal Float/ONNX/Runtime/Fairness/Performance gates: PENDING
 - Mass training data: HOLD
 - Final Schema Freeze: NO-GO / Conditional
 
@@ -74,8 +88,9 @@
 
 - Python–Unreal Float Tensor parity
 - ONNX–Unreal output parity
+- Boss Pattern Asset Bundle digest parity, Float/ONNX parity, lock·interrupt Runtime, fairness·quality, performance
 - Target/Candidate Recall
-- Critical Suite 8 family × 64 case = 512 sequences
+- Critical Suite 9 family × 64 case = 576 sequences
 - Goal FSM / Atomic Commit / Hidden Leakage
 - Safety Fuzz / Calibration OOD / Performance
 - Save/Load / Hot-swap / Formal Approval

@@ -51,6 +51,12 @@ def different_ascii_same_length(current: str) -> str:
 
 
 class SemanticHardeningTests(unittest.TestCase):
+    def test_boss_pattern_contract_path_is_required(self) -> None:
+        paths = default_paths(ROOT)
+        self.assertTrue(hasattr(paths, "boss_pattern_contract"))
+        self.assertEqual(paths.boss_pattern_contract.name, "boss_pattern_contract_v1.yaml")
+        self.assertTrue(paths.boss_pattern_contract.is_file())
+
     def _mutated_root(self, mutate) -> Path:
         temp = Path(tempfile.mkdtemp(prefix="ainpc-semantic-"))
         self.addCleanup(lambda: shutil.rmtree(temp, ignore_errors=True))
@@ -63,6 +69,164 @@ class SemanticHardeningTests(unittest.TestCase):
         mutate(schema)
         schema_path.write_text(yaml.safe_dump(schema, allow_unicode=True, sort_keys=False), encoding="utf-8")
         return temp
+
+    def _mutated_boss_root(self, mutate) -> Path:
+        temp = Path(tempfile.mkdtemp(prefix="ainpc-boss-pattern-semantic-"))
+        self.addCleanup(lambda: shutil.rmtree(temp, ignore_errors=True))
+        target = temp / "contracts/current"
+        target.mkdir(parents=True)
+        for source in (ROOT / "contracts/current").glob("*.yaml"):
+            shutil.copy2(source, target / source.name)
+        contract_path = target / "boss_pattern_contract_v1.yaml"
+        contract = yaml.safe_load(contract_path.read_text(encoding="utf-8"))
+        mutate(contract)
+        contract_path.write_text(yaml.safe_dump(contract, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        return temp
+
+    def test_boss_pattern_common_candidate_layout_mutation_is_rejected(self) -> None:
+        def mutate(contract):
+            contract["activation_contract"]["common_candidate_layout_unchanged"]["candidate_count"] = 273
+
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("common candidate layout" in error for error in errors), errors)
+
+    def test_boss_pattern_zero_minimum_occupied_slots_is_rejected(self) -> None:
+        def mutate(contract):
+            contract["slot_assignment_contract"]["minimum_occupied_slots"] = 0
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("at least one occupied row" in error for error in errors), errors)
+
+    def test_boss_pattern_tensor_shape_mutation_is_rejected(self) -> None:
+        def mutate(contract):
+            contract["tensors"]["pattern_features"]["shape"] = ["B", 33, 24]
+
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("boss pattern tensor pattern_features shape" in error for error in errors), errors)
+
+    def test_boss_pattern_active_reselection_mutation_is_rejected(self) -> None:
+        def mutate(contract):
+            contract["selection_lock_contract"]["phase_rules"]["Active"] = "selection_allowed"
+
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("Active" in error for error in errors), errors)
+
+    def test_boss_pattern_late_branch_response_policy_mutation_is_rejected(self) -> None:
+        def mutate(contract):
+            contract["selection_lock_contract"]["late_branch_response"] = "commit_after_window"
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("late BranchWindow" in error for error in errors), errors)
+
+    def test_boss_pattern_lock_acquisition_point_mutation_is_rejected(self) -> None:
+        def mutate(contract):
+            contract["selection_lock_contract"]["lock_acquired_at"] = "startup_telegraph_entry"
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("lock acquisition point" in error for error in errors), errors)
+
+    def test_boss_pattern_fallback_tie_break_mutation_is_rejected(self) -> None:
+        def mutate(contract):
+            contract["fallback_contract"]["utility_tie_break"] = "array_order"
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("Utility tie-break" in error for error in errors), errors)
+
+    def test_boss_pattern_unknown_interrupt_mutation_is_rejected(self) -> None:
+        def mutate(contract):
+            contract["interrupt_contract"]["forced"].append("UnknownInterrupt")
+
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("unknown forced interrupt" in error for error in errors), errors)
+
+    def test_boss_pattern_hash_field_order_mutation_is_rejected(self) -> None:
+        def mutate(contract):
+            fields = contract["hash_contract"]["pattern_candidate_set_hash"]["fields"]
+            fields[2], fields[3] = fields[3], fields[2]
+
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("pattern_candidate_set_hash field order mismatch" in error for error in errors), errors)
+
+    def test_boss_pattern_timing_invariant_weakening_is_rejected(self) -> None:
+        def mutate(data):
+            data["pattern_asset_contract"]["invariants"]["startup_telegraph_seconds"] = "finite"
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("telegraph" in error for error in errors), errors)
+
+    def test_boss_pattern_parameter_authority_widening_is_rejected(self) -> None:
+        def mutate(data):
+            data["outputs"]["pattern_parameter_proposals"]["forbidden_outputs"].remove("damage")
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("forbidden output" in error for error in errors), errors)
+
+    def test_boss_pattern_semantic_feature_rename_is_rejected(self) -> None:
+        def mutate(data):
+            data["tensors"]["pattern_context"]["fields"][0]["name"] = "ground_truth_player_health"
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("semantic field order" in error for error in errors), errors)
+
+    def test_boss_pattern_normalizer_assignment_gap_is_rejected(self) -> None:
+        def mutate(data):
+            data["normalization_contract"]["assignments"]["pattern_context"]["ratio_01"].remove("boss_health_ratio")
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("assignment closure" in error for error in errors), errors)
+
+    def test_boss_pattern_ground_truth_feature_source_is_rejected(self) -> None:
+        def mutate(data):
+            data["tensors"]["pattern_context"]["fields"][4]["source"] = "ground_truth_player_transform"
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("source not allowed" in error or "forbidden source" in error for error in errors), errors)
+
+    def test_boss_pattern_executor_transform_feedback_is_rejected(self) -> None:
+        def mutate(data):
+            data["hidden_information_contract"]["post_lock_executor_transform_fed_back_to_model"] = True
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("fed_back_to_model" in error for error in errors), errors)
+
+    def test_boss_pattern_client_gameplay_authority_is_rejected(self) -> None:
+        def mutate(data):
+            data["authority_contract"]["client_inference_gameplay_authority"] = True
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("authority contract" in error for error in errors), errors)
+
+    def test_boss_pattern_asset_digest_canonical_leaf_bytes_are_accepted(self) -> None:
+        def mutate(data):
+            digest = data["pattern_asset_bundle_digest_contract"]
+            digest["pattern_set_id_digest"] = {
+                "algorithm": "SHA-256",
+                "source_type": "string",
+                "text_encoding": "UTF-8",
+                "unicode_normalization": "NFC",
+                "case_policy": "case_sensitive",
+                "whitespace_policy": "preserve",
+                "input_bytes": "normalized_utf8_without_bom",
+                "empty_allowed": False,
+            }
+            digest["pattern_definition_digest"]["asset_reference_substitution"] = {
+                "jcs_value_type": "string",
+                "jcs_string_format": "lowercase_hex_64_no_prefix",
+                "source_digest_algorithm": "SHA-256",
+                "source_digest_bytes": 32,
+                "object_path_in_digest": False,
+            }
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertFalse(any("asset bundle digest contract mismatch" in error for error in errors), errors)
+
+    def test_boss_pattern_asset_digest_unicode_policy_mutation_is_rejected(self) -> None:
+        def mutate(data):
+            data["pattern_asset_bundle_digest_contract"]["pattern_set_id_digest"]["unicode_normalization"] = "none"
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("asset bundle digest contract mismatch" in error for error in errors), errors)
+
+    def test_boss_pattern_asset_reference_digest_format_mutation_is_rejected(self) -> None:
+        def mutate(data):
+            substitution = data["pattern_asset_bundle_digest_contract"]["pattern_definition_digest"]["asset_reference_substitution"]
+            substitution["jcs_string_format"] = "uppercase_hex_64_no_prefix"
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("asset bundle digest contract mismatch" in error for error in errors), errors)
+
+    def test_boss_pattern_document_marker_mutation_is_rejected(self) -> None:
+        def mutate(data):
+            data["documentation_contract"]["marker_begin"] = "<!-- FAKE BOSS BLOCK -->"
+        errors = validate_contracts(default_paths(self._mutated_boss_root(mutate)))
+        self.assertTrue(any("documentation marker" in error for error in errors), errors)
+
 
     def test_reversed_clamp_is_rejected(self) -> None:
         def mutate(schema):
@@ -215,8 +379,10 @@ class SemanticHardeningTests(unittest.TestCase):
     def test_current_documents_have_no_manual_hash_literal(self) -> None:
         schema = yaml.safe_load((ROOT / "contracts/current/ai_native_npc_schema_v2_0.yaml").read_text(encoding="utf-8"))
         taxonomy = yaml.safe_load((ROOT / "contracts/current/test_taxonomy_v1.yaml").read_text(encoding="utf-8"))
+        boss_pattern = yaml.safe_load((ROOT / "contracts/current/boss_pattern_contract_v1.yaml").read_text(encoding="utf-8"))
         known = collect_hash_magic_tokens(ROOT)
-        blocks = [(spec["marker_begin"], spec["marker_end"]) for spec in taxonomy["documentation_contract"].values() if isinstance(spec, dict) and "marker_begin" in spec]
+        blocks = [(boss_pattern["documentation_contract"]["marker_begin"], boss_pattern["documentation_contract"]["marker_end"])]
+        blocks.extend((spec["marker_begin"], spec["marker_end"]) for spec in taxonomy["documentation_contract"].values() if isinstance(spec, dict) and "marker_begin" in spec)
         for declared in schema["documentation_contract"]["required_documents"]:
             text = (ROOT / declared).read_text(encoding="utf-8")
             self.assertEqual(validate_manual_hash_literal_policy(schema, text, declared, known, blocks), [])
@@ -239,6 +405,12 @@ class SemanticHardeningTests(unittest.TestCase):
         catalog["archives"] = expected[1:]
         errors = validate_catalog_data(ROOT, catalog)
         self.assertTrue(any("missing archive entry" in error for error in errors), errors)
+
+    def test_catalog_requires_boss_pattern_canonical_role(self) -> None:
+        catalog = json.loads((ROOT / "manifest/catalog.json").read_text(encoding="utf-8"))
+        catalog["canonical"].pop("boss_pattern_contract", None)
+        errors = validate_catalog_data(ROOT, catalog)
+        self.assertTrue(any("canonical role set mismatch" in error for error in errors), errors)
 
     def test_catalog_ghost_archive_is_rejected(self) -> None:
         catalog = json.loads((ROOT / "manifest/catalog.json").read_text(encoding="utf-8"))

@@ -289,6 +289,12 @@
     "version": "0.4.6"
   },
   "canonical": {
+    "boss_pattern_contract": {
+      "path": "contracts/current/boss_pattern_contract_v1.yaml",
+      "sha256": "e4f828c114fcc5db1cb04b5d0a6e2b3d29dada7e45c60a3dd18c674baa78c789",
+      "status": "current_static_contract_runtime_pending",
+      "version": "1.0.0"
+    },
     "goal_registry": {
       "path": "contracts/current/goal_registry_v1.yaml",
       "sha256": "b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2",
@@ -297,7 +303,7 @@
     },
     "requirements": {
       "path": "docs/current/requirements.md",
-      "sha256": "835bc86d1e068d8978c02363a1b009a742236918bbe6d70e3aa6066dea3e7482",
+      "sha256": "d266edcc5927aa5f062326247a956a29361a360b3a471b302cc6ea3187a972a0",
       "status": "current",
       "version": "0.4.6"
     },
@@ -315,18 +321,21 @@
     },
     "test_taxonomy": {
       "path": "contracts/current/test_taxonomy_v1.yaml",
-      "sha256": "391b31036d6911e2e646d44f81f010e565e4fc587a6475fe6904d935aafb98ef",
+      "sha256": "2c4f911c23c8502231351fd2a1ffc606a04c29c4c3e39ea384099462811dad79",
       "status": "current",
       "version": "1.0.0"
     },
     "unreal_profile": {
       "path": "docs/current/unreal-implementation-plan.md",
-      "sha256": "5bab510dbdd673cb55e8280902a4bb758dc2965e7f5deef3c04b393cd4fcd040",
+      "sha256": "4b0f849fb840b84e3836ec6433392b954580f49b3ae0479d629d7b3f17a2f4cc",
       "status": "current",
       "version": "0.4.6"
     }
   },
   "contract_invariants": {
+    "boss_pattern_parent_activation": "Attack(Entity)",
+    "boss_pattern_separate_from_common_candidate_layout": true,
+    "boss_pattern_slot_count": 32,
     "candidate_count": 272,
     "candidate_formula": "skill_count * total_target_slots",
     "candidate_pair_feature_count": 16,

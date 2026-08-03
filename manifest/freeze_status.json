@@ -1,4 +1,6 @@
 {
+  "boss_pattern_static_harness": "PASS",
+  "boss_pattern_unreal_runtime_gates": "PENDING",
   "bundle_version": "0.4.6",
   "mass_training_data_generation": "HOLD",
   "phase0_decision": "GO",

@@ -1,69 +1,88 @@
 {
+  "boss_pattern_contract": {
+    "path": "contracts/current/boss_pattern_contract_v1.yaml",
+    "sha256": "e4f828c114fcc5db1cb04b5d0a6e2b3d29dada7e45c60a3dd18c674baa78c789",
+    "static_harness": "pass",
+    "unreal_runtime_gates": "pending"
+  },
   "bundle_version": "0.4.6",
   "gates": [
     {
       "evidence": {
         "path": "tests/reports/harness_integrity_evidence.json",
-        "sha256": "3f41d0b78ecd54e2a303833f2c784698e83b7d687a761acc0432e07a72c4ffdf"
+        "sha256": "82eb12817da800f61a30561e7dab10d72ed475010386b3c57c99163ae5466906"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "document_harness_integrity",
       "normative": true,
       "status": "pass",
       "tool": "tools/doc_harness.py",
-      "tool_sha256": "73eb7d9f3714159d3f9fcd10dd095f9d5ed79f965e95866a19b7971ef54cb5b4",
+      "tool_sha256": "438c6aa363720b26fdc5fe30585c2463d943f4e094f4abf5369a3dfaa35fcd64",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/schema_semantic_validation.json",
-        "sha256": "92be10a9d8fe2571e9f931a241b182228389aee11514572bdd02dc731588060d"
+        "sha256": "ffdd146150a43838bec9a784624fda283ce282613b82418e35b344092ce85b5c"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "schema_semantic_validation",
       "normative": true,
       "status": "pass",
       "tool": "tools/validate_schema.py",
-      "tool_sha256": "8f9533f62fc2c041c46336955eea514f49ac2f8d2e97e206312cb3a9b1ae2ece",
+      "tool_sha256": "fa990d3c71fede253b95de27423ffd640d39f32460c46d06e57f999ae65f90ed",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/schema_semantic_validation.json",
-        "sha256": "92be10a9d8fe2571e9f931a241b182228389aee11514572bdd02dc731588060d"
+        "sha256": "ffdd146150a43838bec9a784624fda283ce282613b82418e35b344092ce85b5c"
+      },
+      "executed_at": "2026-07-26T00:00:00Z",
+      "id": "boss_pattern_contract_validation",
+      "normative": true,
+      "status": "pass",
+      "tool": "tools/validate_schema.py",
+      "tool_sha256": "fa990d3c71fede253b95de27423ffd640d39f32460c46d06e57f999ae65f90ed",
+      "tool_version": "0.4.6"
+    },
+    {
+      "evidence": {
+        "path": "tests/reports/schema_semantic_validation.json",
+        "sha256": "ffdd146150a43838bec9a784624fda283ce282613b82418e35b344092ce85b5c"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "skill_registry_validation",
       "normative": true,
       "status": "pass",
       "tool": "tools/validate_schema.py",
-      "tool_sha256": "8f9533f62fc2c041c46336955eea514f49ac2f8d2e97e206312cb3a9b1ae2ece",
+      "tool_sha256": "fa990d3c71fede253b95de27423ffd640d39f32460c46d06e57f999ae65f90ed",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/schema_semantic_validation.json",
-        "sha256": "92be10a9d8fe2571e9f931a241b182228389aee11514572bdd02dc731588060d"
+        "sha256": "ffdd146150a43838bec9a784624fda283ce282613b82418e35b344092ce85b5c"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "goal_registry_validation",
       "normative": true,
       "status": "pass",
       "tool": "tools/validate_schema.py",
-      "tool_sha256": "8f9533f62fc2c041c46336955eea514f49ac2f8d2e97e206312cb3a9b1ae2ece",
+      "tool_sha256": "fa990d3c71fede253b95de27423ffd640d39f32460c46d06e57f999ae65f90ed",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/schema_semantic_validation.json",
-        "sha256": "92be10a9d8fe2571e9f931a241b182228389aee11514572bdd02dc731588060d"
+        "sha256": "ffdd146150a43838bec9a784624fda283ce282613b82418e35b344092ce85b5c"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "test_taxonomy_validation",
       "normative": true,
       "status": "pass",
       "tool": "tools/validate_schema.py",
-      "tool_sha256": "8f9533f62fc2c041c46336955eea514f49ac2f8d2e97e206312cb3a9b1ae2ece",
+      "tool_sha256": "fa990d3c71fede253b95de27423ffd640d39f32460c46d06e57f999ae65f90ed",
       "tool_version": "0.4.6"
     },
     {
@@ -76,7 +95,20 @@
       "normative": true,
       "status": "pass",
       "tool": "tools/generate_contracts.py",
-      "tool_sha256": "58d220fa75f74ff0389f5638a98b644c6b4d753601f05392a0e7f6360427ab19",
+      "tool_sha256": "e7aed15745c38475d4d4ad0489deea606a259921700c99eb4493bd764c779199",
+      "tool_version": "0.4.6"
+    },
+    {
+      "evidence": {
+        "path": "generated/python/ai_native_npc_boss_pattern_contracts_generated.py",
+        "sha256": "6320e0199d118f1ec1c1cbed4d064964fcb0b3741dd76d0392ac07583b405041"
+      },
+      "executed_at": "2026-07-26T00:00:00Z",
+      "id": "generated_boss_pattern_python_contract",
+      "normative": true,
+      "status": "pass",
+      "tool": "tools/generate_contracts.py",
+      "tool_sha256": "e7aed15745c38475d4d4ad0489deea606a259921700c99eb4493bd764c779199",
       "tool_version": "0.4.6"
     },
     {
@@ -89,234 +121,286 @@
       "normative": true,
       "status": "pass",
       "tool": "tools/generate_contracts.py",
-      "tool_sha256": "58d220fa75f74ff0389f5638a98b644c6b4d753601f05392a0e7f6360427ab19",
+      "tool_sha256": "e7aed15745c38475d4d4ad0489deea606a259921700c99eb4493bd764c779199",
+      "tool_version": "0.4.6"
+    },
+    {
+      "evidence": {
+        "path": "generated/cpp/AINativeNPCBossPatternContracts.generated.h",
+        "sha256": "ba2aad4af720c1a4662bde9fc0c4644e8d11cc14d7bbeffa135a84267c17cdfa"
+      },
+      "executed_at": "2026-07-26T00:00:00Z",
+      "id": "generated_boss_pattern_cpp_contract",
+      "normative": true,
+      "status": "pass",
+      "tool": "tools/generate_contracts.py",
+      "tool_sha256": "e7aed15745c38475d4d4ad0489deea606a259921700c99eb4493bd764c779199",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
+        "sha256": "2c4692a3edc944b4ffed562e83ce58a6da839fbf58886de2935e2d7cd4362dab"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "generated_code_reproducibility",
       "normative": true,
       "status": "pass",
       "tool": "tools/run_contract_tests.py",
-      "tool_sha256": "e26e570b0a6f20d6edacf5be97b5ac746812a19de2135696c6a60d64dd2555ac",
+      "tool_sha256": "01c65f845d0946eb516fe53af23be6e47f8b0b4e9db96089217c0faa4bff8ae7",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
+        "sha256": "2c4692a3edc944b4ffed562e83ce58a6da839fbf58886de2935e2d7cd4362dab"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "golden_fixture_reproducibility",
       "normative": true,
       "status": "pass",
       "tool": "tools/run_contract_tests.py",
-      "tool_sha256": "e26e570b0a6f20d6edacf5be97b5ac746812a19de2135696c6a60d64dd2555ac",
+      "tool_sha256": "01c65f845d0946eb516fe53af23be6e47f8b0b4e9db96089217c0faa4bff8ae7",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
+        "sha256": "2c4692a3edc944b4ffed562e83ce58a6da839fbf58886de2935e2d7cd4362dab"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "python_golden_parity",
       "normative": true,
       "status": "pass",
       "tool": "tools/run_contract_tests.py",
-      "tool_sha256": "e26e570b0a6f20d6edacf5be97b5ac746812a19de2135696c6a60d64dd2555ac",
+      "tool_sha256": "01c65f845d0946eb516fe53af23be6e47f8b0b4e9db96089217c0faa4bff8ae7",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
+        "sha256": "2c4692a3edc944b4ffed562e83ce58a6da839fbf58886de2935e2d7cd4362dab"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "cpp_golden_parity",
       "normative": true,
       "status": "pass",
       "tool": "tools/run_contract_tests.py",
-      "tool_sha256": "e26e570b0a6f20d6edacf5be97b5ac746812a19de2135696c6a60d64dd2555ac",
+      "tool_sha256": "01c65f845d0946eb516fe53af23be6e47f8b0b4e9db96089217c0faa4bff8ae7",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
+        "sha256": "2c4692a3edc944b4ffed562e83ce58a6da839fbf58886de2935e2d7cd4362dab"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "environment_independent_normative_report",
       "normative": true,
       "status": "pass",
       "tool": "tools/run_contract_tests.py",
-      "tool_sha256": "e26e570b0a6f20d6edacf5be97b5ac746812a19de2135696c6a60d64dd2555ac",
+      "tool_sha256": "01c65f845d0946eb516fe53af23be6e47f8b0b4e9db96089217c0faa4bff8ae7",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/harness_integrity_evidence.json",
-        "sha256": "3f41d0b78ecd54e2a303833f2c784698e83b7d687a761acc0432e07a72c4ffdf"
+        "sha256": "82eb12817da800f61a30561e7dab10d72ed475010386b3c57c99163ae5466906"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "lock_file_set_exact",
       "normative": true,
       "status": "pass",
       "tool": "tools/doc_harness.py",
-      "tool_sha256": "73eb7d9f3714159d3f9fcd10dd095f9d5ed79f965e95866a19b7971ef54cb5b4",
+      "tool_sha256": "438c6aa363720b26fdc5fe30585c2463d943f4e094f4abf5369a3dfaa35fcd64",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "generated/docs/schema_reference.md",
-        "sha256": "a0e6d0faa7a374557b055a3cca10c6dfe9d6ece47cfb5223b90f7cf678018050"
+        "sha256": "a6d65d3d7841298291b262fdf4100de3f901e362ed2e2ba55f599c90d613fb38"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "generated_document_appendix_parity",
       "normative": true,
       "status": "pass",
       "tool": "tools/doc_harness.py",
-      "tool_sha256": "73eb7d9f3714159d3f9fcd10dd095f9d5ed79f965e95866a19b7971ef54cb5b4",
+      "tool_sha256": "438c6aa363720b26fdc5fe30585c2463d943f4e094f4abf5369a3dfaa35fcd64",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/schema_semantic_validation.json",
-        "sha256": "92be10a9d8fe2571e9f931a241b182228389aee11514572bdd02dc731588060d"
+        "sha256": "ffdd146150a43838bec9a784624fda283ce282613b82418e35b344092ce85b5c"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "normalizer_semantic_hardening",
       "normative": true,
       "status": "pass",
       "tool": "tools/validate_schema.py",
-      "tool_sha256": "8f9533f62fc2c041c46336955eea514f49ac2f8d2e97e206312cb3a9b1ae2ece",
+      "tool_sha256": "fa990d3c71fede253b95de27423ffd640d39f32460c46d06e57f999ae65f90ed",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
+        "sha256": "2c4692a3edc944b4ffed562e83ce58a6da839fbf58886de2935e2d7cd4362dab"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "hash_contract_codegen_parity",
       "normative": true,
       "status": "pass",
       "tool": "tools/run_contract_tests.py",
-      "tool_sha256": "e26e570b0a6f20d6edacf5be97b5ac746812a19de2135696c6a60d64dd2555ac",
+      "tool_sha256": "01c65f845d0946eb516fe53af23be6e47f8b0b4e9db96089217c0faa4bff8ae7",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
+        "sha256": "2c4692a3edc944b4ffed562e83ce58a6da839fbf58886de2935e2d7cd4362dab"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "decision_contract_hash_golden",
       "normative": true,
       "status": "pass",
       "tool": "tools/run_contract_tests.py",
-      "tool_sha256": "e26e570b0a6f20d6edacf5be97b5ac746812a19de2135696c6a60d64dd2555ac",
+      "tool_sha256": "01c65f845d0946eb516fe53af23be6e47f8b0b4e9db96089217c0faa4bff8ae7",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
+        "sha256": "2c4692a3edc944b4ffed562e83ce58a6da839fbf58886de2935e2d7cd4362dab"
+      },
+      "executed_at": "2026-07-26T00:00:00Z",
+      "id": "boss_pattern_hash_golden",
+      "normative": true,
+      "status": "pass",
+      "tool": "tools/run_contract_tests.py",
+      "tool_sha256": "01c65f845d0946eb516fe53af23be6e47f8b0b4e9db96089217c0faa4bff8ae7",
+      "tool_version": "0.4.6"
+    },
+    {
+      "evidence": {
+        "path": "tests/reports/contract_test_report.json",
+        "sha256": "2c4692a3edc944b4ffed562e83ce58a6da839fbf58886de2935e2d7cd4362dab"
+      },
+      "executed_at": "2026-07-26T00:00:00Z",
+      "id": "boss_pattern_normalizer_codegen_parity",
+      "normative": true,
+      "status": "pass",
+      "tool": "tools/run_contract_tests.py",
+      "tool_sha256": "01c65f845d0946eb516fe53af23be6e47f8b0b4e9db96089217c0faa4bff8ae7",
+      "tool_version": "0.4.6"
+    },
+    {
+      "evidence": {
+        "path": "generated/docs/boss_pattern_reference.md",
+        "sha256": "f4230b78b79051a4de428c563d79322d4484e41e5c7cb029a6247772be698e2e"
+      },
+      "executed_at": "2026-07-26T00:00:00Z",
+      "id": "boss_pattern_document_appendix_parity",
+      "normative": true,
+      "status": "pass",
+      "tool": "tools/doc_harness.py",
+      "tool_sha256": "438c6aa363720b26fdc5fe30585c2463d943f4e094f4abf5369a3dfaa35fcd64",
+      "tool_version": "0.4.6"
+    },
+    {
+      "evidence": {
+        "path": "tests/reports/contract_test_report.json",
+        "sha256": "2c4692a3edc944b4ffed562e83ce58a6da839fbf58886de2935e2d7cd4362dab"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "semantic_mutation_regression",
       "normative": true,
       "status": "pass",
       "tool": "tools/run_contract_tests.py",
-      "tool_sha256": "e26e570b0a6f20d6edacf5be97b5ac746812a19de2135696c6a60d64dd2555ac",
+      "tool_sha256": "01c65f845d0946eb516fe53af23be6e47f8b0b4e9db96089217c0faa4bff8ae7",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
+        "sha256": "2c4692a3edc944b4ffed562e83ce58a6da839fbf58886de2935e2d7cd4362dab"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "manual_hash_literal_guard",
       "normative": true,
       "status": "pass",
       "tool": "tools/run_contract_tests.py",
-      "tool_sha256": "e26e570b0a6f20d6edacf5be97b5ac746812a19de2135696c6a60d64dd2555ac",
+      "tool_sha256": "01c65f845d0946eb516fe53af23be6e47f8b0b4e9db96089217c0faa4bff8ae7",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
+        "sha256": "2c4692a3edc944b4ffed562e83ce58a6da839fbf58886de2935e2d7cd4362dab"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "normalizer_constraint_closure",
       "normative": true,
       "status": "pass",
       "tool": "tools/run_contract_tests.py",
-      "tool_sha256": "e26e570b0a6f20d6edacf5be97b5ac746812a19de2135696c6a60d64dd2555ac",
+      "tool_sha256": "01c65f845d0946eb516fe53af23be6e47f8b0b4e9db96089217c0faa4bff8ae7",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
+        "sha256": "2c4692a3edc944b4ffed562e83ce58a6da839fbf58886de2935e2d7cd4362dab"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "dynamic_mutation_probe_regression",
       "normative": true,
       "status": "pass",
       "tool": "tools/run_contract_tests.py",
-      "tool_sha256": "e26e570b0a6f20d6edacf5be97b5ac746812a19de2135696c6a60d64dd2555ac",
+      "tool_sha256": "01c65f845d0946eb516fe53af23be6e47f8b0b4e9db96089217c0faa4bff8ae7",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
+        "sha256": "2c4692a3edc944b4ffed562e83ce58a6da839fbf58886de2935e2d7cd4362dab"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "taxonomy_mutation_regression",
       "normative": true,
       "status": "pass",
       "tool": "tools/run_contract_tests.py",
-      "tool_sha256": "e26e570b0a6f20d6edacf5be97b5ac746812a19de2135696c6a60d64dd2555ac",
+      "tool_sha256": "01c65f845d0946eb516fe53af23be6e47f8b0b4e9db96089217c0faa4bff8ae7",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
+        "sha256": "2c4692a3edc944b4ffed562e83ce58a6da839fbf58886de2935e2d7cd4362dab"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "critical_taxonomy_kpi_sync",
       "normative": true,
       "status": "pass",
       "tool": "tools/run_contract_tests.py",
-      "tool_sha256": "e26e570b0a6f20d6edacf5be97b5ac746812a19de2135696c6a60d64dd2555ac",
+      "tool_sha256": "01c65f845d0946eb516fe53af23be6e47f8b0b4e9db96089217c0faa4bff8ae7",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
+        "sha256": "2c4692a3edc944b4ffed562e83ce58a6da839fbf58886de2935e2d7cd4362dab"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "manual_hash_magic_full_context_guard",
       "normative": true,
       "status": "pass",
       "tool": "tools/run_contract_tests.py",
-      "tool_sha256": "e26e570b0a6f20d6edacf5be97b5ac746812a19de2135696c6a60d64dd2555ac",
+      "tool_sha256": "01c65f845d0946eb516fe53af23be6e47f8b0b4e9db96089217c0faa4bff8ae7",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/release_mutation_report.json",
-        "sha256": "625b2bee2d28323b9833502db84f466c9d65af1b3d8ce24d4cfc498ebb818a2c"
+        "sha256": "c8d071bd020f1d64411d37654ad30f6aeea1d26891244af20eaa11327ad38ab6"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "all_active_markdown_semantic_scope",
@@ -329,20 +413,20 @@
     {
       "evidence": {
         "path": "manifest/catalog.json",
-        "sha256": "b4f3ce55ad784cb2a3ec41e27f44708faca395e873502319cdc7ecb723b0b03a"
+        "sha256": "e60b1fae44bdc1bfdcbff6e1531daefff887ac0055bb2ea9dfb2583f5ab4004f"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "catalog_archive_exact_match",
       "normative": true,
       "status": "pass",
       "tool": "tools/doc_harness.py",
-      "tool_sha256": "73eb7d9f3714159d3f9fcd10dd095f9d5ed79f965e95866a19b7971ef54cb5b4",
+      "tool_sha256": "438c6aa363720b26fdc5fe30585c2463d943f4e094f4abf5369a3dfaa35fcd64",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/release_mutation_report.json",
-        "sha256": "625b2bee2d28323b9833502db84f466c9d65af1b3d8ce24d4cfc498ebb818a2c"
+        "sha256": "c8d071bd020f1d64411d37654ad30f6aeea1d26891244af20eaa11327ad38ab6"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "release_end_to_end_mutation_regression",
@@ -355,14 +439,14 @@
     {
       "evidence": {
         "path": "reports/SOURCE_FILE_MAP.md",
-        "sha256": "70e5ce76811de0e9b8ec089555f1c181b536f5b0c2218ccae8a3827009dba31e"
+        "sha256": "e5999017444cfee39d48454a88362c43ef6ba58c12c7c5032698ca22941fdd8a"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "source_file_map_currentness",
       "normative": true,
       "status": "pass",
       "tool": "tools/doc_harness.py",
-      "tool_sha256": "73eb7d9f3714159d3f9fcd10dd095f9d5ed79f965e95866a19b7971ef54cb5b4",
+      "tool_sha256": "438c6aa363720b26fdc5fe30585c2463d943f4e094f4abf5369a3dfaa35fcd64",
       "tool_version": "0.4.6"
     },
     {
@@ -385,6 +469,84 @@
       },
       "executed_at": null,
       "id": "onnx_unreal_output_parity",
+      "normative": true,
+      "status": "pending",
+      "tool": "pending",
+      "tool_sha256": null,
+      "tool_version": "pending"
+    },
+    {
+      "evidence": {
+        "path": "tests/reports/boss_pattern_python_unreal_float_parity.json",
+        "sha256": null
+      },
+      "executed_at": null,
+      "id": "boss_pattern_float_tensor_python_unreal_parity",
+      "normative": true,
+      "status": "pending",
+      "tool": "pending",
+      "tool_sha256": null,
+      "tool_version": "pending"
+    },
+    {
+      "evidence": {
+        "path": "tests/reports/boss_pattern_asset_bundle_digest_parity.json",
+        "sha256": null
+      },
+      "executed_at": null,
+      "id": "boss_pattern_asset_bundle_digest_parity",
+      "normative": true,
+      "status": "pending",
+      "tool": "pending",
+      "tool_sha256": null,
+      "tool_version": "pending"
+    },
+    {
+      "evidence": {
+        "path": "tests/reports/boss_pattern_onnx_unreal_output_parity.json",
+        "sha256": null
+      },
+      "executed_at": null,
+      "id": "boss_pattern_onnx_unreal_output_parity",
+      "normative": true,
+      "status": "pending",
+      "tool": "pending",
+      "tool_sha256": null,
+      "tool_version": "pending"
+    },
+    {
+      "evidence": {
+        "path": "tests/reports/boss_pattern_runtime_lock_interrupt.json",
+        "sha256": null
+      },
+      "executed_at": null,
+      "id": "boss_pattern_runtime_lock_interrupt",
+      "normative": true,
+      "status": "pending",
+      "tool": "pending",
+      "tool_sha256": null,
+      "tool_version": "pending"
+    },
+    {
+      "evidence": {
+        "path": "tests/reports/boss_pattern_fairness_quality.json",
+        "sha256": null
+      },
+      "executed_at": null,
+      "id": "boss_pattern_fairness_quality",
+      "normative": true,
+      "status": "pending",
+      "tool": "pending",
+      "tool_sha256": null,
+      "tool_version": "pending"
+    },
+    {
+      "evidence": {
+        "path": "tests/reports/boss_pattern_performance_budget.json",
+        "sha256": null
+      },
+      "executed_at": null,
+      "id": "boss_pattern_performance_budget",
       "normative": true,
       "status": "pending",
       "tool": "pending",
@@ -548,7 +710,7 @@
       "tool_version": "pending"
     }
   ],
-  "manifest_version": 5,
+  "manifest_version": 6,
   "mass_training_data_generation": "HOLD",
   "release_stage": "RC5",
   "schema_contract_revision": "2.0.0-rc5",
@@ -567,9 +729,10 @@
       "async_latest_only_and_atomic_commit",
       "hidden_information_boundary",
       "skill_parameter_and_resource_cas",
-      "save_load_hot_swap_recovery"
+      "save_load_hot_swap_recovery",
+      "boss_pattern_mask_lock_interrupt_fairness"
     ],
-    "critical_minimum_sequence_count": 512,
+    "critical_minimum_sequence_count": 576,
     "minimum_cases_per_family": 64,
     "ood_contract_id": "ood_suite_v1",
     "ood_family_names": [
@@ -580,11 +743,12 @@
       "belief_age_confidence_shift",
       "environment_layout_density_shift",
       "event_sequence_shift",
-      "sensor_noise_shift"
+      "sensor_noise_shift",
+      "boss_pattern_phase_composition_shift"
     ],
-    "ood_required_family_count": 8,
+    "ood_required_family_count": 9,
     "path": "contracts/current/test_taxonomy_v1.yaml",
-    "required_family_count": 8,
-    "sha256": "391b31036d6911e2e646d44f81f010e565e4fc587a6475fe6904d935aafb98ef"
+    "required_family_count": 9,
+    "sha256": "2c4f911c23c8502231351fd2a1ffc606a04c29c4c3e39ea384099462811dad79"
   }
 }

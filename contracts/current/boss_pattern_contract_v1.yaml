@@ -1,0 +1,713 @@
+contract:
+  name: ai_native_npc_boss_pattern_policy
+  version: 1.0.0
+  contract_revision: 2.0.0-rc5
+  release_stage: static_contract
+  source_format_version: 1
+  endianness: little
+  float_format: IEEE-754 binary32
+  time_basis: server_monotonic_world_seconds
+  distance_unit: centimeter
+
+dependencies:
+  parent_schema: ai_native_npc_schema_v2_0.yaml
+  skill_registry: skill_registry_v1.yaml
+constants:
+  boss_pattern_contract_version: 1.0.0
+  max_pattern_slots: 32
+  pattern_context_feature_count: 32
+  pattern_feature_count: 24
+  pattern_pair_feature_count: 16
+  pattern_parameter_count: 4
+  invalid_pattern_id: 65535
+  max_pattern_duration_s: 30.0
+  max_pattern_cooldown_s: 120.0
+  max_tracking_yaw_deg_s: 720.0
+  max_tracking_speed_cm_s: 1200.0
+  max_target_distance_cm: 10000.0
+  max_target_relative_speed_cm_s: 2000.0
+  max_encounter_elapsed_s: 1800.0
+enums:
+  selection_boundary:
+  - id: 0
+    name: PreAttack
+  - id: 1
+    name: BranchWindow
+  - id: 2
+    name: RecoveryEnd
+  execution_phase:
+  - id: 0
+    name: ReadyToSelect
+  - id: 1
+    name: PreAttackTurn
+  - id: 2
+    name: StartupTelegraph
+  - id: 3
+    name: Active
+  - id: 4
+    name: Recovery
+  - id: 5
+    name: BranchWindow
+  - id: 6
+    name: Completed
+  - id: 7
+    name: Interrupted
+  interrupt_kind:
+  - id: 0
+    name: Death
+  - id: 1
+    name: ActorDestroyed
+  - id: 2
+    name: AuthorityLost
+  - id: 3
+    name: Stun
+  - id: 4
+    name: PostureBreak
+  - id: 5
+    name: ScriptedPhaseTransition
+  - id: 6
+    name: ArenaReset
+  mask_reason:
+  - id: 0
+    name: None
+  - id: 1
+    name: Unoccupied
+  - id: 2
+    name: WrongBossPhase
+  - id: 3
+    name: TargetInvalid
+  - id: 4
+    name: RangeMismatch
+  - id: 5
+    name: AngleMismatch
+  - id: 6
+    name: ElevationMismatch
+  - id: 7
+    name: LineOfSightMissing
+  - id: 8
+    name: CooldownActive
+  - id: 9
+    name: ResourceUnavailable
+  - id: 10
+    name: PredecessorMismatch
+  - id: 11
+    name: BranchNotAllowed
+  - id: 12
+    name: ArenaUnsafe
+  - id: 13
+    name: NavigationUnavailable
+  - id: 14
+    name: AssetUnavailable
+  - id: 15
+    name: NotSelectionBoundary
+  - id: 16
+    name: ReservationConflict
+  - id: 17
+    name: ExecutorLocked
+activation_contract:
+  parent_skill: Attack
+  required_target_kind: Entity
+  required_capability: BossPatternPolicy
+  selector_invoked_after_parent_attack_commit: true
+  selector_invoked_during_locked_execution: false
+  common_candidate_layout_unchanged:
+    skill_count: 16
+    target_slot_count: 17
+    candidate_count: 272
+slot_assignment_contract:
+  source: boss_pattern_data_asset_bundle
+  max_occupied_slots_ref: max_pattern_slots
+  minimum_occupied_slots: 1
+  identity_field: pattern_id
+  identity_type: uint16
+  occupied_order: pattern_id_ascending
+  padding_pattern_id_ref: invalid_pattern_id
+  duplicate_pattern_id: hard_reject_bundle
+  overflow: hard_reject_bundle_before_inference
+  layout_validation_before_hash: true
+  row_removal_forbidden: true
+  invalid_row_policy: pattern_mask_false
+tensors:
+  pattern_context:
+    shape: [B, 32]
+    dtype: float32
+    fields:
+    - {index: 0, name: boss_health_ratio, source: observable_authoritative_self_state}
+    - {index: 1, name: boss_stamina_ratio, source: observable_authoritative_self_state}
+    - {index: 2, name: boss_posture_ratio, source: observable_authoritative_self_state}
+    - {index: 3, name: target_health_ratio_estimate, source: permitted_belief_snapshot}
+    - {index: 4, name: target_distance_planar, source: locked_attack_target_snapshot}
+    - {index: 5, name: target_distance_3d, source: locked_attack_target_snapshot}
+    - {index: 6, name: target_bearing_sin, source: locked_attack_target_snapshot}
+    - {index: 7, name: target_bearing_cos, source: locked_attack_target_snapshot}
+    - {index: 8, name: target_elevation_sin, source: locked_attack_target_snapshot}
+    - {index: 9, name: target_elevation_cos, source: locked_attack_target_snapshot}
+    - {index: 10, name: target_relative_speed, source: permitted_belief_snapshot}
+    - {index: 11, name: target_approach_velocity, source: permitted_belief_snapshot}
+    - {index: 12, name: target_lateral_velocity, source: permitted_belief_snapshot}
+    - {index: 13, name: has_line_of_sight, source: permitted_belief_snapshot}
+    - {index: 14, name: path_available, source: authoritative_path_query}
+    - {index: 15, name: arena_edge_risk, source: authoritative_arena_query}
+    - {index: 16, name: boss_phase_normalized, source: authoritative_boss_phase}
+    - {index: 17, name: elapsed_encounter_time, source: server_monotonic_time}
+    - {index: 18, name: elapsed_since_last_pattern, source: server_monotonic_time}
+    - {index: 19, name: same_pattern_streak_ratio, source: committed_pattern_history}
+    - {index: 20, name: recent_fast_pattern_ratio, source: committed_pattern_history}
+    - {index: 21, name: recent_heavy_pattern_ratio, source: committed_pattern_history}
+    - {index: 22, name: recent_gap_closer_ratio, source: committed_pattern_history}
+    - {index: 23, name: player_recent_damage_ratio, source: observable_committed_combat_history}
+    - {index: 24, name: boss_recent_damage_ratio, source: authoritative_self_history}
+    - {index: 25, name: selection_boundary_pre_attack, source: selection_boundary_one_hot}
+    - {index: 26, name: selection_boundary_branch_window, source: selection_boundary_one_hot}
+    - {index: 27, name: selection_boundary_recovery_end, source: selection_boundary_one_hot}
+    - {index: 28, name: previous_pattern_family_fast, source: committed_pattern_history}
+    - {index: 29, name: previous_pattern_family_heavy, source: committed_pattern_history}
+    - {index: 30, name: previous_pattern_family_gap_closer, source: committed_pattern_history}
+    - {index: 31, name: target_health_estimate_confidence, source: permitted_belief_snapshot}
+  pattern_features:
+    shape: [B, 32, 24]
+    dtype: float32
+    fields:
+    - {index: 0, name: preferred_distance_min, source: pattern_data_asset}
+    - {index: 1, name: preferred_distance_max, source: pattern_data_asset}
+    - {index: 2, name: allowed_bearing_abs_max, source: pattern_data_asset}
+    - {index: 3, name: allowed_elevation_abs_max, source: pattern_data_asset}
+    - {index: 4, name: telegraph_duration, source: pattern_data_asset}
+    - {index: 5, name: active_duration, source: pattern_data_asset}
+    - {index: 6, name: recovery_duration, source: pattern_data_asset}
+    - {index: 7, name: cooldown_duration, source: pattern_data_asset}
+    - {index: 8, name: stamina_cost_ratio, source: pattern_data_asset}
+    - {index: 9, name: startup_tracking_yaw_ratio, source: pattern_data_asset}
+    - {index: 10, name: active_tracking_yaw_ratio, source: pattern_data_asset}
+    - {index: 11, name: recovery_tracking_yaw_ratio, source: pattern_data_asset}
+    - {index: 12, name: startup_tracking_speed_ratio, source: pattern_data_asset}
+    - {index: 13, name: active_tracking_speed_ratio, source: pattern_data_asset}
+    - {index: 14, name: area_pressure_ratio, source: pattern_data_asset}
+    - {index: 15, name: gap_close_ratio, source: pattern_data_asset}
+    - {index: 16, name: damage_pressure_ratio, source: pattern_data_asset}
+    - {index: 17, name: posture_pressure_ratio, source: pattern_data_asset}
+    - {index: 18, name: family_fast, source: pattern_data_asset_tag}
+    - {index: 19, name: family_heavy, source: pattern_data_asset_tag}
+    - {index: 20, name: family_gap_closer, source: pattern_data_asset_tag}
+    - {index: 21, name: family_area_control, source: pattern_data_asset_tag}
+    - {index: 22, name: branch_capable, source: pattern_data_asset}
+    - {index: 23, name: reserved_zero, source: constant_zero}
+  pattern_pair_features:
+    shape: [B, 32, 16]
+    dtype: float32
+    fields:
+    - {index: 0, name: distance_fit, source: deterministic_builder}
+    - {index: 1, name: bearing_fit, source: deterministic_builder}
+    - {index: 2, name: elevation_fit, source: deterministic_builder}
+    - {index: 3, name: line_of_sight_fit, source: deterministic_builder}
+    - {index: 4, name: phase_allowed, source: deterministic_builder}
+    - {index: 5, name: cooldown_ready, source: deterministic_builder}
+    - {index: 6, name: resource_ready, source: deterministic_builder}
+    - {index: 7, name: predecessor_allowed, source: deterministic_builder}
+    - {index: 8, name: branch_allowed, source: deterministic_builder}
+    - {index: 9, name: arena_safe, source: deterministic_builder}
+    - {index: 10, name: navigation_available, source: deterministic_builder}
+    - {index: 11, name: repetition_penalty_feature, source: committed_pattern_history}
+    - {index: 12, name: timing_variety_feature, source: committed_pattern_history}
+    - {index: 13, name: target_motion_fit, source: permitted_belief_snapshot}
+    - {index: 14, name: selection_boundary_fit, source: deterministic_builder}
+    - {index: 15, name: reserved_zero, source: constant_zero}
+  pattern_ids:
+    shape: [B, 32]
+    dtype: int64
+  pattern_mask:
+    shape: [B, 32]
+    dtype: bool
+normalization_contract:
+  output_dtype: float32
+  nonfinite_input: hard_reject_pattern_request
+  all_fields_assigned_exactly_once: true
+  definitions:
+    ratio_01: {kind: clamp, min: 0.0, max: 1.0, divisor: 1.0}
+    signed_unit: {kind: clamp, min: -1.0, max: 1.0, divisor: 1.0}
+    distance_cm: {kind: divide_clamp, min: 0.0, max: 1.0, divisor_ref: max_target_distance_cm}
+    signed_speed_cm_s: {kind: divide_clamp, min: -1.0, max: 1.0, divisor_ref: max_target_relative_speed_cm_s}
+    encounter_elapsed_s: {kind: divide_clamp, min: 0.0, max: 1.0, divisor_ref: max_encounter_elapsed_s}
+    cooldown_seconds: {kind: divide_clamp, min: 0.0, max: 1.0, divisor_ref: max_pattern_cooldown_s}
+    bearing_degrees: {kind: divide_clamp, min: 0.0, max: 1.0, divisor: 180.0}
+    elevation_degrees: {kind: divide_clamp, min: 0.0, max: 1.0, divisor: 90.0}
+    pattern_duration_s: {kind: divide_clamp, min: 0.0, max: 1.0, divisor_ref: max_pattern_duration_s}
+    constant_zero: {kind: constant, min: 0.0, max: 0.0, divisor: 1.0, value: 0.0}
+  assignments:
+    pattern_context:
+      ratio_01:
+      - boss_health_ratio
+      - boss_stamina_ratio
+      - boss_posture_ratio
+      - target_health_ratio_estimate
+      - has_line_of_sight
+      - path_available
+      - arena_edge_risk
+      - boss_phase_normalized
+      - same_pattern_streak_ratio
+      - recent_fast_pattern_ratio
+      - recent_heavy_pattern_ratio
+      - recent_gap_closer_ratio
+      - player_recent_damage_ratio
+      - boss_recent_damage_ratio
+      - selection_boundary_pre_attack
+      - selection_boundary_branch_window
+      - selection_boundary_recovery_end
+      - previous_pattern_family_fast
+      - previous_pattern_family_heavy
+      - previous_pattern_family_gap_closer
+      - target_health_estimate_confidence
+      signed_unit:
+      - target_bearing_sin
+      - target_bearing_cos
+      - target_elevation_sin
+      - target_elevation_cos
+      distance_cm:
+      - target_distance_planar
+      - target_distance_3d
+      signed_speed_cm_s:
+      - target_relative_speed
+      - target_approach_velocity
+      - target_lateral_velocity
+      encounter_elapsed_s:
+      - elapsed_encounter_time
+      cooldown_seconds:
+      - elapsed_since_last_pattern
+    pattern_features:
+      distance_cm:
+      - preferred_distance_min
+      - preferred_distance_max
+      bearing_degrees:
+      - allowed_bearing_abs_max
+      elevation_degrees:
+      - allowed_elevation_abs_max
+      pattern_duration_s:
+      - telegraph_duration
+      - active_duration
+      - recovery_duration
+      cooldown_seconds:
+      - cooldown_duration
+      ratio_01:
+      - stamina_cost_ratio
+      - startup_tracking_yaw_ratio
+      - active_tracking_yaw_ratio
+      - recovery_tracking_yaw_ratio
+      - startup_tracking_speed_ratio
+      - active_tracking_speed_ratio
+      - area_pressure_ratio
+      - gap_close_ratio
+      - damage_pressure_ratio
+      - posture_pressure_ratio
+      - family_fast
+      - family_heavy
+      - family_gap_closer
+      - family_area_control
+      - branch_capable
+      constant_zero:
+      - reserved_zero
+    pattern_pair_features:
+      ratio_01:
+      - distance_fit
+      - bearing_fit
+      - elevation_fit
+      - line_of_sight_fit
+      - phase_allowed
+      - cooldown_ready
+      - resource_ready
+      - predecessor_allowed
+      - branch_allowed
+      - arena_safe
+      - navigation_available
+      - repetition_penalty_feature
+      - timing_variety_feature
+      - target_motion_fit
+      - selection_boundary_fit
+      constant_zero:
+      - reserved_zero
+  padding:
+    pattern_context: no_row_padding
+    unoccupied_pattern_features: all_zero_after_normalization
+    unoccupied_pattern_pair_features: all_zero_after_normalization
+    unoccupied_pattern_id: invalid_pattern_id
+    unoccupied_pattern_mask: false
+    masked_score_postprocess: negative_infinity_before_ranking
+    masked_parameter_proposals: ignored_and_zeroed_before_logging
+feature_source_policy:
+  forbidden_tokens:
+  - ground_truth
+  - omniscient
+  - hidden_actor
+  - raw_player_transform
+  allowed_by_tensor:
+    pattern_context:
+    - observable_authoritative_self_state
+    - permitted_belief_snapshot
+    - locked_attack_target_snapshot
+    - authoritative_path_query
+    - authoritative_arena_query
+    - authoritative_boss_phase
+    - server_monotonic_time
+    - committed_pattern_history
+    - observable_committed_combat_history
+    - authoritative_self_history
+    - selection_boundary_one_hot
+    pattern_features:
+    - pattern_data_asset
+    - pattern_data_asset_tag
+    - constant_zero
+    pattern_pair_features:
+    - deterministic_builder
+    - committed_pattern_history
+    - permitted_belief_snapshot
+    - constant_zero
+outputs:
+  pattern_raw_scores:
+    shape: [B, 32]
+    dtype: float32
+    activation: none
+  pattern_parameter_proposals:
+    shape: [B, 32, 4]
+    dtype: float32
+    activation: sigmoid
+    parameters:
+    - {index: 0, name: tracking_fraction, decode: "authored_tracking_limit * clamp01(x)", authority: may_reduce_authored_maximum_only}
+    - {index: 1, name: telegraph_extension_fraction, decode: "telegraph_extension_max_s * clamp01(x)", authority: extension_only}
+    - {index: 2, name: recovery_extension_fraction, decode: "recovery_extension_max_s * clamp01(x)", authority: extension_only}
+    - {index: 3, name: reserved_zero, decode: constant_zero, authority: none}
+    forbidden_outputs:
+    - damage
+    - hitbox
+    - active_window
+    - root_motion
+    - interruptibility
+    - phase_transition
+    commit_policy: decode_and_clamp_inside_pattern_data_asset_bounds
+pattern_set_asset_contract:
+  storage: Unreal_PrimaryDataAsset
+  required_fields:
+  - pattern_set_id
+  - patterns
+  - safe_default_pattern_id
+  - utility_profile_reference
+  - optional_model_bundle_reference
+  invariants:
+    pattern_count: between_1_and_max_pattern_slots
+    pattern_ids: unique_uint16_and_strictly_ascending_after_canonicalization
+    safe_default_pattern_id: references_exactly_one_pattern_in_set
+    pattern_references: all_loaded_and_validated_before_request
+pattern_asset_contract:
+  storage: Unreal_PrimaryDataAsset
+  required_fields:
+  - pattern_id
+  - pattern_name
+  - pattern_family_tags
+  - allowed_boss_phases
+  - allowed_predecessor_pattern_ids
+  - allowed_successor_pattern_ids
+  - preferred_distance_cm
+  - allowed_bearing_degrees
+  - allowed_elevation_degrees
+  - requires_line_of_sight
+  - stamina_cost
+  - cooldown_seconds
+  - startup_telegraph_seconds
+  - active_seconds
+  - recovery_seconds
+  - telegraph_extension_max_s
+  - recovery_extension_max_s
+  - montage_reference
+  - montage_section
+  - root_motion_mode
+  - hitbox_window_reference
+  - damage_profile_reference
+  - phase_tracking_limits
+  - branch_windows
+  - interruptibility_allowlist
+  - interrupt_cleanup_policy
+  - arena_safety_policy
+  - navigation_policy
+  invariants:
+    startup_telegraph_seconds: finite_and_greater_than_zero
+    active_seconds: finite_and_greater_than_zero
+    recovery_seconds: finite_and_greater_than_or_equal_to_zero
+    telegraph_extension_max_s: finite_and_greater_than_or_equal_to_zero
+    recovery_extension_max_s: finite_and_greater_than_or_equal_to_zero
+    total_duration_seconds: finite_and_less_than_or_equal_to_max_pattern_duration_s
+    cooldown_seconds: finite_and_between_zero_and_max_pattern_cooldown_s
+    preferred_distance_cm: finite_ordered_nonnegative_pair
+    allowed_bearing_degrees: finite_between_zero_and_180
+    allowed_elevation_degrees: finite_between_zero_and_90
+    tracking_limits: finite_nonnegative_and_bounded_by_contract_maxima
+    montage_hitbox_damage_refs: loadable_before_row_can_be_valid
+hard_mask_contract:
+  owner: BossPatternCandidateBuilder
+  ranking_receives_valid_rows_only: true
+  rules_in_order:
+  - SlotOccupied
+  - BossPhaseAllowed
+  - AttackTargetIdentityAndGenerationValid
+  - RangeAllowed
+  - BearingAllowed
+  - ElevationAllowed
+  - LineOfSightSatisfied
+  - CooldownReady
+  - ResourceReservable
+  - PredecessorAllowed
+  - BranchAllowedAtBoundary
+  - ArenaSafe
+  - NavigationAvailable
+  - AuthoredAssetsLoaded
+  - SelectionBoundaryEligible
+  - ExecutorUnlocked
+  - ReservationAvailable
+  zero_valid_rows:
+    inference_request_created: false
+    result: PatternUnavailable
+authority_contract:
+  neural_and_utility_outputs: advisory_only
+  pattern_commit: server_authority_only
+  executor_phase: server_authority_only
+  hitbox_damage_root_motion: deterministic_server_combat_module
+  interrupt_result: server_authority_only
+  client_inference_gameplay_authority: false
+  replicated_fields:
+  - committed_pattern_id
+  - pattern_start_server_time
+  - executor_phase
+  - authored_cue_state
+  save_load_policy: pending_requests_discarded_locked_executor_state_restored_by_runtime_contract
+selection_lock_contract:
+  inference_boundaries:
+  - PreAttack
+  - BranchWindow
+  - RecoveryEnd
+  lock_acquired_at: successful_pattern_commit_before_pre_attack_turn
+  phase_rules:
+    ReadyToSelect: selection_allowed_until_successful_commit
+    PreAttackTurn: selection_locked
+    StartupTelegraph: selection_locked
+    Active: selection_locked
+    Recovery: selection_locked_except_authored_branch_window
+    BranchWindow: authored_successor_selection_only
+    Completed: next_tactical_or_pattern_selection_allowed
+    Interrupted: deterministic_cleanup_before_replan
+  ordinary_target_movement_interrupts: false
+  new_tactical_score_interrupts: false
+  new_pattern_score_interrupts: false
+  late_branch_response: reject_and_continue_authored_pattern_termination
+hidden_information_contract:
+  request_snapshot_time: selection_boundary
+  allowed_target_source: parent_attack_target_permitted_belief_snapshot
+  ground_truth_target_transform_allowed: false
+  post_lock_player_input_reselection_allowed: false
+  post_lock_tracking: bounded_by_authored_phase_tracking_limits
+  post_lock_executor_target_transform_source: authoritative_combat_targeting_policy_only
+  post_lock_executor_transform_fed_back_to_model: false
+  post_lock_executor_transform_may_change_pattern: false
+  model_can_shorten_telegraph_or_recovery: false
+  model_may_extend_telegraph_or_recovery_inside_authored_bounds: true
+  model_can_modify_active_window: false
+  model_can_modify_hitbox_damage_root_motion: false
+interrupt_contract:
+  forced:
+  - Death
+  - ActorDestroyed
+  - AuthorityLost
+  authored_allowlist_only:
+  - Stun
+  - PostureBreak
+  - ScriptedPhaseTransition
+  - ArenaReset
+  cleanup_order:
+  - DisableHitboxes
+  - StopOrBlendMontageByAuthoredPolicy
+  - ClearRootMotionOverride
+  - ReleasePatternReservations
+  - EmitInterruptResult
+  - TransitionExecutorState
+request_contract:
+  immutable_after_enqueue: true
+  fields:
+  - pattern_decision_id
+  - selection_boundary
+  - attack_target_handle
+  - boss_phase_revision
+  - combat_state_revision
+  - pattern_candidate_set_hash
+  - boss_pattern_decision_contract_hash
+response_contract:
+  fields:
+  - pattern_decision_id
+  - selected_pattern_slot
+  - selected_pattern_id
+  - selected_parameter_proposals
+  - pattern_candidate_set_hash
+  - boss_pattern_decision_contract_hash
+  finite_output_required: true
+commit_validation:
+  owner: BossPatternCommitCoordinator
+  order:
+  - LatestPendingPatternDecisionIdMatches
+  - PatternDecisionContractHashMatches
+  - PatternCandidateSetHashMatches
+  - SelectionBoundaryStillEligible
+  - BossPhaseRevisionMatches
+  - CombatStateRevisionMatches
+  - AttackTargetIdentityAndGenerationMatch
+  - SelectedSlotAndPatternIdMatch
+  - SelectedPatternMaskStillTrue
+  - ResourcesCompareAndSwap
+  - ExecutorStillUnlocked
+  success_action: atomically_lock_pattern_and_enter_pre_attack_turn
+  failure_action: reject_response_without_mutating_locked_pattern
+  failure_codes:
+  - PatternContractMismatch
+  - PatternCandidateSetMismatch
+  - PatternRequestStale
+  - PatternTargetInvalid
+  - PatternPhaseChanged
+  - PatternCombatStateChanged
+  - PatternBoundaryClosed
+  - PatternMasked
+  - PatternResourceConflict
+  - PatternExecutorLocked
+  - PatternUnavailable
+fallback_contract:
+  zero_valid_rows: ReturnPatternUnavailableToAttackSkillWithoutInferenceOrUtility
+  order:
+  - UtilityBaselineOnSameValidMask
+  - AuthoredSafeDefaultIfStillValid
+  - ReturnPatternUnavailableToAttackSkill
+  - ParentTacticalPolicyReplan
+  utility_tie_break: adjusted_score_desc_then_pattern_id_asc
+  authored_safe_default_source: PatternSetDataAsset.safe_default_pattern_id
+  authored_safe_default_constraint: referenced_pattern_must_be_occupied_and_currently_valid
+  fallback_snapshot_policy: same_immutable_request_only
+  inference_failure_during_locked_pattern: continue_locked_pattern
+pattern_asset_bundle_digest_contract:
+  algorithm: SHA-256
+  status: pending_unreal_commandlet_and_python_parity
+  build_owner: BossPatternValidationCommandlet
+  pattern_set_id_digest:
+    algorithm: SHA-256
+    source_type: string
+    text_encoding: UTF-8
+    unicode_normalization: NFC
+    case_policy: case_sensitive
+    whitespace_policy: preserve
+    input_bytes: normalized_utf8_without_bom
+    empty_allowed: false
+  canonical_manifest:
+    byte_order: little
+    fields:
+    - {name: magic, type: 'bytes[8]', value_ascii: BPABND01}
+    - {name: serialization_version, type: uint16, value: 1}
+    - {name: boss_pattern_contract_sha256, type: 'bytes[32]'}
+    - {name: pattern_set_id_sha256, type: 'bytes[32]'}
+    - {name: safe_default_pattern_id, type: uint16}
+    - {name: occupied_pattern_count, type: uint8}
+    - {name: pattern_ids, type: 'uint16[32]', padding_value_ref: invalid_pattern_id}
+    - {name: pattern_definition_sha256, type: 'bytes[32][32]', padding_value: all_zero}
+  pattern_definition_digest:
+    canonicalization: RFC8785_JCS_UTF8
+    field_set_ref: pattern_asset_contract.required_fields
+    numeric_policy: finite_values_only_and_contract_units
+    asset_reference_identity: cooked_content_sha256_not_object_path
+    asset_reference_substitution:
+      jcs_value_type: string
+      jcs_string_format: lowercase_hex_64_no_prefix
+      source_digest_algorithm: SHA-256
+      source_digest_bytes: 32
+      object_path_in_digest: false
+  pattern_order: pattern_id_ascending
+  runtime_source: validated_pattern_set_data_asset_embedded_digest
+hash_contract:
+  pattern_candidate_set_hash:
+    algorithm: SHA-256
+    raw_float_included: false
+    byte_order: little
+    fields:
+    - {name: magic, type: 'bytes[8]', value_ascii: BPCSET01}
+    - {name: serialization_version, type: uint16, value: 1}
+    - {name: boss_pattern_contract_sha256, type: 'bytes[32]'}
+    - {name: pattern_asset_bundle_sha256, type: 'bytes[32]'}
+    - {name: pattern_slot_count, type: uint8, value_ref: max_pattern_slots}
+    - {name: pattern_ids, type: 'uint16[32]', padding_value_ref: invalid_pattern_id}
+    - {name: pattern_mask, type: bitset, bit_count: 32, byte_count: 4, bit_order: LSB-first, unused_high_bits: zero}
+    - {name: attack_target_handle, type: target_handle, field_order: ['kind:uint8', 'stable_id:uint64', 'generation:uint32', 'revision:uint64']}
+    - {name: selection_boundary, type: uint8}
+    - {name: boss_phase_revision, type: uint64}
+    - {name: combat_state_revision, type: uint64}
+    response_validation_order:
+    - CompareResponseHashToPendingRequestHash
+    - CompareDecisionContractHash
+    - ValidateLatestMutableState
+  boss_pattern_decision_contract_hash:
+    algorithm: SHA-256
+    raw_float_included: false
+    byte_order: little
+    fields:
+    - {name: magic, type: 'bytes[8]', value_ascii: BPDCTR01}
+    - {name: serialization_version, type: uint16, value: 1}
+    - {name: boss_pattern_contract_sha256, type: 'bytes[32]'}
+    - {name: pattern_model_sha256, type: 'bytes[32]'}
+    - {name: pattern_normalization_contract_sha256, type: 'bytes[32]'}
+    - {name: pattern_postprocess_contract_sha256, type: 'bytes[32]'}
+    - {name: pattern_calibration_ood_asset_sha256, type: 'bytes[32]'}
+    - {name: pattern_executor_contract_sha256, type: 'bytes[32]'}
+training_contract:
+  utility_baseline_first: true
+  neural_and_utility_share_mask_and_interface: true
+  required_record_fields:
+  - request_tensors
+  - pattern_mask
+  - selected_pattern_id
+  - teacher_or_utility_scores
+  - outcome
+  - interrupt_reason
+  - boss_phase
+  - selection_boundary
+  - attack_target_snapshot_provenance
+  split_isolation_keys:
+  - boss_archetype
+  - arena
+  - encounter_phase
+  - animation_family
+  calibration_scope: valid_pattern_rows_only
+  zero_accepted_samples: fail
+quality_contract:
+  absolute_gates:
+  - invalid_pattern_commit_count_zero
+  - telegraph_timing_violation_count_zero
+  - hidden_information_leakage_count_zero
+  - locked_phase_reselection_count_zero
+  comparative_metrics:
+  - pattern_repetition_rate
+  - pattern_diversity
+  - dodgeability
+  - damage_fairness
+  - phase_completion_rate
+  - utility_baseline_noninferiority_or_improvement
+release_status:
+  static_schema_generator_harness: pass
+  asset_bundle_digest_parity: pending
+  unreal_float_parity: pending
+  onnx_output_parity: pending
+  unreal_pattern_runtime: pending
+  fairness_quality: pending
+  performance_budget: pending
+code_generation:
+  source_of_truth: contracts/current/boss_pattern_contract_v1.yaml
+  generator: tools/generate_contracts.py
+  outputs:
+  - generated/python/ai_native_npc_boss_pattern_contracts_generated.py
+  - generated/cpp/AINativeNPCBossPatternContracts.generated.h
+  - generated/docs/boss_pattern_reference.md
+  - tests/golden/boss_pattern_hash_vectors.json
+  generated_files_edit_policy: do_not_edit
+documentation_contract:
+  marker_begin: <!-- BEGIN AUTO-GENERATED BOSS PATTERN CONTRACT -->
+  marker_end: <!-- END AUTO-GENERATED BOSS PATTERN CONTRACT -->
+  generated_reference: generated/docs/boss_pattern_reference.md
+  required_document: docs/current/contract-appendices.md
+  strict_policy: marker_content_must_equal_generated_reference

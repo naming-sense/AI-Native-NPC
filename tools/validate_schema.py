@@ -13,7 +13,7 @@ def build_report(root: Path) -> dict:
     errors = validate_contracts(paths)
     schema = load_yaml(paths.schema)
     return {
-        "report_version": 5,
+        "report_version": 6,
         "tool": "tools/validate_schema.py",
         "tool_version": TOOL_VERSION,
         "tool_sha256": sha256_file(root / "tools/validate_schema.py"),
@@ -21,6 +21,7 @@ def build_report(root: Path) -> dict:
         "status": "pass" if not errors else "fail",
         "source_hashes": {
             "schema": sha256_file(paths.schema),
+            "boss_pattern_contract": sha256_file(paths.boss_pattern_contract),
             "skill_registry": sha256_file(paths.skill_registry),
             "goal_registry": sha256_file(paths.goal_registry),
             "test_taxonomy": sha256_file(paths.test_taxonomy),

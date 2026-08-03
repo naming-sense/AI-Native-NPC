@@ -4,7 +4,7 @@ registry:
   schema_version: 2.0.0
   contract_revision: 2.0.0-rc5
 critical_suite:
-  required_family_count: 8
+  required_family_count: 9
   minimum_cases_per_family: 64
   families:
   - id: 0
@@ -23,6 +23,8 @@ critical_suite:
     name: skill_parameter_and_resource_cas
   - id: 7
     name: save_load_hot_swap_recovery
+  - id: 8
+    name: boss_pattern_mask_lock_interrupt_fairness
   contract_id: critical_suite_v1
   derived:
     minimum_sequence_count:
@@ -31,7 +33,7 @@ critical_suite:
       - required_family_count
       - minimum_cases_per_family
 ood_suite:
-  required_family_count: 8
+  required_family_count: 9
   families:
   - id: 0
     name: feature_range_shift
@@ -49,6 +51,8 @@ ood_suite:
     name: event_sequence_shift
   - id: 7
     name: sensor_noise_shift
+  - id: 8
+    name: boss_pattern_phase_composition_shift
   contract_id: ood_suite_v1
 documentation_contract:
   requirements:
