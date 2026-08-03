@@ -1,8 +1,8 @@
 # AI Native NPC 요구사항 v0.4.6 검증·개정 이력
 
-- 현행 요구사항: `docs/current/requirements/ai_native_npc_requirements_v0.4.6.md`
-- 현행 구현 계획: `docs/current/implementation/ai_native_npc_implementation_plan_v0.4.6.md`
-- 현행 계약 부록: `docs/current/reference/ai_native_npc_contract_appendices_v0.4.6.md`
+- 현행 요구사항: [`docs/current/requirements.md`](../current/requirements.md)
+- 현행 구현 계획: [`docs/current/implementation-plan.md`](../current/implementation-plan.md)
+- 현행 계약 부록: [`docs/current/contract-appendices.md`](../current/contract-appendices.md)
 - 이력 기준일: 2026-08-03
 - 성격: 감사와 변경 추적을 위한 참고 문서
 
@@ -76,7 +76,7 @@ v0.4.6 RC5는 기존 계약에 다음 검증 범위를 추가했다.
 
 검토 보고서:
 
-`docs/current/reviews/ai_native_npc_requirements_review_v0.4.6.md`
+`docs/history/reviews/requirements-review-v0.4.6.md`
 
 검토는 RC5 Harness PASS와 Runtime/ML 승인을 분리했다. 다음 항목이 구조화된 Schema·Registry·Generator와 Runtime evidence에 아직 반영되지 않았음을 확인했다.
 

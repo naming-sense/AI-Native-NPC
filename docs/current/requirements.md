@@ -6,11 +6,11 @@
 - 적용 범위: **Unreal 클라이언트, 서버 Gameplay AI, Python 학습·평가 코드**
 - 현재 요약: **RC5 정적 계약과 Utility Baseline 구현은 진행 가능. V1 Neural·OOD·대량 데이터·최종 Freeze는 보류**
 - 기계 판독 계약: **Schema 2.0.0 RC5**
-- 구현 계획: [AI Native NPC 구현 계획](../implementation/ai_native_npc_implementation_plan_v0.4.6.md)
-- 계약 부록: [AI Native NPC Contract Appendices](../reference/ai_native_npc_contract_appendices_v0.4.6.md)
-- Unreal 구현 계획: [UE 5.7 Manny·Quinn 구현 계획](../unreal/ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan_v0.4.6.md)
-- 검증·개정 이력: [Requirements History](../history/ai_native_npc_requirements_history_v0.4.6.md)
-- 상세 검토: [Requirements Review](../reviews/ai_native_npc_requirements_review_v0.4.6.md)
+- 구현 계획: [AI Native NPC 구현 계획](implementation-plan.md)
+- 계약 부록: [AI Native NPC Contract Appendices](contract-appendices.md)
+- Unreal 구현 계획: [UE 5.7 Manny·Quinn 구현 계획](unreal-implementation-plan.md)
+- 검증·개정 이력: [Requirements History](../history/requirements-history-v0.4.6.md)
+- 상세 검토: [Requirements Review](../history/reviews/requirements-review-v0.4.6.md)
 
 이 문서는 시스템 동작, 권한 경계, Runtime 입출력, 안전, 데이터·평가 및 승격 요구사항의 규범 원본이다. 모델 구조, 학습·릴리스 실행 절차, Phase·Owner·일정은 구현 계획이 소유하고, 생성 Schema/Registry 표와 승인 기준은 계약 부록이 소유한다.
 
@@ -49,7 +49,7 @@ AI Native NPC는 **NPC가 현재 알고 있는 정보만으로 장기 목표 안
 
 Unreal class 구성과 작업 순서:
 
-`docs/current/unreal/ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan_v0.4.6.md`
+`docs/current/unreal-implementation-plan.md`
 
 ## 0.4 읽는 순서
 
@@ -64,15 +64,15 @@ Unreal class 구성과 작업 순서:
 7. [Hidden Information 경계](#8-hidden-information-경계)
 8. [데이터·Teacher LLM·학습](#9-데이터학습baseline)
 9. [Schema Generator와 Parity](#10-schema-generator와-parity)
-10. [생성 계약표와 승인 기준](../reference/ai_native_npc_contract_appendices_v0.4.6.md)
+10. [생성 계약표와 승인 기준](contract-appendices.md)
 
 | 독자 | 먼저 읽을 곳 | 정확한 값·승인 기준 |
 |---|---|---|
-| 기획·Gameplay Designer | [시스템 구조](#1-시스템-구조), [Goal Manager](#5-goal-manager) | [Appendix E](../reference/ai_native_npc_contract_appendices_v0.4.6.md#appendix-e-품질안전성능-승인-기준) |
-| Gameplay AI·Server | [Goal](#5-goal-manager), [Target](#2-typed-target), [Candidate](#4-candidate-universe), [Commit](#7-비동기-추론과-atomic-commit) | [Appendix A–D](../reference/ai_native_npc_contract_appendices_v0.4.6.md#appendix-ad-auto-generated-schemaregistry-계약) |
-| ML·Data | [Policy](#6-neural-policy와-post-process), [데이터·학습](#9-데이터학습baseline) | [Appendix B·E](../reference/ai_native_npc_contract_appendices_v0.4.6.md) |
-| Unreal NNE | [Policy](#6-neural-policy와-post-process), [Commit](#7-비동기-추론과-atomic-commit) | [UE 구현 계획](../unreal/ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan_v0.4.6.md) |
-| QA·승인자 | [현재 상태](#02-현재-상태), [Hidden Information](#8-hidden-information-경계), [Parity](#10-schema-generator와-parity) | [Appendix E](../reference/ai_native_npc_contract_appendices_v0.4.6.md#appendix-e-품질안전성능-승인-기준), [최종 승인](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#8-최종-승인) |
+| 기획·Gameplay Designer | [시스템 구조](#1-시스템-구조), [Goal Manager](#5-goal-manager) | [Appendix E](contract-appendices.md#appendix-e-품질안전성능-승인-기준) |
+| Gameplay AI·Server | [Goal](#5-goal-manager), [Target](#2-typed-target), [Candidate](#4-candidate-universe), [Commit](#7-비동기-추론과-atomic-commit) | [Appendix A–D](contract-appendices.md#appendix-ad-auto-generated-schemaregistry-계약) |
+| ML·Data | [Policy](#6-neural-policy와-post-process), [데이터·학습](#9-데이터학습baseline) | [Appendix B·E](contract-appendices.md) |
+| Unreal NNE | [Policy](#6-neural-policy와-post-process), [Commit](#7-비동기-추론과-atomic-commit) | [UE 구현 계획](unreal-implementation-plan.md) |
+| QA·승인자 | [현재 상태](#02-현재-상태), [Hidden Information](#8-hidden-information-경계), [Parity](#10-schema-generator와-parity) | [Appendix E](contract-appendices.md#appendix-e-품질안전성능-승인-기준), [최종 승인](implementation-plan.md#8-최종-승인) |
 
 세부 장은 계약 의존성에 맞춰 Target 형식부터 정의한다. 처음 읽을 때는 위 주제 목차의 Goal→Target→Candidate 순서를 권장한다.
 
@@ -105,7 +105,7 @@ contracts/current/test_taxonomy_v1.yaml
 | `POST-RC5` | 다음 Schema/Registry/Generator patch의 목표 | Backlog와 Gate가 닫힐 때까지 구현·승격 보류 |
 | `PENDING EVIDENCE` | 계약은 있으나 Runtime·품질 증거가 없음 | PASS·Freeze 주장 금지 |
 
-현재 정확한 ID·Tensor·Hash는 [Contract Appendices](../reference/ai_native_npc_contract_appendices_v0.4.6.md)가 제공한다. 본문의 `POST-RC5` 절은 목표 계약과 차단 조건을 함께 표시한다.
+현재 정확한 ID·Tensor·Hash는 [Contract Appendices](contract-appendices.md)가 제공한다. 본문의 `POST-RC5` 절은 목표 계약과 차단 조건을 함께 표시한다.
 
 ---
 
@@ -281,7 +281,7 @@ struct FTargetFeatures
 
 ## 2.2 Target Kind 의미
 
-정확한 숫자 ID는 [Contract Appendices의 `A.target_kind`](../reference/ai_native_npc_contract_appendices_v0.4.6.md#atarget_kind)가 소유한다.
+정확한 숫자 ID는 [Contract Appendices의 `A.target_kind`](contract-appendices.md#atarget_kind)가 소유한다.
 
 | Kind | 역할 |
 |---|---|
@@ -600,7 +600,7 @@ target_slot     = candidate_index % 17
 
 ## 4.3 Skill 계약 참조
 
-정확한 Skill 숫자 ID는 [Contract Appendices의 `A.skill`](../reference/ai_native_npc_contract_appendices_v0.4.6.md#askill)가 소유한다. 아래 허용표는 각 Skill이 사용할 수 있는 Target Kind를 정의한다.
+정확한 Skill 숫자 ID는 [Contract Appendices의 `A.skill`](contract-appendices.md#askill)가 소유한다. 아래 허용표는 각 Skill이 사용할 수 있는 Target Kind를 정의한다.
 
 
 ## 4.4 Skill–Target Kind 허용표
@@ -845,7 +845,7 @@ Neural Policy는 Candidate별 `raw score`와 parameter proposal을 출력한다.
 
 > **상태:** score·parameter 2-output은 `ACTIVE RC5`, `tactical_context`를 포함한 OOD interface는 `POST-RC5`다.
 
-Reference Model의 정확한 Layer 구조와 bounded scorer 구현은 [구현 계획의 §3](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#reference-model)을 따른다.
+Reference Model의 정확한 Layer 구조와 bounded scorer 구현은 [구현 계획의 §3](implementation-plan.md#reference-model)을 따른다.
 
 이 절은 Runtime이 집행하는 출력·mask·parameter interface를 소유한다.
 
@@ -1015,7 +1015,7 @@ Calibrator는 **Adjusted Score로 최종 선택된 행동**을 기준으로 학�
 
 ## 6.4 Version과 Hash 책임 분리
 
-> **상태:** [generated decision hash contract](../reference/ai_native_npc_contract_appendices_v0.4.6.md#d4-hash-decision_contract_hash)는 `ACTIVE RC5`다.
+> **상태:** [generated decision hash contract](contract-appendices.md#d4-hash-decision_contract_hash)는 `ACTIVE RC5`다.
 >
 > 아래 `ANPCFEAT1`·`ANPCDEC3` 공식은 `POST-RC5`다.
 
@@ -1521,7 +1521,7 @@ Active Learning 우선순위는 calibrated confidence, OOD, Candidate/Target mis
 
 ## 9.8 ML 학습 파이프라인 구현
 
-학습 파이프라인과 split 공개 시점은 [구현 계획의 §4](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#ml-pipeline)가 소유한다.
+학습 파이프라인과 split 공개 시점은 [구현 계획의 §4](implementation-plan.md#ml-pipeline)가 소유한다.
 
 ## 9.9 Dataset Record v2
 
@@ -1769,7 +1769,7 @@ L = sample_weight × (
 
 ## 9.12 Training Config와 Checkpoint·Report
 
-Training Config, checkpoint 선택 및 Training Report 절차는 [구현 계획의 §5](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#training-config)가 소유한다.
+Training Config, checkpoint 선택 및 Training Report 절차는 [구현 계획의 §5](implementation-plan.md#training-config)가 소유한다.
 
 ## 9.13 Calibration과 OOD Asset
 
@@ -1887,7 +1887,7 @@ perf_manifest.json
 
 ## 9.15 구현 저장소 명령과 Phase 구분
 
-구현 저장소 CLI와 Phase별 적용 범위는 [구현 계획의 §6](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#implementation-cli)가 소유한다.
+구현 저장소 CLI와 Phase별 적용 범위는 [구현 계획의 §6](implementation-plan.md#implementation-cli)가 소유한다.
 
 # 10. Schema Generator와 Parity
 
@@ -1958,7 +1958,7 @@ Hash field/order/type/endianness는 YAML의 구조화된 배열이 단일 원본
 
 ## 10.5 Cross-Environment Release Pipeline
 
-Cross-Environment Release Pipeline과 단일 release 명령은 [구현 계획의 §7](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#release-pipeline)이 소유한다.
+Cross-Environment Release Pipeline과 단일 release 명령은 [구현 계획의 §7](implementation-plan.md#release-pipeline)이 소유한다.
 
 ## 10.6 RC5 구조화 계약 Remediation Backlog
 
@@ -1983,5 +1983,5 @@ Auto-generated marker 내부를 수동 편집해 위 문제를 숨기지 않는�
 
 # 11. 구현·승인 문서
 
-- Phase·Owner·일정과 최종 승인 체크리스트: [AI Native NPC 구현 계획](../implementation/ai_native_npc_implementation_plan_v0.4.6.md)
-- 생성 Schema·Registry 계약과 품질·안전·성능 승인 기준: [AI Native NPC Contract Appendices](../reference/ai_native_npc_contract_appendices_v0.4.6.md)
+- Phase·Owner·일정과 최종 승인 체크리스트: [AI Native NPC 구현 계획](implementation-plan.md)
+- 생성 Schema·Registry 계약과 품질·안전·성능 승인 기준: [AI Native NPC Contract Appendices](contract-appendices.md)

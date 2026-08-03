@@ -4,20 +4,20 @@
     {
       "evidence": {
         "path": "tests/reports/harness_integrity_evidence.json",
-        "sha256": "32a79974ab89af5ba70d85c97fdbb55937f1b18f987db747ab7626de4b219948"
+        "sha256": "3f41d0b78ecd54e2a303833f2c784698e83b7d687a761acc0432e07a72c4ffdf"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "document_harness_integrity",
       "normative": true,
       "status": "pass",
       "tool": "tools/doc_harness.py",
-      "tool_sha256": "41a3154c89829eaada0a3d6bd4310e4dc60ecac7ea24f8d8867651127518a2de",
+      "tool_sha256": "73eb7d9f3714159d3f9fcd10dd095f9d5ed79f965e95866a19b7971ef54cb5b4",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/schema_semantic_validation.json",
-        "sha256": "fe011072a85a0494d542e24ac2d7d1e013bdae45b2449385ddc9b7d9065ffc92"
+        "sha256": "92be10a9d8fe2571e9f931a241b182228389aee11514572bdd02dc731588060d"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "schema_semantic_validation",
@@ -30,7 +30,7 @@
     {
       "evidence": {
         "path": "tests/reports/schema_semantic_validation.json",
-        "sha256": "fe011072a85a0494d542e24ac2d7d1e013bdae45b2449385ddc9b7d9065ffc92"
+        "sha256": "92be10a9d8fe2571e9f931a241b182228389aee11514572bdd02dc731588060d"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "skill_registry_validation",
@@ -43,7 +43,7 @@
     {
       "evidence": {
         "path": "tests/reports/schema_semantic_validation.json",
-        "sha256": "fe011072a85a0494d542e24ac2d7d1e013bdae45b2449385ddc9b7d9065ffc92"
+        "sha256": "92be10a9d8fe2571e9f931a241b182228389aee11514572bdd02dc731588060d"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "goal_registry_validation",
@@ -56,7 +56,7 @@
     {
       "evidence": {
         "path": "tests/reports/schema_semantic_validation.json",
-        "sha256": "fe011072a85a0494d542e24ac2d7d1e013bdae45b2449385ddc9b7d9065ffc92"
+        "sha256": "92be10a9d8fe2571e9f931a241b182228389aee11514572bdd02dc731588060d"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "test_taxonomy_validation",
@@ -69,7 +69,7 @@
     {
       "evidence": {
         "path": "generated/python/ai_native_npc_contracts_generated.py",
-        "sha256": "95d72de27a497ad138638181840f1652feaaec38ac0103045bd7fa8698fefb6c"
+        "sha256": "68db1ed7f97fcd1b51a063e47446da1f001902f511a15c0e74b31c30f467e2b4"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "generated_python_contract",
@@ -82,7 +82,7 @@
     {
       "evidence": {
         "path": "generated/cpp/AINativeNPCContracts.generated.h",
-        "sha256": "3202e660cbfe2980f2a0debb1452b8d47cde253361f31bdce5a8429e7f2969c3"
+        "sha256": "6224f8f02b03351d7bbf682e33f51ffdad4e0810688e0801f4e87f52a016e7d8"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "generated_cpp_contract",
@@ -95,7 +95,7 @@
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "d1cde25456de41f7a9645e416ba4b8d274f0bee33779f5fd6681aba8d5016fd9"
+        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "generated_code_reproducibility",
@@ -108,7 +108,7 @@
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "d1cde25456de41f7a9645e416ba4b8d274f0bee33779f5fd6681aba8d5016fd9"
+        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "golden_fixture_reproducibility",
@@ -121,7 +121,7 @@
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "d1cde25456de41f7a9645e416ba4b8d274f0bee33779f5fd6681aba8d5016fd9"
+        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "python_golden_parity",
@@ -134,7 +134,7 @@
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "d1cde25456de41f7a9645e416ba4b8d274f0bee33779f5fd6681aba8d5016fd9"
+        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "cpp_golden_parity",
@@ -147,7 +147,7 @@
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "d1cde25456de41f7a9645e416ba4b8d274f0bee33779f5fd6681aba8d5016fd9"
+        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "environment_independent_normative_report",
@@ -160,33 +160,33 @@
     {
       "evidence": {
         "path": "tests/reports/harness_integrity_evidence.json",
-        "sha256": "32a79974ab89af5ba70d85c97fdbb55937f1b18f987db747ab7626de4b219948"
+        "sha256": "3f41d0b78ecd54e2a303833f2c784698e83b7d687a761acc0432e07a72c4ffdf"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "lock_file_set_exact",
       "normative": true,
       "status": "pass",
       "tool": "tools/doc_harness.py",
-      "tool_sha256": "41a3154c89829eaada0a3d6bd4310e4dc60ecac7ea24f8d8867651127518a2de",
+      "tool_sha256": "73eb7d9f3714159d3f9fcd10dd095f9d5ed79f965e95866a19b7971ef54cb5b4",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "generated/docs/schema_reference.md",
-        "sha256": "b31c50177015854030aea95483d9c4bacf637f1a95659642562728e2904792c5"
+        "sha256": "a0e6d0faa7a374557b055a3cca10c6dfe9d6ece47cfb5223b90f7cf678018050"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "generated_document_appendix_parity",
       "normative": true,
       "status": "pass",
       "tool": "tools/doc_harness.py",
-      "tool_sha256": "41a3154c89829eaada0a3d6bd4310e4dc60ecac7ea24f8d8867651127518a2de",
+      "tool_sha256": "73eb7d9f3714159d3f9fcd10dd095f9d5ed79f965e95866a19b7971ef54cb5b4",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/schema_semantic_validation.json",
-        "sha256": "fe011072a85a0494d542e24ac2d7d1e013bdae45b2449385ddc9b7d9065ffc92"
+        "sha256": "92be10a9d8fe2571e9f931a241b182228389aee11514572bdd02dc731588060d"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "normalizer_semantic_hardening",
@@ -199,7 +199,7 @@
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "d1cde25456de41f7a9645e416ba4b8d274f0bee33779f5fd6681aba8d5016fd9"
+        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "hash_contract_codegen_parity",
@@ -212,7 +212,7 @@
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "d1cde25456de41f7a9645e416ba4b8d274f0bee33779f5fd6681aba8d5016fd9"
+        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "decision_contract_hash_golden",
@@ -225,7 +225,7 @@
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "d1cde25456de41f7a9645e416ba4b8d274f0bee33779f5fd6681aba8d5016fd9"
+        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "semantic_mutation_regression",
@@ -238,7 +238,7 @@
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "d1cde25456de41f7a9645e416ba4b8d274f0bee33779f5fd6681aba8d5016fd9"
+        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "manual_hash_literal_guard",
@@ -251,7 +251,7 @@
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "d1cde25456de41f7a9645e416ba4b8d274f0bee33779f5fd6681aba8d5016fd9"
+        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "normalizer_constraint_closure",
@@ -264,7 +264,7 @@
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "d1cde25456de41f7a9645e416ba4b8d274f0bee33779f5fd6681aba8d5016fd9"
+        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "dynamic_mutation_probe_regression",
@@ -277,7 +277,7 @@
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "d1cde25456de41f7a9645e416ba4b8d274f0bee33779f5fd6681aba8d5016fd9"
+        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "taxonomy_mutation_regression",
@@ -290,7 +290,7 @@
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "d1cde25456de41f7a9645e416ba4b8d274f0bee33779f5fd6681aba8d5016fd9"
+        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "critical_taxonomy_kpi_sync",
@@ -303,7 +303,7 @@
     {
       "evidence": {
         "path": "tests/reports/contract_test_report.json",
-        "sha256": "d1cde25456de41f7a9645e416ba4b8d274f0bee33779f5fd6681aba8d5016fd9"
+        "sha256": "4d13c0544241778040d20818c210d597bc3cd6f267fbb01b257cbd78f29caf7f"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "manual_hash_magic_full_context_guard",
@@ -316,10 +316,10 @@
     {
       "evidence": {
         "path": "tests/reports/release_mutation_report.json",
-        "sha256": "1baecb868d0e6f22a285d304c2040e1adf12d5f9dc62fe608374fdf39b376236"
+        "sha256": "625b2bee2d28323b9833502db84f466c9d65af1b3d8ce24d4cfc498ebb818a2c"
       },
       "executed_at": "2026-07-26T00:00:00Z",
-      "id": "all_nonarchive_markdown_semantic_scope",
+      "id": "all_active_markdown_semantic_scope",
       "normative": true,
       "status": "pass",
       "tool": "tools/run_release_mutation_tests.py",
@@ -329,20 +329,20 @@
     {
       "evidence": {
         "path": "manifest/catalog.json",
-        "sha256": "ca0324121c71e614f7bd6dc01b9a88707646126d4367404507a1d8b2aca2bb37"
+        "sha256": "b4f3ce55ad784cb2a3ec41e27f44708faca395e873502319cdc7ecb723b0b03a"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "catalog_archive_exact_match",
       "normative": true,
       "status": "pass",
       "tool": "tools/doc_harness.py",
-      "tool_sha256": "41a3154c89829eaada0a3d6bd4310e4dc60ecac7ea24f8d8867651127518a2de",
+      "tool_sha256": "73eb7d9f3714159d3f9fcd10dd095f9d5ed79f965e95866a19b7971ef54cb5b4",
       "tool_version": "0.4.6"
     },
     {
       "evidence": {
         "path": "tests/reports/release_mutation_report.json",
-        "sha256": "1baecb868d0e6f22a285d304c2040e1adf12d5f9dc62fe608374fdf39b376236"
+        "sha256": "625b2bee2d28323b9833502db84f466c9d65af1b3d8ce24d4cfc498ebb818a2c"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "release_end_to_end_mutation_regression",
@@ -355,14 +355,14 @@
     {
       "evidence": {
         "path": "reports/SOURCE_FILE_MAP.md",
-        "sha256": "402f142dcdb8a59a0ec86449a66cad8855123be5f3914a854ff96a1131058e59"
+        "sha256": "70e5ce76811de0e9b8ec089555f1c181b536f5b0c2218ccae8a3827009dba31e"
       },
       "executed_at": "2026-07-26T00:00:00Z",
       "id": "source_file_map_currentness",
       "normative": true,
       "status": "pass",
       "tool": "tools/doc_harness.py",
-      "tool_sha256": "41a3154c89829eaada0a3d6bd4310e4dc60ecac7ea24f8d8867651127518a2de",
+      "tool_sha256": "73eb7d9f3714159d3f9fcd10dd095f9d5ed79f965e95866a19b7971ef54cb5b4",
       "tool_version": "0.4.6"
     },
     {
@@ -585,6 +585,6 @@
     "ood_required_family_count": 8,
     "path": "contracts/current/test_taxonomy_v1.yaml",
     "required_family_count": 8,
-    "sha256": "52abbec52ff6b057b28e89d54c5f9dd9407977e9a8e45f7dfd0e419af57a4286"
+    "sha256": "391b31036d6911e2e646d44f81f010e565e4fc587a6475fe6904d935aafb98ef"
   }
 }

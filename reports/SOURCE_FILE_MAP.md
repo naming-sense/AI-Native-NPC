@@ -4,10 +4,10 @@
 
 | 역할 | 경로 |
 |---|---|
-| Requirements | `docs/current/requirements/ai_native_npc_requirements_v0.4.6.md` |
-| Implementation Plan | `docs/current/implementation/ai_native_npc_implementation_plan_v0.4.6.md` |
-| Contract Appendices | `docs/current/reference/ai_native_npc_contract_appendices_v0.4.6.md` |
-| Unreal Profile | `docs/current/unreal/ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan_v0.4.6.md` |
+| Requirements | `docs/current/requirements.md` |
+| Implementation Plan | `docs/current/implementation-plan.md` |
+| Contract Appendices | `docs/current/contract-appendices.md` |
+| Unreal Profile | `docs/current/unreal-implementation-plan.md` |
 | Schema | `contracts/current/ai_native_npc_schema_v2_0.yaml` |
 | Skill Registry | `contracts/current/skill_registry_v1.yaml` |
 | Goal Registry | `contracts/current/goal_registry_v1.yaml` |

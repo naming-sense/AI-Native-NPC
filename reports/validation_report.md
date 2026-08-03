@@ -36,7 +36,7 @@
 | `taxonomy_mutation_regression` | pass | `tests/reports/contract_test_report.json` |
 | `critical_taxonomy_kpi_sync` | pass | `tests/reports/contract_test_report.json` |
 | `manual_hash_magic_full_context_guard` | pass | `tests/reports/contract_test_report.json` |
-| `all_nonarchive_markdown_semantic_scope` | pass | `tests/reports/release_mutation_report.json` |
+| `all_active_markdown_semantic_scope` | pass | `tests/reports/release_mutation_report.json` |
 | `catalog_archive_exact_match` | pass | `manifest/catalog.json` |
 | `release_end_to_end_mutation_regression` | pass | `tests/reports/release_mutation_report.json` |
 | `source_file_map_currentness` | pass | `reports/SOURCE_FILE_MAP.md` |

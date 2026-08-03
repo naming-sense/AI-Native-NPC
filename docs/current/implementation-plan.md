@@ -5,8 +5,8 @@
 - 개정일: 2026-08-03
 - 주 독자: **ML, Data, Gameplay AI, Server, Unreal NNE, QA, Release 승인자**
 - 범위: **Phase·Owner·일정, Reference Model 구조, ML pipeline, Training Config, Checkpoint·Report, 구현 명령, release pipeline, 최종 승인 절차**
-- 상위 요구사항: [AI Native NPC 의사결정 시스템 요구사항](../requirements/ai_native_npc_requirements_v0.4.6.md)
-- 계약 부록: [AI Native NPC Contract Appendices](../reference/ai_native_npc_contract_appendices_v0.4.6.md)
+- 상위 요구사항: [AI Native NPC 의사결정 시스템 요구사항](requirements.md)
+- 계약 부록: [AI Native NPC Contract Appendices](contract-appendices.md)
 
 상위 요구사항은 Runtime 동작·권한·입출력·안전·데이터·평가 규칙을 소유한다. 계약 부록은 생성된 정확한 계약값과 승인 Gate를 소유한다. 이 문서는 Phase·Owner·구현·검증 순서를 소유한다.
 
@@ -233,7 +233,7 @@ Test, OOD, Critical split은 checkpoint와 Calibration asset이 동결되기 전
 
 ## 4.2 Teacher LLM Silver Label 생성
 
-규범 계약은 [요구사항 §9.1.1](../requirements/ai_native_npc_requirements_v0.4.6.md#911-teacher-llm-silver-label-생성)이 소유한다. 이 절은 그 계약을 중복 정의하지 않고 구현 순서와 실행 지점만 제안한다.
+규범 계약은 [요구사항 §9.1.1](requirements.md#911-teacher-llm-silver-label-생성)이 소유한다. 이 절은 그 계약을 중복 정의하지 않고 구현 순서와 실행 지점만 제안한다.
 
 별도 Unreal 구현 저장소에 다음 경로를 둔다.
 
@@ -418,8 +418,8 @@ Schema 2.0 Freeze는 다음 항목을 모두 요구한다.
 
 현재 Runtime 계약은 RC5 YAML의 field index·enum·shape다.
 
-[Requirements §10.6](../requirements/ai_native_npc_requirements_v0.4.6.md#106-rc5-구조화-계약-remediation-backlog)의 항목은 새 patch 발급 후 활성화한다.
+[Requirements §10.6](requirements.md#106-rc5-구조화-계약-remediation-backlog)의 항목은 새 patch 발급 후 활성화한다.
 
 새 patch는 YAML·generated artifacts·Golden·Decision Contract Hash를 포함한다.
 
-완료 전 상태는 Freeze·OOD Runtime 승격 대상에서 제외한다. 변경 이력은 `docs/current/history/ai_native_npc_requirements_history_v0.4.6.md`에 보관한다.
+완료 전 상태는 Freeze·OOD Runtime 승격 대상에서 제외한다. 변경 이력은 `docs/history/requirements-history-v0.4.6.md`에 보관한다.

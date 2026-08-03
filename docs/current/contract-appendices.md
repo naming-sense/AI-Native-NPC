@@ -2,12 +2,12 @@
 ## 생성 Schema·Registry 계약과 승인 기준
 
 - 문서 버전: **v0.4.6**
-- 개정일: 2026-08-02
+- 개정일: 2026-08-03
 - 주 독자: **Gameplay AI, ML, Data, Unreal NNE, QA, Release 승인자**
 - 범위: **Appendix A–D generated contract, Appendix E 품질·안전·성능 Gate, UE 구현 승인 체크리스트**
-- 상위 요구사항: [AI Native NPC 의사결정 시스템 요구사항](../requirements/ai_native_npc_requirements_v0.4.6.md)
-- 구현 계획: [AI Native NPC 구현 계획](../implementation/ai_native_npc_implementation_plan_v0.4.6.md)
-- Unreal 구현 계획: [UE 5.7 Manny·Quinn 구현 계획](../unreal/ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan_v0.4.6.md)
+- 상위 요구사항: [AI Native NPC 의사결정 시스템 요구사항](requirements.md)
+- 구현 계획: [AI Native NPC 구현 계획](implementation-plan.md)
+- Unreal 구현 계획: [UE 5.7 Manny·Quinn 구현 계획](unreal-implementation-plan.md)
 
 Appendix A–D의 생성 marker 내부는 구조화된 YAML과 Generator가 소유한다. 이 문서에서 수동 편집하지 않는다.
 
@@ -25,10 +25,10 @@ Appendix A–D는 Schema와 Registry에서 생성한 enum ID·Tensor index·Targ
 
 - Generator: `0.4.6`
 - Contract revision: `2.0.0-rc5`
-- Schema SHA-256: `8c72e1a6aa94399b5748c3ec7bfdaf31beb7148cc5f228eb86c88cee60b67baf`
+- Schema SHA-256: `56deff3a5f55ddad30864bcf7df4d100d2f1c5472f86f0a8b9e2599044c37385`
 - Skill Registry SHA-256: `08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8`
 - Goal Registry SHA-256: `b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2`
-- Test Taxonomy SHA-256: `52abbec52ff6b057b28e89d54c5f9dd9407977e9a8e45f7dfd0e419af57a4286`
+- Test Taxonomy SHA-256: `391b31036d6911e2e646d44f81f010e565e4fc587a6475fe6904d935aafb98ef`
 
 ## A. Constants와 Enum
 

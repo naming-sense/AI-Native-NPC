@@ -5237,7 +5237,7 @@ documentation_contract:
   marker_end: <!-- END AUTO-GENERATED SCHEMA CONTRACT -->
   generated_reference: generated/docs/schema_reference.md
   required_documents:
-  - docs/current/reference/ai_native_npc_contract_appendices_v0.4.6.md
+  - docs/current/contract-appendices.md
   strict_policy: marker_content_must_equal_generated_appendix
   forbid_manual_hash_literal_outside_generated_block: true
   manual_hash_literal_policy:
@@ -5250,9 +5250,10 @@ documentation_contract:
     - contracts/current/**/*.{yaml,json}
     - contracts/archive/**/*.{yaml,json}
   semantic_markdown_scope:
-    mode: all_locked_non_archive_markdown
+    mode: all_locked_active_markdown
     exclude_prefixes:
     - docs/archive/
+    - docs/history/
     - contracts/archive/
     - manifests/archive/
     - generated/docs/

@@ -37,10 +37,10 @@ INTEGRITY_EVIDENCE_PATH = ROOT / "tests/reports/harness_integrity_evidence.json"
 RELEASE_MUTATION_REPORT_PATH = ROOT / "tests/reports/release_mutation_report.json"
 SOURCE_FILE_MAP_PATH = ROOT / "reports/SOURCE_FILE_MAP.md"
 LOCAL_DIAGNOSTICS_PATH = ROOT / "dist/local/contract_test_diagnostics.json"
-CURRENT_REQUIREMENTS_PATH = ROOT / "docs/current/requirements/ai_native_npc_requirements_v0.4.6.md"
-CURRENT_IMPLEMENTATION_PATH = ROOT / "docs/current/implementation/ai_native_npc_implementation_plan_v0.4.6.md"
-CURRENT_REFERENCE_PATH = ROOT / "docs/current/reference/ai_native_npc_contract_appendices_v0.4.6.md"
-CURRENT_UNREAL_PATH = ROOT / "docs/current/unreal/ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan_v0.4.6.md"
+CURRENT_REQUIREMENTS_PATH = ROOT / "docs/current/requirements.md"
+CURRENT_IMPLEMENTATION_PATH = ROOT / "docs/current/implementation-plan.md"
+CURRENT_APPENDICES_PATH = ROOT / "docs/current/contract-appendices.md"
+CURRENT_UNREAL_PATH = ROOT / "docs/current/unreal-implementation-plan.md"
 GENERATED_SCHEMA_REFERENCE_PATH = ROOT / "generated/docs/schema_reference.md"
 GENERATED_REQUIREMENTS_KPI_PATH = ROOT / "generated/docs/requirements_kpi_appendix.md"
 GENERATED_UNREAL_KPI_PATH = ROOT / "generated/docs/unreal_kpi_section.md"
@@ -78,7 +78,7 @@ PASS_GATE_IDS = {
     "manual_hash_magic_full_context_guard",
     "critical_taxonomy_kpi_sync",
     "taxonomy_mutation_regression",
-    "all_nonarchive_markdown_semantic_scope",
+    "all_active_markdown_semantic_scope",
     "catalog_archive_exact_match",
     "release_end_to_end_mutation_regression",
     "source_file_map_currentness",
@@ -149,6 +149,7 @@ def lock_scope_files() -> list[Path]:
 
 SEMANTIC_MARKDOWN_EXCLUDE_PREFIXES = (
     "docs/archive/",
+    "docs/history/",
     "contracts/archive/",
     "manifests/archive/",
     "generated/docs/",
@@ -360,18 +361,18 @@ def _replace_marked_block(text: str, begin: str, end: str, block: str, label: st
 
 def sync_document_appendices() -> None:
     contract = documentation_contract()
-    expected_paths = {rel(CURRENT_REFERENCE_PATH)}
+    expected_paths = {rel(CURRENT_APPENDICES_PATH)}
     declared_paths = set(contract["required_documents"])
     if declared_paths != expected_paths:
         raise SystemExit(f"documentation_contract required_documents mismatch: {sorted(declared_paths)}")
     schema_block = generated_appendix_block()
-    for path in [CURRENT_REFERENCE_PATH]:
+    for path in [CURRENT_APPENDICES_PATH]:
         text = path.read_text(encoding="utf-8")
         text = _replace_marked_block(text, contract["marker_begin"], contract["marker_end"], schema_block, rel(path))
         path.write_text(text, encoding="utf-8")
 
     taxonomy_contract = taxonomy_documentation_contract()
-    role_paths = {"requirements": CURRENT_REFERENCE_PATH, "unreal": CURRENT_UNREAL_PATH}
+    role_paths = {"requirements": CURRENT_APPENDICES_PATH, "unreal": CURRENT_UNREAL_PATH}
     for role, path in role_paths.items():
         spec = taxonomy_contract[role]
         if spec["path"] != rel(path):
@@ -402,7 +403,7 @@ def validate_document_appendices() -> list[str]:
     schema_block = generated_appendix_block()
     taxonomy = load_yaml(default_paths(ROOT).test_taxonomy)
     taxonomy_contract = taxonomy["documentation_contract"]
-    role_paths = {"requirements": CURRENT_REFERENCE_PATH, "unreal": CURRENT_UNREAL_PATH}
+    role_paths = {"requirements": CURRENT_APPENDICES_PATH, "unreal": CURRENT_UNREAL_PATH}
 
     for declared in contract["required_documents"]:
         path = ROOT / declared
@@ -437,7 +438,7 @@ def update_ue_dependency_hashes() -> None:
 
 
 def _strip_allowed_generated_blocks(path: Path, text: str) -> str:
-    if path not in {CURRENT_REFERENCE_PATH, CURRENT_UNREAL_PATH}:
+    if path not in {CURRENT_APPENDICES_PATH, CURRENT_UNREAL_PATH}:
         return text
     schema_contract = documentation_contract()
     taxonomy_contract = taxonomy_documentation_contract()
@@ -462,7 +463,7 @@ def validate_all_markdown_semantics() -> list[str]:
     errors: list[str] = []
     for path in semantic_markdown_files():
         text = path.read_text(encoding="utf-8")
-        if path in {CURRENT_REFERENCE_PATH, CURRENT_UNREAL_PATH}:
+        if path in {CURRENT_APPENDICES_PATH, CURRENT_UNREAL_PATH}:
             taxonomy_blocks = [
                 (spec["marker_begin"], spec["marker_end"])
                 for spec in taxonomy_documentation_contract().values()
@@ -490,7 +491,7 @@ def source_file_map_text() -> str:
         "|---|---|",
         f"| Requirements | `{rel(CURRENT_REQUIREMENTS_PATH)}` |",
         f"| Implementation Plan | `{rel(CURRENT_IMPLEMENTATION_PATH)}` |",
-        f"| Contract Appendices | `{rel(CURRENT_REFERENCE_PATH)}` |",
+        f"| Contract Appendices | `{rel(CURRENT_APPENDICES_PATH)}` |",
         f"| Unreal Profile | `{rel(CURRENT_UNREAL_PATH)}` |",
         "| Schema | `contracts/current/ai_native_npc_schema_v2_0.yaml` |",
         "| Skill Registry | `contracts/current/skill_registry_v1.yaml` |",
@@ -646,7 +647,7 @@ def update_freeze_manifest() -> None:
         "taxonomy_mutation_regression": ("tools/run_contract_tests.py", "tests/reports/contract_test_report.json"),
         "critical_taxonomy_kpi_sync": ("tools/run_contract_tests.py", "tests/reports/contract_test_report.json"),
         "manual_hash_magic_full_context_guard": ("tools/run_contract_tests.py", "tests/reports/contract_test_report.json"),
-        "all_nonarchive_markdown_semantic_scope": ("tools/run_release_mutation_tests.py", "tests/reports/release_mutation_report.json"),
+        "all_active_markdown_semantic_scope": ("tools/run_release_mutation_tests.py", "tests/reports/release_mutation_report.json"),
         "catalog_archive_exact_match": ("tools/doc_harness.py", "manifest/catalog.json"),
         "release_end_to_end_mutation_regression": ("tools/run_release_mutation_tests.py", "tests/reports/release_mutation_report.json"),
         "source_file_map_currentness": ("tools/doc_harness.py", "reports/SOURCE_FILE_MAP.md"),

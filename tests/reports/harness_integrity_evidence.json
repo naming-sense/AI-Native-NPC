@@ -7,14 +7,14 @@
     "zip_path_safety_enabled",
     "deterministic_double_pack_enabled"
   ],
-  "observed_file_count": 90,
+  "observed_file_count": 97,
   "report_version": 2,
   "status": "pass",
   "tool": "tools/doc_harness.py",
-  "tool_sha256": "41a3154c89829eaada0a3d6bd4310e4dc60ecac7ea24f8d8867651127518a2de",
+  "tool_sha256": "73eb7d9f3714159d3f9fcd10dd095f9d5ed79f965e95866a19b7971ef54cb5b4",
   "tool_version": "0.4.6",
   "tree_algorithm": "sha256(path_length_le32 || utf8_path || size_le64 || file_sha256_bytes)",
-  "tree_digest_sha256": "6ef8b5de91aea01d373eb48c04fa3656dadb932cd5d73db56a58296a385bc444",
+  "tree_digest_sha256": "d865bef33a5258c34c39e028f77ad6b3755aa2c1b9abcc085c643b7a28163b04",
   "tree_scope_exclusions": [
     "manifest/checksums.sha256",
     "manifest/freeze_manifest.json",

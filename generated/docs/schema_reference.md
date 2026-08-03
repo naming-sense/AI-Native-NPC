@@ -4,10 +4,10 @@
 
 - Generator: `0.4.6`
 - Contract revision: `2.0.0-rc5`
-- Schema SHA-256: `8c72e1a6aa94399b5748c3ec7bfdaf31beb7148cc5f228eb86c88cee60b67baf`
+- Schema SHA-256: `56deff3a5f55ddad30864bcf7df4d100d2f1c5472f86f0a8b9e2599044c37385`
 - Skill Registry SHA-256: `08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8`
 - Goal Registry SHA-256: `b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2`
-- Test Taxonomy SHA-256: `52abbec52ff6b057b28e89d54c5f9dd9407977e9a8e45f7dfd0e419af57a4286`
+- Test Taxonomy SHA-256: `391b31036d6911e2e646d44f81f010e565e4fc587a6475fe6904d935aafb98ef`
 
 ## A. Constants와 Enum
 

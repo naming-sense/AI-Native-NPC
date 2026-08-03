@@ -252,6 +252,19 @@ class SemanticHardeningTests(unittest.TestCase):
         errors = validate_catalog_data(ROOT, catalog)
         self.assertTrue(any("ghost archive entry" in error for error in errors), errors)
 
+    def test_current_document_directory_is_flat_and_exact(self) -> None:
+        current = ROOT / "docs/current"
+        expected = {
+            "contract-appendices.md",
+            "implementation-plan.md",
+            "requirements.md",
+            "unreal-implementation-plan.md",
+        }
+        actual = {path.name for path in current.iterdir() if path.is_file()}
+        subdirectories = [path.name for path in current.iterdir() if path.is_dir()]
+        self.assertEqual(actual, expected)
+        self.assertEqual(subdirectories, [])
+
     def test_source_file_map_is_exact(self) -> None:
         actual = (ROOT / "reports/SOURCE_FILE_MAP.md").read_text(encoding="utf-8")
         self.assertEqual(actual, source_file_map_text())

@@ -499,8 +499,8 @@ def validate_contracts(paths: ContractPaths) -> list[str]:
         _expect(manual_policy.get(flag) is True, f"documentation manual hash policy {flag} must be true", errors)
 
     markdown_scope = documentation.get("semantic_markdown_scope", {})
-    _expect(markdown_scope.get("mode") == "all_locked_non_archive_markdown", "documentation semantic markdown scope mode mismatch", errors)
-    _expect(markdown_scope.get("exclude_prefixes") == ["docs/archive/", "contracts/archive/", "manifests/archive/", "generated/docs/"], "documentation semantic markdown exclude prefixes mismatch", errors)
+    _expect(markdown_scope.get("mode") == "all_locked_active_markdown", "documentation semantic markdown scope mode mismatch", errors)
+    _expect(markdown_scope.get("exclude_prefixes") == ["docs/archive/", "docs/history/", "contracts/archive/", "manifests/archive/", "generated/docs/"], "documentation semantic markdown exclude prefixes mismatch", errors)
     _expect(markdown_scope.get("magic_value_pattern") == "[A-Za-z0-9_]{4,64}", "documentation magic value pattern mismatch", errors)
     _expect(markdown_scope.get("current_generated_blocks_may_be_stripped") is True, "documentation generated block stripping policy mismatch", errors)
 

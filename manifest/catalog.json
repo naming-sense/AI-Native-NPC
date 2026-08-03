@@ -296,14 +296,14 @@
       "version": "1.0.1"
     },
     "requirements": {
-      "path": "docs/current/requirements/ai_native_npc_requirements_v0.4.6.md",
-      "sha256": "84745e04e3f96b00b7f32b592d1006bf95fd569fa5595cf602a6463df1780c5a",
+      "path": "docs/current/requirements.md",
+      "sha256": "835bc86d1e068d8978c02363a1b009a742236918bbe6d70e3aa6066dea3e7482",
       "status": "current",
       "version": "0.4.6"
     },
     "schema": {
       "path": "contracts/current/ai_native_npc_schema_v2_0.yaml",
-      "sha256": "8c72e1a6aa94399b5748c3ec7bfdaf31beb7148cc5f228eb86c88cee60b67baf",
+      "sha256": "56deff3a5f55ddad30864bcf7df4d100d2f1c5472f86f0a8b9e2599044c37385",
       "status": "rc5",
       "version": "2.0.0-rc5"
     },
@@ -315,13 +315,13 @@
     },
     "test_taxonomy": {
       "path": "contracts/current/test_taxonomy_v1.yaml",
-      "sha256": "52abbec52ff6b057b28e89d54c5f9dd9407977e9a8e45f7dfd0e419af57a4286",
+      "sha256": "391b31036d6911e2e646d44f81f010e565e4fc587a6475fe6904d935aafb98ef",
       "status": "current",
       "version": "1.0.0"
     },
     "unreal_profile": {
-      "path": "docs/current/unreal/ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan_v0.4.6.md",
-      "sha256": "1267a96c654c18fd9ee5f312147616056809b57aab03f443c980caee3c43630e",
+      "path": "docs/current/unreal-implementation-plan.md",
+      "sha256": "5bab510dbdd673cb55e8280902a4bb758dc2965e7f5deef3c04b393cd4fcd040",
       "status": "current",
       "version": "0.4.6"
     }
