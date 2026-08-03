@@ -6,15 +6,15 @@
 - 개정일: 2026-08-03
 - 문서 보강: **ML/NNE Implementation Supplement 1 + Requirements Review Remediation Binding Notice**
 - 대체 문서: 기존 `ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan.md` v0.3
-- 상위 요구사항: `../requirements/ai_native_npc_requirements_v0.4.6.md`
-- 공통 구현 계획: `../implementation/ai_native_npc_implementation_plan_v0.4.6.md`
-- 계약 부록: `../reference/ai_native_npc_contract_appendices_v0.4.6.md`
+- 상위 요구사항: `requirements.md`
+- 공통 구현 계획: `implementation-plan.md`
+- 계약 부록: `contract-appendices.md`
 - Tensor 단일 원본: `ai_native_npc_schema_v2_0.yaml`
-- Requirements SHA-256: `84745e04e3f96b00b7f32b592d1006bf95fd569fa5595cf602a6463df1780c5a`
-- Schema YAML SHA-256: `8c72e1a6aa94399b5748c3ec7bfdaf31beb7148cc5f228eb86c88cee60b67baf`
+- Requirements SHA-256: `835bc86d1e068d8978c02363a1b009a742236918bbe6d70e3aa6066dea3e7482`
+- Schema YAML SHA-256: `56deff3a5f55ddad30864bcf7df4d100d2f1c5472f86f0a8b9e2599044c37385`
 - Skill Registry SHA-256: `08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8`
 - Goal Registry SHA-256: `b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2`
-- Test Taxonomy SHA-256: `52abbec52ff6b057b28e89d54c5f9dd9407977e9a8e45f7dfd0e419af57a4286`
+- Test Taxonomy SHA-256: `391b31036d6911e2e646d44f81f010e565e4fc587a6475fe6904d935aafb98ef`
 - ML 구현 프로필: **`policy_arch_v1.0.0` / `policy_train_v1.0.0` / ONNX opset 17**
 - Phase 0 판정: **조건부 GO — Utility Baseline/RC5 smoke 한정**
 - V1 Neural/OOD 판정: **HOLD — Schema/Goal/Dataset remediation patch 필요**
@@ -31,7 +31,9 @@
 
 RC5에서는 Hash magic 문장·JSON·백틱 수기 복제를 모두 거부하고, Critical Suite 최소 분모를 Taxonomy에서 자동 생성한다.
 
-v0.4.6은 Current Requirements/UE에 한정됐던 검증을 모든 Lock 대상 non-archive 수기 Markdown으로 확장하고, Source File Map과 Archive Catalog를 실제 파일 집합에서 생성한다.
+v0.4.6은 수기 계약 검증 범위를 모든 Lock 대상 active Markdown으로 확장한다.
+`docs/history`, `docs/archive`, `generated/docs`는 이 범위에서 제외한다.
+Source File Map과 Archive Catalog는 실제 파일 집합에서 생성한다.
 
 v0.4.6까지 누적된 추가 계약:
 
@@ -68,7 +70,12 @@ Phase 0은 조건부 GO다.
 - 보류: 대량 학습 데이터, 최종 Freeze
 - 보류 해제 조건: Float Tensor/ONNX parity, Target/Candidate Recall, Atomic Commit, Hidden Leakage Runtime 증거, Requirements Remediation 통과
 
-2026-07-30 보강은 [공통 구현 계획 §3~§6](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#reference-model)의 Reference Model·ML Training Contract를 Unreal 구현 절차로 연결했다.
+2026-07-30 보강은 다음 공통 구현 계획을 Unreal 구현 절차로 연결했다.
+
+- [§3 Reference Model](implementation-plan.md#3-policy_arch_v100-reference-model)
+- [§4 ML Pipeline](implementation-plan.md#4-ml-pipeline)
+- [§5 Training Config·Checkpoint·Report](implementation-plan.md#5-training-config와-checkpointreport)
+- [§6 구현 명령과 Phase](implementation-plan.md#6-구현-저장소-명령과-phase-구분)
 
 현 RC5 Schema·Registry 값은 유지한다. Phase 0은 fixture model로 ONNX Import→NNE→score/parameter Post-process→Commit/Fallback 경로를 먼저 증명한다.
 
@@ -277,8 +284,8 @@ AI-Native-NPC                         # 계약 저장소, 현재 main 핵심 9�
   contracts/current/*.yaml
   generated/python/ai_native_npc_contracts_generated.py
   generated/cpp/AINativeNPCContracts.generated.h
-  docs/current/requirements/*.md
-  docs/current/unreal/*.md
+  docs/current/requirements.md
+  docs/current/unreal-implementation-plan.md
 
 AI-Native-NPC-Unreal                  # 실제 구현 저장소
   External/AI-Native-NPC/             # 위 계약 저장소의 고정 commit snapshot/submodule
@@ -1534,9 +1541,9 @@ V1 Reference Model은 `policy_arch_v1.0.0`이다. Event Buffer를 사용하고 G
 
 `UNPCSocialStateComponent`는 감정·관계 값을 사건 기반으로 갱신한다. 모델은 해당 값을 읽는다.
 
-- Layer·초기화: [공통 구현 계획 §3](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#reference-model)
-- Optimizer: [공통 구현 계획 §5](../implementation/ai_native_npc_implementation_plan_v0.4.6.md#training-config)
-- Loss: [Requirements §9.11](../requirements/ai_native_npc_requirements_v0.4.6.md#911-loss-contract)
+- Layer·초기화: [공통 구현 계획 §3](implementation-plan.md#reference-model)
+- Optimizer: [공통 구현 계획 §5](implementation-plan.md#training-config)
+- Loss: [Requirements §9.11](requirements.md#911-loss-contract)
 
 ```text
 global_state [128]
@@ -1741,7 +1748,7 @@ Phase 0:
 
 Phase 1:
 
-- [Contract Appendices E.6](../reference/ai_native_npc_contract_appendices_v0.4.6.md#e6-dataset-최소량)의 최소 Silver/Gold/DAgger 데이터 충족
+- [Contract Appendices E.6](contract-appendices.md#e6-dataset-최소량)의 최소 Silver/Gold/DAgger 데이터 충족
 - `policy_train_v1.0.0` 전체 학습
 - Calibration/OOD asset 동결
 - General/OOD/Critical/Performance Gate 후 V1 bundle 승격
@@ -3186,5 +3193,5 @@ Scenarios/NPCMannyQuinnScenarioTest.cpp
 
 ## 공유 계약 부록
 
-- [Schema·Registry Appendix A–D](../reference/ai_native_npc_contract_appendices_v0.4.6.md#appendix-ad-auto-generated-schemaregistry-계약)
-- [UE 구현 승인 체크리스트](../reference/ai_native_npc_contract_appendices_v0.4.6.md#ue-구현-승인-체크리스트)
+- [Schema·Registry Appendix A–D](contract-appendices.md#appendix-ad-auto-generated-schemaregistry-계약)
+- [UE 구현 승인 체크리스트](contract-appendices.md#ue-구현-승인-체크리스트)

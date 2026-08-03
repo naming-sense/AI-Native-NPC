@@ -1,6 +1,6 @@
 # AI Native NPC 요구사항 문서 독자 중심 재구성 계획
 
-> **후속 구조:** 이 계획이 수정한 결합 문서는 [Requirements](../current/requirements/ai_native_npc_requirements_v0.4.6.md), [Implementation Plan](../current/implementation/ai_native_npc_implementation_plan_v0.4.6.md), [Contract Appendices](../current/reference/ai_native_npc_contract_appendices_v0.4.6.md)로 분리됐다.
+> **후속 구조:** 이 계획이 수정한 결합 문서는 [Requirements](../../current/requirements.md), [Implementation Plan](../../current/implementation-plan.md), [Contract Appendices](../../current/contract-appendices.md)로 분리됐다.
 
 > **For Hermes:** 이 계획을 순서대로 실행하되 Auto-generated marker 내부는 수정하지 않는다.
 

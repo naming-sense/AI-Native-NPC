@@ -6,7 +6,7 @@
 - 검토일: 2026-08-02
 - 판정: **Changes Requested**
 - 범위: Requirements, Schema/Registry, generated contracts, UE 구현 계획, 보관 Harness 증거의 정적·교차 계약 검토
-- 현행 후속 문서: [Requirements](../requirements/ai_native_npc_requirements_v0.4.6.md) · [Implementation Plan](../implementation/ai_native_npc_implementation_plan_v0.4.6.md) · [Contract Appendices](../reference/ai_native_npc_contract_appendices_v0.4.6.md)
+- 현행 후속 문서: [Requirements](../../current/requirements.md) · [Implementation Plan](../../current/implementation-plan.md) · [Contract Appendices](../../current/contract-appendices.md)
 
 > 위 검토 대상 경로와 SHA는 당시 artifact의 감사 기록이다. 현행 규범은 후속 문서를 따른다.
 

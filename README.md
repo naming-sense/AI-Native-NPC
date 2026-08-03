@@ -13,13 +13,15 @@ AI Native NPC는 NPC가 알고 있는 정보와 현재 Goal을 바탕으로 실�
 
 ## 먼저 읽을 문서
 
-1. [AI Native NPC 요구사항](docs/current/requirements/ai_native_npc_requirements_v0.4.6.md)
+`docs/current` 바로 아래의 네 문서가 현재 구현 기준입니다.
+
+1. [AI Native NPC 요구사항](docs/current/requirements.md)
    - 시스템 목적, Runtime 동작, 권한, 입출력, 안전, 데이터·평가 요구사항을 정의합니다.
-2. [AI Native NPC 구현 계획](docs/current/implementation/ai_native_npc_implementation_plan_v0.4.6.md)
+2. [AI Native NPC 구현 계획](docs/current/implementation-plan.md)
    - Phase·Owner·완료 조건, Reference Model, Teacher LLM, 학습·릴리스 Pipeline을 정의합니다.
-3. [AI Native NPC Contract Appendices](docs/current/reference/ai_native_npc_contract_appendices_v0.4.6.md)
+3. [AI Native NPC Contract Appendices](docs/current/contract-appendices.md)
    - Schema·Registry의 생성 표와 품질·안전·성능 승인 기준을 제공합니다.
-4. [UE5.7 Manny 공간·시야·청각 구현 계획](docs/current/unreal/ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan_v0.4.6.md)
+4. [UE5.7 Manny 공간·시야·청각 구현 계획](docs/current/unreal-implementation-plan.md)
    - 요구사항을 Unreal에서 구현하고 시험하는 절차를 정의합니다.
 
 Requirements가 공통 규범을 소유합니다. Implementation Plan과 UE Plan은 실행 절차를, Contract Appendices는 생성된 정확한 값과 승인 Gate를 제공합니다.
@@ -35,7 +37,11 @@ Requirements가 공통 규범을 소유합니다. Implementation Plan과 UE Plan
 
 YAML 4개가 기계 판독 가능한 기준 계약입니다. 생성 Python 계약은 Dataset Builder·학습·ONNX Export에서, 생성 C++ Header는 Unreal Runtime에서 사용합니다. 두 생성 파일은 수동 수정하지 않습니다.
 
-현재 `main`은 현행 문서, 계약 YAML, 생성 계약과 감사·계획 문서만 유지합니다.
+현재 `main`은 현행 문서와 계약 YAML·생성 계약을 유지합니다. 완료된 감사·계획 기록은 [`docs/history`](docs/history/README.md)에 분리합니다.
+
+## 문서 이력
+
+과거 판정, 완료된 검토, 문서 정리 계획은 [문서 이력 안내](docs/history/README.md)에서 확인합니다. 이 기록은 현재 구현 기준이 아닙니다.
 
 ## 전체 하네스 보관본
 
