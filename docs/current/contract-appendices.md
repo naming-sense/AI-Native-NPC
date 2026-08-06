@@ -2,7 +2,7 @@
 ## 생성 Schema·Registry 계약과 승인 기준
 
 - 문서 버전: **v0.4.6**
-- 개정일: 2026-08-03
+- 개정일: 2026-08-06
 - 주 독자: **Gameplay AI, ML, Data, Unreal NNE, QA, Release 승인자**
 - 범위: **Appendix A–D generated 공통 계약, Appendix BP generated Boss Pattern 계약, Appendix E 품질·안전·성능 Gate, UE 구현 승인 체크리스트**
 - 상위 요구사항: [AI Native NPC 의사결정 시스템 요구사항](requirements.md)
@@ -1008,6 +1008,22 @@ Client inference Gameplay authority: `false`
 | `performance_budget` | `pending` |
 
 <!-- END AUTO-GENERATED BOSS PATTERN CONTRACT -->
+
+## BP.9 현재 Unreal 구현 메모
+
+이 표는 generated BP 계약을 수정하지 않고 현재 Unreal 진행 상황만 설명한다.
+
+| 범위 | 상태 |
+|---|---|
+| Data Asset·validator·bundle report | 구현; Definition JCS/cooked parity pending |
+| 32행 Hash·Hard Mask·Tensor Normalization | 구현·검증 완료 |
+| Utility·Decision Pipeline·Commit·Handoff | 구현·검증 완료 |
+| Neural raw-output canonicalization | 구현; NNE adapter와 ranking/tie/OOD pending |
+| Execution Safety Policy | 정책 구현; 실제 cleanup effect pending |
+| StateTree/C++ Executor·전투 효과·terminal unlock | pending |
+| Replication·Save/Load·quality·performance | pending |
+
+따라서 BP.8의 `unreal_pattern_runtime`은 계속 `pending`이다.
 
 # Appendix E. 품질·안전·성능 승인 기준
 

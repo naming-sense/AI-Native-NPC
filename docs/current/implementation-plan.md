@@ -2,7 +2,7 @@
 ## Phase·Owner·Reference Model·학습·릴리스 실행 계획
 
 - 문서 버전: **v0.4.6**
-- 개정일: 2026-08-03
+- 개정일: 2026-08-06
 - 주 독자: **ML, Data, Gameplay AI, Server, Unreal NNE, QA, Release 승인자**
 - 범위: **Phase·Owner·일정, Reference Model 구조, ML pipeline, Training Config, Checkpoint·Report, 구현 명령, release pipeline, 최종 승인 절차**
 - 상위 요구사항: [AI Native NPC 의사결정 시스템 요구사항](requirements.md)
@@ -25,6 +25,15 @@
 ## 2.1 Phase와 구현 범위
 
 Phase 0은 Perception→Utility Baseline→Commit 연결과 데이터 Capture를 검증한다. Phase 1은 구조화 계약 patch·Dataset·Neural·OOD·Calibration·승격 Gate를 적용한다. 각 Phase는 Runtime 경로와 검증 증거로 완료한다.
+
+현재 Unreal 구현은 전체 Phase 0 수직 슬라이스보다 Boss Pattern 하위 Core를 먼저 진행했다.
+
+| 현재 구현 | 상태 |
+|---|---|
+| 공통 Belief→Goal→17 Target Slot→272 Candidate→Skill Executor | 미구현 |
+| Boss Pattern Data Asset→Hard Mask→Tensor→Utility/Commit→Handoff | C++ Core 구현·31/31; Definition JCS/cooked parity pending |
+| Boss Pattern Phase Executor와 실제 전투 효과 | 미구현 |
+| Dataset·학습·ONNX·OOD·Calibration | 미구현 |
 
 ### 2.1.1 Phase 0 = MVP Vertical Slice
 
@@ -493,3 +502,15 @@ Schema 2.0 Freeze는 다음 항목을 모두 요구한다.
 새 patch는 YAML·generated artifacts·Golden·Decision Contract Hash를 포함한다.
 
 완료 전 상태는 Freeze·OOD Runtime 승격 대상에서 제외한다. 변경 이력은 `docs/history/requirements-history-v0.4.6.md`에 보관한다.
+
+## 8.2 2026-08-06 Unreal 진행 증거
+
+- Boss Pattern Automation: `31/31`, warning/failure/notRun `0/0/0`
+- Data Validation: `285 assets`, error/warning `0/0`
+- BossPatternValidation: `status=pass`, `issues=[]`
+- Generated contract sync: PASS
+- 완료 Core: Runtime Foundation, Utility/Commit, Decision Pipeline, Hard Mask, Tensor Normalization, Neural Output Canonicalization, Execution Safety Policy, Commit-bound Handoff
+- 남은 Runtime: 공통 NPC Phase 0, Pattern Phase Executor, 전투 효과, replication-save/load
+- 남은 ML/승격: ONNX/NNE parity, ranking/tie/OOD, Dataset, fairness/quality/performance
+
+위 증거는 Boss Pattern 선택 안전 Core의 단계 PASS다. Schema Freeze와 전체 제품 Release는 계속 NO-GO다.

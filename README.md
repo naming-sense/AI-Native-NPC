@@ -6,11 +6,15 @@ AI Native NPC는 NPC가 알고 있는 정보와 현재 Goal을 바탕으로 실�
 
 ## 현재 상태
 
-- 문서·Schema 계약: **v0.4.6 / Schema 2.0 RC5**
-- 기반 문서·Schema 하네스 검증: **보관 태그 기준 Freeze-ready**
-- 보스 전용 Pattern Selector 계약: **구조화 Schema·Python/C++ Golden 구현 / Unreal Runtime Gate 대기**
-- 현재 ML/NNE 구현 보강: **문서 반영 완료 / Runtime 증거 대기**
-- 실제 Unreal Runtime Gate: **구현 및 검증 대기**
+쉽게 말하면 **보스 공격 계획을 안전하게 고르고 전달하는 곳까지 구현**됐다. NPC 전체 판단과 실제 공격 실행은 아직 없다.
+
+- 현재 RC5 정적 계약: **v0.4.6 / Schema 2.0 RC5, 보관 하네스 검증 완료**
+- V1 보강 계약·최종 Freeze: **미완료**
+- 공통 NPC 판단: **목표·대상·272개 행동 후보·Skill 실행 구현 대기**
+- Boss Pattern C++ 선택 안전 Core: **승인 결과의 1회 전달까지 구현, Automation 31/31 통과**
+- Boss Pattern 남은 검증: **Definition JCS/cooked-content parity 대기**
+- Boss Pattern 실제 실행: **Phase 진행·애니메이션·Hitbox·Damage·Root Motion·종료 잠금 해제 구현 대기**
+- AI 모델과 전체 Release: **학습·ONNX·OOD·품질·성능 Gate가 남아 있어 NO-GO**
 
 ## 먼저 읽을 문서
 

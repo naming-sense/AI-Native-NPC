@@ -2,15 +2,15 @@
 ## UE 클라이언트·신경망·Goal·Typed Target·Schema 2.0 통합 기준
 
 - 문서 버전: **v0.4.6**
-- 문서 상태: **UE 5.7 RC5 Active Companion / Requirements Remediation Runtime Binding pending**
-- 개정일: 2026-08-03
+- 문서 상태: **Boss Pattern 선택 안전 Core Handoff까지 PASS / 공통 NPC Runtime·실제 Executor·ML/NNE pending**
+- 개정일: 2026-08-06
 - 문서 보강: **ML/NNE Implementation Supplement 1 + Requirements Review Remediation Binding Notice**
 - 대체 문서: 기존 `ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan.md` v0.3
 - 상위 요구사항: `requirements.md`
 - 공통 구현 계획: `implementation-plan.md`
 - 계약 부록: `contract-appendices.md`
 - Tensor 단일 원본: `ai_native_npc_schema_v2_0.yaml`
-- Requirements SHA-256: `d266edcc5927aa5f062326247a956a29361a360b3a471b302cc6ea3187a972a0`
+- Requirements SHA-256: `b8c9e5e3c79d047b55b5a4ad393aae388472baee4aa212ba998e5c0fb6262734`
 - Schema YAML SHA-256: `56deff3a5f55ddad30864bcf7df4d100d2f1c5472f86f0a8b9e2599044c37385`
 - Boss Pattern Contract SHA-256: `e4f828c114fcc5db1cb04b5d0a6e2b3d29dada7e45c60a3dd18c674baa78c789`
 - Skill Registry SHA-256: `08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8`
@@ -91,6 +91,19 @@ Phase 0은 조건부 GO다.
 - 실제 OOD/Critical case catalog와 non-vacuous Calibration group Gate
 
 따라서 이 문서의 기존 2-output descriptor, Goal Phase 표, latest-request-only 표현은 **RC5 active 구현 참고**일 뿐 새 목표 계약의 완료 증거가 아니다. 구조화된 Schema/Registry와 Generator를 patch하기 전 수기로 descriptor를 바꾸지 않는다. Requirements §10.6 backlog를 닫고 새 Decision Contract Hash가 발급되면 UE Runtime 절차와 공유 Contract Appendices를 함께 재생성·검증한다.
+
+## 0.2 현재 Unreal 구현 상태
+
+2026-08-06 기준 `D:\Codex-cli\NeuralProject\NeuralGame`은 Boss Pattern 선택 안전 Core를 먼저 구현했다.
+
+```text
+완료: Pattern Data Asset→Hard Mask→Tensor→Utility/Commit→one-shot Handoff
+대기: 공통 Belief→Goal→17 Target Slot→272 Candidate→Skill Executor
+대기: Pattern Phase Executor→Montage/Hitbox/Damage/Root Motion→terminal unlock
+대기: Dataset→학습→ONNX/NNE→ranking/tie/OOD/Calibration
+```
+
+최종 증거는 Boss Pattern Automation `31/31`, Data Validation `285/0/0`, BossPatternValidation `pass`, generated sync PASS다. 이 결과는 실제 전투 실행과 전체 AI Native NPC Runtime 완료를 뜻하지 않는다.
 
 ---
 

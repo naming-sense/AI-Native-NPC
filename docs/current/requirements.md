@@ -2,9 +2,9 @@
 ## Runtime·데이터·안전 계약
 
 - 문서 버전: **v0.4.6**
-- 개정일: 2026-08-03
+- 개정일: 2026-08-06
 - 적용 범위: **Unreal 클라이언트, 서버 Gameplay AI, Python 학습·평가 코드**
-- 현재 요약: **RC5 정적 계약과 Utility Baseline 구현은 진행 가능. V1 Neural·OOD·대량 데이터·최종 Freeze는 보류**
+- 현재 요약: **Boss Pattern 선택 안전 Core는 Handoff까지 구현. 공통 NPC Runtime·실제 Pattern Executor·ML/NNE·최종 Freeze는 보류**
 - 기계 판독 계약: **Schema 2.0.0 RC5**
 - 구현 계획: [AI Native NPC 구현 계획](implementation-plan.md)
 - 계약 부록: [AI Native NPC Contract Appendices](contract-appendices.md)
@@ -29,11 +29,14 @@ AI Native NPC는 **NPC가 현재 알고 있는 정보만으로 장기 목표 안
 | 항목 | 현재 상태 | 지금 할 수 있는 일 |
 |---|---|---|
 | RC5 Schema·Registry·Generated contract | 정적 검증과 Python↔C++ Golden 통과 | Utility Baseline 수직 슬라이스, 데이터 Capture, Commit 경로 구현 |
-| RC5 2-output Neural 연결 | 제한적 smoke 가능 | score와 parameter가 Unreal NNE까지 연결되는지만 확인 |
+| 공통 NPC Runtime | Belief·Goal·17 Target Slot·272 Candidate·Skill Executor 미구현 | 계약과 생성 Header를 기준으로 Phase 0 수직 슬라이스 구현 |
+| Boss Pattern 선택 안전 Core | C++ Core는 one-shot Handoff까지 구현, Automation 31/31; Definition JCS/cooked parity pending | 모델 없이 Utility 경로와 Commit/Handoff Core 검증 |
+| Boss Pattern 실제 실행 | StateTree/C++ Phase Executor와 전투 효과 미구현 | phase 전환 이벤트와 terminal unlock 권위 확정 |
+| RC5 2-output Neural 연결 | NNE/ONNX asset·adapter 없음 | generated I/O 계약과 raw-output canonicalization만 사용 가능 |
 | V1 Neural·OOD·Calibration | 구현 계약 보강 중 | 후속 Schema/Registry/Generator patch 전 품질 승격 금지 |
 | 대량 학습 데이터와 최종 Freeze | 준비되지 않음 | Runtime Gate와 Dataset Validator가 닫힐 때까지 보류 |
 
-`정적 검증 통과`의 범위는 Schema·생성 코드·Golden parity다. `후속 patch`는 현재 YAML 이후에 적용할 목표 계약이다.
+Boss Pattern의 `31/31`은 C++ 선택 안전 Core 테스트다. 공통 NPC Runtime, 실제 공격 실행, NNE/ONNX parity, 품질·성능 완료를 뜻하지 않는다. `정적 검증 통과`의 범위는 Schema·생성 코드·Golden parity다. `후속 patch`는 현재 YAML 이후에 적용할 목표 계약이다.
 
 ## 0.3 문서 범위
 
@@ -742,6 +745,25 @@ Pattern request는 공통 Attack Target의 허용된 Belief snapshot만 사용�
 `BranchWindow`가 응답 전에 닫히거나 Phase/Combat revision이 바뀌면 `PatternBoundaryClosed` 또는 stale failure로 거부한다. 현재 Pattern은 재선택 없이 authored 종료 경로를 계속하고 다음 유효 boundary에서 새 request를 만든다.
 
 정확한 Tensor field, enum, Data Asset 필드, hash 직렬화는 [Contract Appendices BP](contract-appendices.md#bp-auto-generated-boss-pattern-selector-계약)가 소유한다. Schema Harness 통과는 구조·생성·Python/C++ Candidate/Decision hash Golden 완료만 뜻한다. Pattern Asset Bundle digest의 Python↔Unreal Build Commandlet parity, Unreal Float parity, ONNX output parity, Unreal Pattern Runtime, fairness/quality, performance Gate는 실제 엔진 증거 전까지 pending이다.
+
+### 4.7.5 현재 Unreal 구현 상태
+
+2026-08-06 기준 구현은 Pattern을 안전하게 선택하고 `PreAttackTurn` 실행 snapshot을 최대 한 번 전달하는 곳까지 닫혔다.
+
+| 단계 | 상태 |
+|---|---|
+| Pattern Definition/Set Data Asset와 validator | Core 완료; Definition JCS/cooked parity pending |
+| 32행 layout·candidate/decision hash·Utility Profile | 완료 |
+| Hard Mask·Tensor Normalization | 완료 |
+| Utility fallback·Decision Pipeline·Commit | 완료 |
+| Neural raw-output finite/mask/parameter canonicalization | 완료 |
+| Execution Safety Policy와 Commit-bound Handoff | 완료 |
+| NNE/ONNX model adapter와 Neural ranking/tie/OOD | 미구현 |
+| StateTree/C++ phase executor와 terminal unlock | 미구현 |
+| Montage·Hitbox·Damage·Root Motion·cleanup effect | 미구현 |
+| Replication·Save/Load·fairness·performance | 미구현 |
+
+`unreal_pattern_runtime`은 실제 Phase Executor와 전투 효과가 닫힐 때까지 `pending`이다.
 
 ---
 
