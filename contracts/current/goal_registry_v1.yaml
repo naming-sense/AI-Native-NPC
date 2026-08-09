@@ -1,6 +1,6 @@
 registry:
   name: ai_native_npc_goal_registry
-  version: 1.0.1
+  version: 1.1.0
   schema_version: 2.0.0
   contract_revision: 2.0.0-rc5
 states:
@@ -39,6 +39,35 @@ arbitration:
   on_new_goal_activation_failure: keep_previous_active_goal
   terminal_goal_reactivation: false
   suspended_resume_order: same_selection_key
+trigger_contract:
+  allowed_kinds:
+  - event
+  - timer
+  - lifecycle
+  - server_control
+  active_v1_kinds:
+  - event
+  - timer
+  legacy_event_field_forbidden: true
+  timer_id_scope: goal_phase
+  timer_clock: server_monotonic_world_seconds
+  timer_duration_unit: second
+  timer_arm_on:
+    phase_entry: full_after_seconds
+    resume_same_phase: stored_remaining_ms
+    restart_phase_resume: full_after_seconds
+  timer_suspend_policy: pause_and_store_remaining_ms
+  timer_cancel_on: phase_exit_or_terminal
+  timer_expiry_policy: enqueue_once_then_evaluate_in_transition_order
+  absolute_goal_deadline_while_suspended: continues
+  save_load_policy: persist_timer_id_contract_duration_remaining_ms_and_resume_policy
+  wall_clock_forbidden: true
+  current_v1_counts:
+    event: 35
+    timer: 6
+  reserved_kinds:
+    lifecycle: reserved_until_field_contract_is_defined
+    server_control: reserved_until_field_contract_is_defined
 revision_contract:
   type: uint64_monotonic_per_npc
   increase_on:
@@ -51,6 +80,8 @@ revision_contract:
   - allowed_skill_set_changed
   - forbidden_skill_set_changed
   - deadline_contract_changed
+  - interruptibility_changed
+  - resume_policy_changed
   do_not_increase_on:
   - progress_value_changed
   - per_frame_timer_changed
@@ -119,12 +150,16 @@ goals:
       - Greet
       transitions:
       - order: 0
-        event: SoundHeard
+        trigger:
+          kind: event
+          event_type: SoundHeard
         guard: valid_disturbance_target
         to_goal: InvestigateDisturbance
         effect: request_new_goal
       - order: 1
-        event: SightAcquired
+        trigger:
+          kind: event
+          event_type: SightAcquired
         guard: social_subject
         to_phase: Observe
         effect: remain_and_replan
@@ -143,15 +178,22 @@ goals:
       - TurnTo
       transitions:
       - order: 0
-        event: SkillSucceeded
+        trigger:
+          kind: event
+          event_type: SkillSucceeded
         guard: orientation_complete
         to_phase: Navigate
       - order: 1
-        event: TargetInvalidated
+        trigger:
+          kind: event
+          event_type: TargetInvalidated
         guard: no_valid_snapshot
         terminal: Failed
       - order: 2
-        event: Timeout
+        trigger:
+          kind: timer
+          timer_id: phase_timeout
+          after_seconds: 2.0
         guard: phase_timeout
         terminal: Failed
     Navigate:
@@ -162,19 +204,28 @@ goals:
       - Flee
       transitions:
       - order: 0
-        event: SkillSucceeded
+        trigger:
+          kind: event
+          event_type: SkillSucceeded
         guard: arrived_at_snapshot
         to_phase: Search
       - order: 1
-        event: SkillFailed
+        trigger:
+          kind: event
+          event_type: SkillFailed
         guard: PathUnavailable
         terminal: Failed
       - order: 2
-        event: SightAcquired
+        trigger:
+          kind: event
+          event_type: SightAcquired
         guard: subject_identified
         to_phase: Resolve
       - order: 3
-        event: Timeout
+        trigger:
+          kind: timer
+          timer_id: phase_timeout
+          after_seconds: 15.0
         guard: phase_timeout
         terminal: Failed
     Search:
@@ -185,15 +236,22 @@ goals:
       - TurnTo
       transitions:
       - order: 0
-        event: SightAcquired
+        trigger:
+          kind: event
+          event_type: SightAcquired
         guard: subject_identified
         to_phase: Resolve
       - order: 1
-        event: SkillSucceeded
+        trigger:
+          kind: event
+          event_type: SkillSucceeded
         guard: search_budget_exhausted
         to_phase: Return
       - order: 2
-        event: Timeout
+        trigger:
+          kind: timer
+          timer_id: phase_timeout
+          after_seconds: 8.0
         guard: phase_timeout
         to_phase: Return
     Resolve:
@@ -206,11 +264,15 @@ goals:
       - Flee
       transitions:
       - order: 0
-        event: SkillSucceeded
+        trigger:
+          kind: event
+          event_type: SkillSucceeded
         guard: resolution_complete
         to_phase: Return
       - order: 1
-        event: TargetInvalidated
+        trigger:
+          kind: event
+          event_type: TargetInvalidated
         guard: no_valid_belief
         to_phase: Search
     Return:
@@ -220,11 +282,15 @@ goals:
       - Idle
       transitions:
       - order: 0
-        event: SkillSucceeded
+        trigger:
+          kind: event
+          event_type: SkillSucceeded
         guard: at_return_target
         terminal: Succeeded
       - order: 1
-        event: SkillFailed
+        trigger:
+          kind: event
+          event_type: SkillFailed
         guard: PathUnavailable
         terminal: Failed
 - id: 3
@@ -244,15 +310,22 @@ goals:
       - TurnTo
       transitions:
       - order: 0
-        event: SightAcquired
+        trigger:
+          kind: event
+          event_type: SightAcquired
         guard: boundary_intruder_is_primary_social_subject
         to_phase: Interact
       - order: 1
-        event: TargetInvalidated
+        trigger:
+          kind: event
+          event_type: TargetInvalidated
         guard: no_boundary_intruder
         to_phase: Return
       - order: 2
-        event: Timeout
+        trigger:
+          kind: timer
+          timer_id: phase_timeout
+          after_seconds: 4.0
         guard: phase_timeout
         terminal: Failed
     Interact:
@@ -264,19 +337,28 @@ goals:
       - Warn
       transitions:
       - order: 0
-        event: WarningIssued
+        trigger:
+          kind: event
+          event_type: WarningIssued
         guard: warning_delivered
         to_phase: Resolve
       - order: 1
-        event: SkillSucceeded
+        trigger:
+          kind: event
+          event_type: SkillSucceeded
         guard: subject_complied_before_warning
         to_phase: Return
       - order: 2
-        event: TargetInvalidated
+        trigger:
+          kind: event
+          event_type: TargetInvalidated
         guard: subject_left_boundary
         to_phase: Return
       - order: 3
-        event: Timeout
+        trigger:
+          kind: timer
+          timer_id: phase_timeout
+          after_seconds: 6.0
         guard: phase_timeout
         to_phase: Resolve
     Resolve:
@@ -289,21 +371,29 @@ goals:
       - Flee
       transitions:
       - order: 0
-        event: SkillSucceeded
+        trigger:
+          kind: event
+          event_type: SkillSucceeded
         guard: boundary_resolved
         to_phase: Return
       - order: 1
-        event: WarningIgnored
+        trigger:
+          kind: event
+          event_type: WarningIgnored
         guard: escalation_allowed
         to_phase: Resolve
         effect: remain_and_replan
       - order: 2
-        event: Damaged
+        trigger:
+          kind: event
+          event_type: Damaged
         guard: combat_goal_allowed
         to_goal: CombatEngage
         effect: request_new_goal
       - order: 3
-        event: TargetInvalidated
+        trigger:
+          kind: event
+          event_type: TargetInvalidated
         guard: subject_no_longer_relevant
         to_phase: Return
     Return:
@@ -313,11 +403,15 @@ goals:
       - Idle
       transitions:
       - order: 0
-        event: SkillSucceeded
+        trigger:
+          kind: event
+          event_type: SkillSucceeded
         guard: at_return_target
         terminal: Succeeded
       - order: 1
-        event: SkillFailed
+        trigger:
+          kind: event
+          event_type: SkillFailed
         guard: PathUnavailable
         terminal: Failed
 - id: 4
@@ -337,15 +431,21 @@ goals:
       - TakeCover
       transitions:
       - order: 0
-        event: SkillSucceeded
+        trigger:
+          kind: event
+          event_type: SkillSucceeded
         guard: combat_target_aligned
         to_phase: Resolve
       - order: 1
-        event: SightLost
+        trigger:
+          kind: event
+          event_type: SightLost
         guard: has_last_known_position
         to_phase: Search
       - order: 2
-        event: TargetInvalidated
+        trigger:
+          kind: event
+          event_type: TargetInvalidated
         guard: no_valid_combat_target
         to_phase: Return
     Resolve:
@@ -358,19 +458,27 @@ goals:
       - Flee
       transitions:
       - order: 0
-        event: SightLost
+        trigger:
+          kind: event
+          event_type: SightLost
         guard: has_last_known_position
         to_phase: Search
       - order: 1
-        event: SkillSucceeded
+        trigger:
+          kind: event
+          event_type: SkillSucceeded
         guard: combat_resolved
         to_phase: Return
       - order: 2
-        event: TargetInvalidated
+        trigger:
+          kind: event
+          event_type: TargetInvalidated
         guard: combat_target_invalid
         to_phase: Return
       - order: 3
-        event: ReservationLost
+        trigger:
+          kind: event
+          event_type: ReservationLost
         guard: cover_resource_lost
         to_phase: Resolve
         effect: remain_and_replan
@@ -383,15 +491,22 @@ goals:
       - TurnTo
       transitions:
       - order: 0
-        event: SightAcquired
+        trigger:
+          kind: event
+          event_type: SightAcquired
         guard: combat_target_reacquired
         to_phase: Resolve
       - order: 1
-        event: SkillSucceeded
+        trigger:
+          kind: event
+          event_type: SkillSucceeded
         guard: search_budget_exhausted
         to_phase: Return
       - order: 2
-        event: Timeout
+        trigger:
+          kind: timer
+          timer_id: phase_timeout
+          after_seconds: 5.0
         guard: phase_timeout
         to_phase: Return
     Return:
@@ -402,11 +517,15 @@ goals:
       - TakeCover
       transitions:
       - order: 0
-        event: SkillSucceeded
+        trigger:
+          kind: event
+          event_type: SkillSucceeded
         guard: combat_exit_complete
         terminal: Succeeded
       - order: 1
-        event: SkillFailed
+        trigger:
+          kind: event
+          event_type: SkillFailed
         guard: PathUnavailable
         terminal: Failed
 - id: 5

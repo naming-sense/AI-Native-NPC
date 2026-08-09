@@ -43,7 +43,7 @@ constants:
   goal_deadline_max_s: 120.0
   count_max: 8.0
   schema_contract_revision: 2.0.0-rc5
-  goal_registry_version: 1.0.1
+  goal_registry_version: 1.1.0
   goal_priority_max: 255.0
   long_duration_max_s: 30.0
   slotter_confidence_scale: 1000
@@ -398,7 +398,8 @@ score_contract:
   raw_score_clamp:
   - -2.5
   - 2.5
-  formula: clamp(cosine(q,key)/temperature + skill_bias + target_kind_bias, raw_min, raw_max)
+  formula: clamp(cosine(q,key)/temperature + skill_bias + target_kind_bias, raw_min,
+    raw_max)
   switch_cost:
     min: 0.0
     max: 1.0
