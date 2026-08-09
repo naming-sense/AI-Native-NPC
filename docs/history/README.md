@@ -1,11 +1,19 @@
 # AI Native NPC 문서 이력
 
-이 폴더는 현재 구현에 직접 적용하지 않는 변경 기록을 보관합니다. 지금 읽고 구현할 기준은 [`docs/current/requirements.md`](../current/requirements.md)에서 시작하는 현행 문서 네 개입니다.
+이 폴더는 현재 구현에 직접 적용하지 않는 변경 기록을 보관합니다. 지금 읽고 구현할 기준은 쉬운 [`requirements.md`](../current/requirements.md)에서 시작하고, 정확한 구현 규칙은 [`technical-requirements.md`](../current/technical-requirements.md)로 이어지는 현행 문서 다섯 개입니다.
 
 ## 개정 이력
 
+- [Requirements History v0.4.12](requirements-history-v0.4.12.md)
+  - 초보자용 제품 요구사항과 세부 기술 요구사항을 분리하고 목차·읽기 순서를 바로잡았습니다.
+- [Requirements History v0.4.11](requirements-history-v0.4.11.md)
+  - Goal Registry `1.1.0`, timer snapshot/CAS, limited Core RED와 Gameplay FSM HOLD 경계를 현행 문서 전체에 동기화했습니다.
+- [Requirements History v0.4.10](requirements-history-v0.4.10.md)
+  - Boss Pattern encounter Session Host와 Commit→StateTree start handoff phase PASS를 기록합니다.
+- [Requirements History v0.4.9](requirements-history-v0.4.9.md)
+  - Boss Pattern encounter Pawn/AIController physical assembly phase PASS를 기록합니다.
 - [Requirements History v0.4.6](requirements-history-v0.4.6.md)
-  - 현재 요구사항의 상태 변경, 검증 판정, 완료된 remediation을 기록합니다.
+  - 이전 요구사항의 상태 변경, 검증 판정, 완료된 remediation을 기록합니다.
 
 ## 검토 기록
 

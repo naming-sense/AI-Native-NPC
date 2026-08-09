@@ -1,20 +1,22 @@
 # AI Native NPC — Unreal Engine 5.7 / Manny·Quinn 공간·시야·소리 통합 구현 계획서
 ## UE 클라이언트·신경망·Goal·Typed Target·Schema 2.0 통합 기준
 
-- 문서 버전: **v0.4.6**
-- 문서 상태: **Boss Pattern 선택 안전 Core Handoff까지 PASS / 공통 NPC Runtime·실제 Executor·ML/NNE pending**
-- 개정일: 2026-08-06
+- 문서 버전: **v0.4.12**
+- 문서 상태: **Boss Pattern production StateTree·fixture-backed encounter Host/start handoff phase PASS / Goal Registry 1.1.0 consumer sync PASS / Goal Dispatcher·Timer Core RED / production Belief·Goal·Typed Target·guard/effect provider·전투 효과·ML/NNE pending**
+- 개정일: 2026-08-10
 - 문서 보강: **ML/NNE Implementation Supplement 1 + Requirements Review Remediation Binding Notice**
 - 대체 문서: 기존 `ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan.md` v0.3
-- 상위 요구사항: `requirements.md`
+- 제품 요구사항: `requirements.md`
+- 세부 기술 요구사항: `technical-requirements.md`
 - 공통 구현 계획: `implementation-plan.md`
 - 계약 부록: `contract-appendices.md`
 - Tensor 단일 원본: `ai_native_npc_schema_v2_0.yaml`
-- Requirements SHA-256: `b8c9e5e3c79d047b55b5a4ad393aae388472baee4aa212ba998e5c0fb6262734`
-- Schema YAML SHA-256: `56deff3a5f55ddad30864bcf7df4d100d2f1c5472f86f0a8b9e2599044c37385`
+- Requirements SHA-256: `9eb3daf344b269b33d288408f56f8b5922c230e29cc36fff369a7cb630cdb398`
+- Technical Requirements SHA-256: `810f1669690f9205a2a9c090896fe49e2cd6501c5ca9eb0fa133ae42825c7e83`
+- Schema YAML SHA-256: `a7791004de0534f29198ebf5eaaff7cd764185b59b05446d419f5d0a3303f886`
 - Boss Pattern Contract SHA-256: `e4f828c114fcc5db1cb04b5d0a6e2b3d29dada7e45c60a3dd18c674baa78c789`
 - Skill Registry SHA-256: `08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8`
-- Goal Registry SHA-256: `b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2`
+- Goal Registry SHA-256: `ede7aaba704ecbbd9c6e1cb649c87e03fd24e9dc71ea4166f82baa42fb00ee43`
 - Test Taxonomy SHA-256: `2c4f911c23c8502231351fd2a1ffc606a04c29c4c3e39ea384099462811dad79`
 - ML 구현 프로필: **`policy_arch_v1.0.0` / `policy_train_v1.0.0` / ONNX opset 17**
 - Phase 0 판정: **조건부 GO — Utility Baseline/RC5 smoke 한정**
@@ -22,7 +24,7 @@
 - Schema 2.0 최종 Freeze: **NO-GO — 생성 계약과 Unreal Runtime Gate 재승격 필요**
 
 > 이 문서는 Unreal Engine 5.7 Third Person 프로젝트에서 Quinn을 플레이어로 유지하고, Manny를 학습 기반 NPC로 적용하기 위한 엔진 구현 기준서다.  
-> Tensor·Enum·Padding·Normalization·Hash가 충돌하면 본문보다 `ai_native_npc_schema_v2_0.yaml`이 우선하고, Goal·Target·Commit 책임이 충돌하면 상위 v0.4.6 요구사항이 우선한다.
+> Tensor·Enum·Padding·Normalization·Hash가 충돌하면 본문보다 `ai_native_npc_schema_v2_0.yaml`이 우선하고, Goal·Target·Commit의 세부 동작이 충돌하면 v0.4.12 세부 기술 요구사항이 우선한다.
 
 ---
 
@@ -60,7 +62,7 @@ v0.4.6까지 누적된 추가 계약:
 
 - 공유 Contract Appendices의 A~D를 YAML·Registry에서 자동 생성하고 strict parity 검사
 - Normalizer의 역전 범위, 0 이하 divisor, log1p 정의역, sentinel/valid-range 충돌을 release 전에 hard reject
-- Candidate/Decision Hash field order·magic·endianness를 YAML에서 Python/C++ 및 Appendix D.3·D.4로 생성
+- Candidate/Decision Hash field order·magic·endianness를 YAML에서 Python/C++ 및 Appendix D.6·D.7로 생성
 - Decision Contract Hash Golden parity와 semantic mutation regression test 추가
 - 자동 생성 Appendix 밖의 manual hash literal을 strict validation에서 거부
 - constant/missing/must_equal/padding_zero 의미 교차검증과 동적 mutation probe 추가
@@ -78,32 +80,41 @@ Phase 0은 조건부 GO다.
 - [§5 Training Config·Checkpoint·Report](implementation-plan.md#5-training-config와-checkpointreport)
 - [§6 구현 명령과 Phase](implementation-plan.md#6-구현-저장소-명령과-phase-구분)
 
-현 RC5 Schema·Registry 값은 유지한다. Phase 0은 fixture model로 ONNX Import→NNE→score/parameter Post-process→Commit/Fallback 경로를 먼저 증명한다.
+현 RC5 tensor/wire layout은 유지한다. Goal Registry는 `1.1.0` typed trigger authority를 사용한다. Phase 0은 fixture model로 ONNX Import→NNE→score/parameter Post-process→Commit/Fallback 경로를 먼저 증명한다.
 
 ## 0.1 Requirements Review Remediation Binding Notice
 
-2026-08-02 상위 기준서는 다음 목표 계약을 추가했으나 현재 RC5 YAML/Generated/UE Appendix에는 아직 반영되지 않았다.
+2026-08-02 상위 기준서가 추가한 목표 중 다음 항목은 아직 현재 RC5 YAML/Generated/UE Appendix에 반영되지 않았다.
 
 - 세 번째 ONNX output `tactical_context [B,128]`과 binary64/quantized OOD parity
 - Dataset Record v2 Switch Cost component와 feature/content/sample hash
-- Goal typed trigger·phase timer·revision/arbitration 계약
 - `IdentityKey` same-target 비교와 non-material stale 50ms contract
 - 실제 OOD/Critical case catalog와 non-vacuous Calibration group Gate
 
-따라서 이 문서의 기존 2-output descriptor, Goal Phase 표, latest-request-only 표현은 **RC5 active 구현 참고**일 뿐 새 목표 계약의 완료 증거가 아니다. 구조화된 Schema/Registry와 Generator를 patch하기 전 수기로 descriptor를 바꾸지 않는다. Requirements §10.6 backlog를 닫고 새 Decision Contract Hash가 발급되면 UE Runtime 절차와 공유 Contract Appendices를 함께 재생성·검증한다.
+Goal typed trigger·phase timer·revision authority는 Goal Registry `1.1.0`과 generated Python/C++/Appendix에 반영됐다. transition은 35 event + 6 timer이며 production 초기 duration은 [세부 기술 요구사항 §5.9](technical-requirements.md#59-typed-goal-trigger와-phase-timeout)와 Registry가 소유한다. authority commit `2770b4a5a3aebd430420e5b330441aa044cc7db5` 기준 consumer sync/lock도 PASS했다. 다만 consumer에는 `GoalFsmRuntimeTests.cpp` RED 테스트만 있고 Runtime `.h/.cpp`와 server Timer Component는 아직 없다. 따라서 Contract Dispatcher·Timer Core, Production Integration, Gameplay Goal FSM은 모두 PASS가 아니다.
+
+따라서 이 문서의 기존 2-output descriptor와 latest-request-only 표현은 **RC5 active 구현 참고**일 뿐 새 목표 계약의 완료 증거가 아니다. Goal Phase는 generated Registry table을 사용하고, 나머지 구조화된 Schema/Dataset patch는 수기로 선반영하지 않는다. [세부 기술 요구사항 §10.6](technical-requirements.md#106-rc5-구조화-계약-remediation-상태)의 미완료 remediation을 닫고 새 Decision Contract Hash가 발급되면 UE Runtime 절차와 공유 Contract Appendices를 함께 재생성·검증한다.
 
 ## 0.2 현재 Unreal 구현 상태
 
-2026-08-06 기준 `D:\Codex-cli\NeuralProject\NeuralGame`은 Boss Pattern 선택 안전 Core를 먼저 구현했다.
+2026-08-10 기준 `D:\Codex-cli\NeuralProject\NeuralGame`은 Boss Pattern selection/Commit부터 encounter Host의 Commit→StateTree start handoff까지 단계적으로 구현했다. Goal FSM은 generated 계약 배포 뒤 RED 테스트 단계다.
 
 ```text
 완료: Pattern Data Asset→Hard Mask→Tensor→Utility/Commit→one-shot Handoff
-대기: 공통 Belief→Goal→17 Target Slot→272 Candidate→Skill Executor
-대기: Pattern Phase Executor→Montage/Hitbox/Damage/Root Motion→terminal unlock
+완료: Session-owned Event-driven Phase Executor→terminal barrier/unlock C++ Core
+완료: production event-source/session adapter→production StateTree asset→encounter Pawn/Controller physical assembly
+완료: authoritative Session Host→Commit 뒤 StateTree start handoff·start-failure terminalization
+완료: Goal Registry 1.1.0 generated binding→consumer provenance lock/sync
+RED: Goal Contract Dispatcher·Timer Core Automation test
+대기: GoalFsmRuntime.h/.cpp→server Timer Runtime Component
+대기: production Belief→Goal producer→Typed Target→29 guard·2 effect provider→전체 arbitration/save archive
+대기: production PatternSet/selector trigger→authored transition/condition→Montage/Hitbox/Damage/Root Motion
 대기: Dataset→학습→ONNX/NNE→ranking/tie/OOD/Calibration
 ```
 
-최종 증거는 Boss Pattern Automation `31/31`, Data Validation `285/0/0`, BossPatternValidation `pass`, generated sync PASS다. 이 결과는 실제 전투 실행과 전체 AI Native NPC Runtime 완료를 뜻하지 않는다.
+현재 Executor authority는 [세부 기술 요구사항 §4.7.6](technical-requirements.md#476-event-driven-phase-executor-권위-계약)·[§4.7.7](technical-requirements.md#477-completedinterrupted-terminal-unlock-계약)이 소유한다. Phase write 권한은 Session-owned server Executor 하나에 있고, 외부 producer는 identity·phase revision·sequence에 결속된 사실만 전달한다. terminal callback Success 전에 active lock을 해제하지 않으며 public clear/phase setter를 제공하지 않는다.
+
+Boss Pattern Host 증거는 focused `2/2`, broad `53/53`, Data Validation `290/0/0`, clean+cold UBT/UHT, generated lock sync, MCP restart Host/Session/EventSource `1/1/1`, 독립 review `Critical 0 / Important 0 — GO`다. Goal 증거는 contract focused `20/20`, full harness `67/67`, C++17 parity, consumer sync `--check` PASS까지다. Goal Runtime 구현과 실제 gameplay provider 증거는 없으므로 Goal Core·Production Integration·Gameplay Goal FSM을 PASS로 해석하지 않는다.
 
 ---
 
@@ -296,11 +307,12 @@ IdleObserve
 # 3. 저장소와 단일 계약 관리
 
 ```text
-AI-Native-NPC                         # 계약 저장소, 현재 main 핵심 9개
+AI-Native-NPC                         # 계약 저장소, 현재 main 핵심 10개
   contracts/current/*.yaml
   generated/python/ai_native_npc_contracts_generated.py
   generated/cpp/AINativeNPCContracts.generated.h
   docs/current/requirements.md
+  docs/current/technical-requirements.md
   docs/current/unreal-implementation-plan.md
 
 AI-Native-NPC-Unreal                  # 실제 구현 저장소
@@ -342,10 +354,11 @@ Unreal 구현 저장소는 임의의 최신 계약을 따라가지 않는다. `A
 
 ## 3.1 계약 우선순위
 
-1. `ai_native_npc_schema_v2_0.yaml`: Tensor, enum, padding, normalization, hash
-2. 상위 v0.4.6 요구사항: Goal, Target, Candidate, Commit, KPI
-3. 본 UE 문서: Unreal 클래스와 실행 방식
-4. Data Asset: 튜닝 가능한 센서·Skill 파라미터
+1. 현행 5개 YAML 기계 계약: Schema, Skill Registry, Goal Registry, Test Taxonomy, Boss Pattern Contract
+2. v0.4.12 세부 기술 요구사항: Goal, Target, Candidate, Commit, KPI
+3. v0.4.12 제품 요구사항: 목적, 흐름, 책임, 현재 상태
+4. 본 UE 문서: Unreal 클래스와 실행 방식
+5. Data Asset: 상위 계약이 허용한 범위의 센서·Skill 파라미터만 튜닝
 
 ## 3.2 Code Generation
 
@@ -1096,7 +1109,7 @@ Inactive → Active → Succeeded / Failed / Aborted
 작은 tuple이 우선한다.
 
 ```text
-(-priority, -source_priority, created_at, goal_instance_id)
+(-priority, -source_priority, created_time_quantized_ms, goal_instance_id)
 ```
 
 Source:
@@ -1142,46 +1155,61 @@ Resume Policy:
 - Belief Revision 변화
 - Candidate score 변화
 
-## 10.5 Phase 0 FSM — IdleObserve
+## 10.5 Generated Goal FSM 사용 규칙
 
-| Phase | Trigger | Guard | Action | Next |
-|---|---|---|---|---|
-| Observe | OnEnter | 없음 | Idle/관찰 Candidate 허용 | Observe |
-| Observe | SoundHeard | confidence ≥0.40, TTL 유효 | InvestigateDisturbance 생성 | arbitration |
-| Observe | Timeout | 없음 | 유지 | Observe |
-| Observe | ForceAbort | 없음 | 종료 | Aborted |
+Goal/phase/allowed-skill/transition 표의 단일 원본은 `goal_registry_v1.yaml`과 generated `GoalDefinitionSpecs`, `GoalPhaseSpecs`, `GoalTransitionSpecs`다. 이 문서에 두 번째 수기 Phase 표를 유지하지 않는다.
 
-## 10.6 Phase 0 FSM — InvestigateDisturbance
+현재 V1 계약:
 
-| Phase | Trigger | Guard | Allowed Skill | Next/Result |
-|---|---|---|---|---|
-| Orient | OnEnter | target valid | TurnTo, Continue | Orient |
-| Orient | TurnTo 성공 | 없음 | — | Navigate |
-| Orient | 1.5초 timeout | target valid | — | Navigate |
-| Orient | TargetExpired | 없음 | — | Failed |
-| Navigate | OnEnter | Believed Position path 가능 | Approach, Investigate, Continue | Navigate |
-| Navigate | 도착 ≤150cm | 없음 | — | Search |
-| Navigate | PathUnavailable | 없음 | — | Failed |
-| Navigate | 8초 timeout | 없음 | — | Failed |
-| Search | OnEnter | search budget 5초 | SearchArea, TurnTo, Continue | Search |
-| Search | SightAcquired(subject) | attribution ≥0.7 | — | Succeeded |
-| Search | budget 만료 | 없음 | — | Return |
-| Return | OnEnter | home Waypoint valid | Approach, Continue | Return |
-| Return | 도착 ≤100cm | 없음 | — | Succeeded |
-| Return | 10초 timeout | 없음 | — | Failed |
+```text
+Registry             1.1.0
+Goal                  4개
+Goal/phase pair       14개
+Transition            41개
+Typed trigger         35 event + 6 timer
+Legacy event field    금지
+Timer clock           server_monotonic_world_seconds
+Production timeout    2 / 15 / 8 / 4 / 6 / 5초
+```
+
+Timeout은 정상 completion event가 누락됐을 때의 fallback이다. expiry는 typed timer trigger를 한 번 queue할 뿐 `phase_timeout` guard를 자동 true로 만들지 않는다. trusted host가 guard 판정을 제공하지 않으면 fail-closed한다.
+
+## 10.6 Contract Dispatcher·Timer Core 구현 경계
+
+현재 consumer에는 generated binding과 provenance lock, `GoalFsmRuntimeTests.cpp` RED 테스트가 있다. `GoalFsmRuntime.h/.cpp`, `GoalFsmRuntimeComponent.h/.cpp`는 아직 없다.
+
+제한 Core가 구현할 범위:
+
+- generated 41-row lookup과 `order` 평가
+- trusted-host-created single Goal session의 Active/Suspended/Terminal 상태
+- phase entry full timer, `ResumeSamePhase` stored remaining, `RestartPhase` interrupted phase full rearm
+- phase exit/terminal cancel, expiry one-shot queue, stale token 폐기
+- versioned timer snapshot과 `expected_current_token` CAS load
+- 같은 World의 `GetTimeSeconds()`·`FTimerManager`; pause 시 정지, time dilation 적용
+- opaque guard/effect fail-closed와 detached terminal snapshot
+
+구현하지 않는 범위:
+
+- Belief/Goal/Typed Target producer와 production Pawn 설치
+- 29개 gameplay guard·2개 effect semantics
+- Emergency/ForceAbort/PhaseBoundary 전체 arbitration
+- Inactive/Suspended collection과 full Goal archive/save
+- production PatternSet/selector trigger
+
+따라서 판정은 `Binding/Provenance PASS`, `Contract Dispatcher·Timer Core RED`, `Production Integration HOLD`, `Gameplay Goal FSM HOLD`로 분리한다.
 
 ## 10.7 Skill Result 연결
 
-Skill Executor는 terminal 결과를 Goal Manager에 전달한다.
+Skill Executor의 trusted event producer는 generated `event_type`으로 typed fact를 전달한다.
 
 ```text
 SkillSucceeded
-SkillFailed(PathUnavailable)
+SkillFailed
 SkillInterrupted
 ReservationLost
 ```
 
-Goal Manager가 Phase를 바꾸면 `goal_revision`을 올리고 현재 inference를 supersede한다.
+Goal Runtime은 현재 Goal/phase/token과 일치하는 row만 평가하고, guard/effect 의미를 event 이름에서 추측하지 않는다. Phase가 실제로 바뀐 뒤에만 `goal_revision`을 올리고 이전 inference를 supersede한다.
 
 ---
 
@@ -1559,7 +1587,7 @@ V1 Reference Model은 `policy_arch_v1.0.0`이다. Event Buffer를 사용하고 G
 
 - Layer·초기화: [공통 구현 계획 §3](implementation-plan.md#reference-model)
 - Optimizer: [공통 구현 계획 §5](implementation-plan.md#training-config)
-- Loss: [Requirements §9.11](requirements.md#911-loss-contract)
+- Loss: [세부 기술 요구사항 §9.11](technical-requirements.md#911-loss-contract)
 
 ```text
 global_state [128]
@@ -1704,11 +1732,11 @@ Policy Manifest 필수 필드:
 ```json
 {
   "schema_version": "2.0.0",
-  "schema_sha256": "424898ba9e80ff8ac7ad4d48a806f8606d2c595ec892d2753becbdaa3e47b6cc",
+  "schema_sha256": "a7791004de0534f29198ebf5eaaff7cd764185b59b05446d419f5d0a3303f886",
   "skill_registry_version": "1.0.0",
   "skill_registry_sha256": "08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8",
-  "goal_registry_version": "1.0.1",
-  "goal_registry_sha256": "b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2",
+  "goal_registry_version": "1.1.0",
+  "goal_registry_sha256": "ede7aaba704ecbbd9c6e1cb649c87e03fd24e9dc71ea4166f82baa42fb00ee43",
   "target_slotter_version": "1.0.0",
   "slotter_contract_sha256": "...",
   "postprocess_version": "1.0.0",
@@ -1769,7 +1797,7 @@ Phase 1:
 - Calibration/OOD asset 동결
 - General/OOD/Critical/Performance Gate 후 V1 bundle 승격
 
-Capture Record는 상위 요구사항 §9.9의 10개 input tensor, label, provenance를 그대로 사용한다. Unreal debug/replay shard의 Actor pointer·이름·absolute transform은 학습 input shard로 복사하지 않는다.
+Capture Record는 [세부 기술 요구사항 §9.9](technical-requirements.md#99-dataset-record-v2)의 10개 input tensor, label, provenance를 그대로 사용한다. Unreal debug/replay shard의 Actor pointer·이름·absolute transform은 학습 input shard로 복사하지 않는다.
 
 ---
 
@@ -3383,3 +3411,82 @@ Scenarios/NPCMannyQuinnScenarioTest.cpp
 
 - [Schema·Registry Appendix A–D](contract-appendices.md#appendix-ad-auto-generated-schemaregistry-계약)
 - [UE 구현 승인 체크리스트](contract-appendices.md#ue-구현-승인-체크리스트)
+
+---
+
+## 2026-08-08 Boss Pattern Production Event-source Adapter Closure
+
+구현:
+
+- opaque execution-bound Turn/Combat producer bindings
+- private trusted `CaptureExecutionEvent(Query)` transport와 single logical clock ledger
+- `FStateTreeBossPatternPreAttackTurnTask`: exact context owner, `5°/2s`, committed yaw cap, timeout tie
+- typed Combat lifecycle ingress와 own-receipt bounded pump
+- production Session owner/trusted authority/atomic source bind rollback
+- callback 중 authority loss cleanup
+- move-only terminal drain handoff for async ActorDestroyed/AuthorityLost
+
+검증:
+
+- cold UBT/UHT `226/226`
+- focused `7/7`
+- full Boss Pattern `48/48`
+- Data Validation `285 / 0 errors / 0 warnings`
+- generated sync PASS
+- SARIF `72 / 0`
+- MCP UE `5.7.4`, tools `524`, health `ok`, CDO `5°/2s`, typed asset inspect `ok`, current-session touched `0`, blocking dirty `0`
+
+판정은 **production event-source adapter C++ phase PASS**다. 이 기록 뒤 production StateTree asset과 encounter Blueprint physical assembly를 별도 phase로 닫았다. authoritative Session host/start handoff, 실제 전투 effect, replication/save-load, ML/NNE는 release-green 범위 밖이며 계속 pending이다.
+
+---
+
+## 2026-08-08 Boss Pattern Encounter Blueprint Assembly Closure
+
+구현:
+
+- production Pawn `/Game/AINativeNPC/BossPattern/Encounter/BP_BossPatternEncounterPawn`
+- production Controller `/Game/AINativeNPC/BossPattern/Encounter/BP_BossPatternEncounterAIController`
+- Pawn Session/EventSource component 각각 정확히 1개
+- exact `AIControllerClass`, `AutoPossessAI=PlacedInWorldOrSpawned`
+- inherited `StateTreeAI` exact production asset, child-local duplicate 0, `bStartLogicAutomatically=false`
+- Controller `bStartAILogicOnPossess=false`
+- 모든 child-authored graph actual target-function bypass call 0
+
+검증:
+
+- `NeuralGameEditor` cold build PASS
+- focused content/runtime `2/2`
+- full Boss Pattern `51/51`
+- Data Validation `290 / 0 errors / 0 warnings`
+- generated contract lock sync PASS
+- NeuralGame SARIF `74 / 0`; 변경된 MCP 파일 `0`
+- restart registry/disk exact `1/1`, defaults/component/StateTreeRef persistence PASS
+- begun-play game World `AutoPossessAI` automatic Controller spawn/possession(manual fallback 없음)·authority·pointer identity·Session not-ready·StateTree stopped PASS
+- map dirty/unsaved `false/false`, active/interrupted ChangeSet `0`
+- final independent MCP/encounter re-review `Critical 0 / Important 0 — GO`
+
+판정은 **encounter Blueprint physical assembly phase PASS**다. Session은 host가 없어 의도적으로 not-ready이며 StateTree도 committed handoff 전 stopped다. 이 문단은 당시 phase 판정이며 현재 상태는 아래 §4.7.11이 supersede한다. authored transition/condition과 Montage·Hitbox·Damage·Root Motion은 그 이후다.
+
+## 4.7.11 Encounter Session Host / Start Handoff — COMPLETE (2026-08-09)
+
+Production Pawn에 `UBossPatternEncounterHostComponent` exact-one을 추가했다. Host는 exact production Pawn generated class, server authority, Host/Session/EventSource exact-one을 확인한 뒤 private friend 경로로 Session host를 BeginPlay one-shot 설치한다. public gameplay C++는 Host를 선점하거나 pending/Commit Core를 직접 호출할 수 없다.
+
+Host는 private unique-owned authority provider를 사용한다. selection snapshot과 Commit-time current state는 별도로 capture되고, typed `(TargetHandle, Actor)` binding은 exact StableId·Generation·Revision, Actor, World, owner까지 재검증된다. shipping concrete provider는 아직 없으며 dev Automation fixture provider만 있다. 따라서 이 phase는 production selector 완료가 아니라 host/start plumbing PASS다.
+
+Commit 성공 뒤 exact inherited `StateTreeAI`와 production StateTree provenance를 다시 검사하고 `StartLogic()`을 한 번 호출한다. `PreAttackTurn` 진입은 durable Turn binding acquisition과 exact decision/generation의 queued success fact로 확인한다. 즉시 완료는 transient `IsRunning()`에 의존하지 않는다.
+
+start/Task-entry 실패는 dedicated `ExecutionHost` one-shot slot·sequence·high-water로 `ExecutionStartFailed`를 보고해 즉시 terminalize한다. Combat pending fact와 충돌하지 않으며, binding/reservation cleanup은 exact-one이고 selection은 Success-unlock 없이 fail-closed다. authority-loss poll은 durable completed claim이 없으면 `Success`를 반환하지 않는다.
+
+검증:
+
+- exact focused: `2/2`, warnings/failures `0/0`
+- broad Boss Pattern: `53/53`, warnings/failures `0/0`
+- hostile: client, foreign Pawn, duplicate Host, replay, stale revisions, same-handle foreign Actor, same-Actor stale generation, StateTree preflight reject
+- fault: pending combat collision, failure report/Pump/terminal callback `+1`, Task acquisition `0`, retry counters 불변
+- clean+cold UBT/UHT: PASS
+- Data Validation: `290 / 0 errors / 0 warnings`
+- generated contract lock: source/generated sync
+- changed-file SARIF: `15 files / 0 results`
+- restart MCP: Host/Session/EventSource `1/1/1`, StateTree ready/hash/clean, map dirty/unsaved `false/false`, active/interrupted ChangeSet `0/0`
+
+다음 구현은 common Belief/Goal/Typed-Target에서 값을 공급하는 concrete gameplay authority provider, production PatternSet/selector trigger, authored transitions/conditions, combat effects다. replication/save-load도 아직 범위 밖이다.

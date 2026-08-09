@@ -1,11 +1,12 @@
 # AI Native NPC Contract Appendices
 ## 생성 Schema·Registry 계약과 승인 기준
 
-- 문서 버전: **v0.4.6**
-- 개정일: 2026-08-06
+- 문서 버전: **v0.4.12**
+- 개정일: 2026-08-10
 - 주 독자: **Gameplay AI, ML, Data, Unreal NNE, QA, Release 승인자**
 - 범위: **Appendix A–D generated 공통 계약, Appendix BP generated Boss Pattern 계약, Appendix E 품질·안전·성능 Gate, UE 구현 승인 체크리스트**
-- 상위 요구사항: [AI Native NPC 의사결정 시스템 요구사항](requirements.md)
+- 제품 요구사항: [AI Native NPC 제품 요구사항](requirements.md)
+- 세부 기술 요구사항: [AI Native NPC 세부 기술 요구사항](technical-requirements.md)
 - 구현 계획: [AI Native NPC 구현 계획](implementation-plan.md)
 - Unreal 구현 계획: [UE 5.7 Manny·Quinn 구현 계획](unreal-implementation-plan.md)
 
@@ -25,9 +26,9 @@ Appendix A–D는 Schema와 Registry에서 생성한 enum ID·Tensor index·Targ
 
 - Generator: `0.4.6`
 - Contract revision: `2.0.0-rc5`
-- Schema SHA-256: `56deff3a5f55ddad30864bcf7df4d100d2f1c5472f86f0a8b9e2599044c37385`
+- Schema SHA-256: `a7791004de0534f29198ebf5eaaff7cd764185b59b05446d419f5d0a3303f886`
 - Skill Registry SHA-256: `08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8`
-- Goal Registry SHA-256: `b6ed883e39f8da4f792b2ad4542b4cf7045ff5fe00147a9eba15eac61fa67ac2`
+- Goal Registry SHA-256: `ede7aaba704ecbbd9c6e1cb649c87e03fd24e9dc71ea4166f82baa42fb00ee43`
 - Test Taxonomy SHA-256: `2c4f911c23c8502231351fd2a1ffc606a04c29c4c3e39ea384099462811dad79`
 
 ## A. Constants와 Enum
@@ -65,7 +66,7 @@ Appendix A–D는 Schema와 Registry에서 생성한 enum ID·Tensor index·Targ
 | `goal_deadline_max_s` | `120.0` |
 | `count_max` | `8.0` |
 | `schema_contract_revision` | `2.0.0-rc5` |
-| `goal_registry_version` | `1.0.1` |
+| `goal_registry_version` | `1.1.0` |
 | `goal_priority_max` | `255.0` |
 | `long_duration_max_s` | `30.0` |
 | `slotter_confidence_scale` | `1000` |
@@ -656,7 +657,102 @@ Appendix A–D는 Schema와 Registry에서 생성한 enum ID·Tensor index·Targ
 | 6 | `Escort` | `-` | - | `-` | `-` | `-` |
 | 7 | `Reserved` | `-` | - | `-` | `-` | `-` |
 
-### D.3 Hash: candidate_set_hash
+### D.3 Goal Transition Trigger
+
+| Goal | Phase | Order | Typed trigger | Guard | Destination | Effect |
+|---|---|---:|---|---|---|---|
+| `IdleObserve` | `Observe` | 0 | `{"event_type":"SoundHeard","kind":"event"}` | `valid_disturbance_target` | `{"to_goal":"InvestigateDisturbance"}` | `request_new_goal` |
+| `IdleObserve` | `Observe` | 1 | `{"event_type":"SightAcquired","kind":"event"}` | `social_subject` | `{"to_phase":"Observe"}` | `remain_and_replan` |
+| `InvestigateDisturbance` | `Orient` | 0 | `{"event_type":"SkillSucceeded","kind":"event"}` | `orientation_complete` | `{"to_phase":"Navigate"}` | `-` |
+| `InvestigateDisturbance` | `Orient` | 1 | `{"event_type":"TargetInvalidated","kind":"event"}` | `no_valid_snapshot` | `{"terminal":"Failed"}` | `-` |
+| `InvestigateDisturbance` | `Orient` | 2 | `{"after_seconds":2.0,"kind":"timer","timer_id":"phase_timeout"}` | `phase_timeout` | `{"terminal":"Failed"}` | `-` |
+| `InvestigateDisturbance` | `Navigate` | 0 | `{"event_type":"SkillSucceeded","kind":"event"}` | `arrived_at_snapshot` | `{"to_phase":"Search"}` | `-` |
+| `InvestigateDisturbance` | `Navigate` | 1 | `{"event_type":"SkillFailed","kind":"event"}` | `PathUnavailable` | `{"terminal":"Failed"}` | `-` |
+| `InvestigateDisturbance` | `Navigate` | 2 | `{"event_type":"SightAcquired","kind":"event"}` | `subject_identified` | `{"to_phase":"Resolve"}` | `-` |
+| `InvestigateDisturbance` | `Navigate` | 3 | `{"after_seconds":15.0,"kind":"timer","timer_id":"phase_timeout"}` | `phase_timeout` | `{"terminal":"Failed"}` | `-` |
+| `InvestigateDisturbance` | `Search` | 0 | `{"event_type":"SightAcquired","kind":"event"}` | `subject_identified` | `{"to_phase":"Resolve"}` | `-` |
+| `InvestigateDisturbance` | `Search` | 1 | `{"event_type":"SkillSucceeded","kind":"event"}` | `search_budget_exhausted` | `{"to_phase":"Return"}` | `-` |
+| `InvestigateDisturbance` | `Search` | 2 | `{"after_seconds":8.0,"kind":"timer","timer_id":"phase_timeout"}` | `phase_timeout` | `{"to_phase":"Return"}` | `-` |
+| `InvestigateDisturbance` | `Resolve` | 0 | `{"event_type":"SkillSucceeded","kind":"event"}` | `resolution_complete` | `{"to_phase":"Return"}` | `-` |
+| `InvestigateDisturbance` | `Resolve` | 1 | `{"event_type":"TargetInvalidated","kind":"event"}` | `no_valid_belief` | `{"to_phase":"Search"}` | `-` |
+| `InvestigateDisturbance` | `Return` | 0 | `{"event_type":"SkillSucceeded","kind":"event"}` | `at_return_target` | `{"terminal":"Succeeded"}` | `-` |
+| `InvestigateDisturbance` | `Return` | 1 | `{"event_type":"SkillFailed","kind":"event"}` | `PathUnavailable` | `{"terminal":"Failed"}` | `-` |
+| `EnforceBoundary` | `Observe` | 0 | `{"event_type":"SightAcquired","kind":"event"}` | `boundary_intruder_is_primary_social_subject` | `{"to_phase":"Interact"}` | `-` |
+| `EnforceBoundary` | `Observe` | 1 | `{"event_type":"TargetInvalidated","kind":"event"}` | `no_boundary_intruder` | `{"to_phase":"Return"}` | `-` |
+| `EnforceBoundary` | `Observe` | 2 | `{"after_seconds":4.0,"kind":"timer","timer_id":"phase_timeout"}` | `phase_timeout` | `{"terminal":"Failed"}` | `-` |
+| `EnforceBoundary` | `Interact` | 0 | `{"event_type":"WarningIssued","kind":"event"}` | `warning_delivered` | `{"to_phase":"Resolve"}` | `-` |
+| `EnforceBoundary` | `Interact` | 1 | `{"event_type":"SkillSucceeded","kind":"event"}` | `subject_complied_before_warning` | `{"to_phase":"Return"}` | `-` |
+| `EnforceBoundary` | `Interact` | 2 | `{"event_type":"TargetInvalidated","kind":"event"}` | `subject_left_boundary` | `{"to_phase":"Return"}` | `-` |
+| `EnforceBoundary` | `Interact` | 3 | `{"after_seconds":6.0,"kind":"timer","timer_id":"phase_timeout"}` | `phase_timeout` | `{"to_phase":"Resolve"}` | `-` |
+| `EnforceBoundary` | `Resolve` | 0 | `{"event_type":"SkillSucceeded","kind":"event"}` | `boundary_resolved` | `{"to_phase":"Return"}` | `-` |
+| `EnforceBoundary` | `Resolve` | 1 | `{"event_type":"WarningIgnored","kind":"event"}` | `escalation_allowed` | `{"to_phase":"Resolve"}` | `remain_and_replan` |
+| `EnforceBoundary` | `Resolve` | 2 | `{"event_type":"Damaged","kind":"event"}` | `combat_goal_allowed` | `{"to_goal":"CombatEngage"}` | `request_new_goal` |
+| `EnforceBoundary` | `Resolve` | 3 | `{"event_type":"TargetInvalidated","kind":"event"}` | `subject_no_longer_relevant` | `{"to_phase":"Return"}` | `-` |
+| `EnforceBoundary` | `Return` | 0 | `{"event_type":"SkillSucceeded","kind":"event"}` | `at_return_target` | `{"terminal":"Succeeded"}` | `-` |
+| `EnforceBoundary` | `Return` | 1 | `{"event_type":"SkillFailed","kind":"event"}` | `PathUnavailable` | `{"terminal":"Failed"}` | `-` |
+| `CombatEngage` | `Orient` | 0 | `{"event_type":"SkillSucceeded","kind":"event"}` | `combat_target_aligned` | `{"to_phase":"Resolve"}` | `-` |
+| `CombatEngage` | `Orient` | 1 | `{"event_type":"SightLost","kind":"event"}` | `has_last_known_position` | `{"to_phase":"Search"}` | `-` |
+| `CombatEngage` | `Orient` | 2 | `{"event_type":"TargetInvalidated","kind":"event"}` | `no_valid_combat_target` | `{"to_phase":"Return"}` | `-` |
+| `CombatEngage` | `Resolve` | 0 | `{"event_type":"SightLost","kind":"event"}` | `has_last_known_position` | `{"to_phase":"Search"}` | `-` |
+| `CombatEngage` | `Resolve` | 1 | `{"event_type":"SkillSucceeded","kind":"event"}` | `combat_resolved` | `{"to_phase":"Return"}` | `-` |
+| `CombatEngage` | `Resolve` | 2 | `{"event_type":"TargetInvalidated","kind":"event"}` | `combat_target_invalid` | `{"to_phase":"Return"}` | `-` |
+| `CombatEngage` | `Resolve` | 3 | `{"event_type":"ReservationLost","kind":"event"}` | `cover_resource_lost` | `{"to_phase":"Resolve"}` | `remain_and_replan` |
+| `CombatEngage` | `Search` | 0 | `{"event_type":"SightAcquired","kind":"event"}` | `combat_target_reacquired` | `{"to_phase":"Resolve"}` | `-` |
+| `CombatEngage` | `Search` | 1 | `{"event_type":"SkillSucceeded","kind":"event"}` | `search_budget_exhausted` | `{"to_phase":"Return"}` | `-` |
+| `CombatEngage` | `Search` | 2 | `{"after_seconds":5.0,"kind":"timer","timer_id":"phase_timeout"}` | `phase_timeout` | `{"to_phase":"Return"}` | `-` |
+| `CombatEngage` | `Return` | 0 | `{"event_type":"SkillSucceeded","kind":"event"}` | `combat_exit_complete` | `{"terminal":"Succeeded"}` | `-` |
+| `CombatEngage` | `Return` | 1 | `{"event_type":"SkillFailed","kind":"event"}` | `PathUnavailable` | `{"terminal":"Failed"}` | `-` |
+
+### D.4 Goal Trigger·Timer Lifecycle
+
+| Field | Value |
+|---|---|
+| `allowed_kinds[0]` | `"event"` |
+| `allowed_kinds[1]` | `"timer"` |
+| `allowed_kinds[2]` | `"lifecycle"` |
+| `allowed_kinds[3]` | `"server_control"` |
+| `active_v1_kinds[0]` | `"event"` |
+| `active_v1_kinds[1]` | `"timer"` |
+| `legacy_event_field_forbidden` | `true` |
+| `timer_id_scope` | `"goal_phase"` |
+| `timer_clock` | `"server_monotonic_world_seconds"` |
+| `timer_duration_unit` | `"second"` |
+| `timer_arm_on.phase_entry` | `"full_after_seconds"` |
+| `timer_arm_on.resume_same_phase` | `"stored_remaining_ms"` |
+| `timer_arm_on.restart_phase_resume` | `"full_after_seconds"` |
+| `timer_suspend_policy` | `"pause_and_store_remaining_ms"` |
+| `timer_cancel_on` | `"phase_exit_or_terminal"` |
+| `timer_expiry_policy` | `"enqueue_once_then_evaluate_in_transition_order"` |
+| `absolute_goal_deadline_while_suspended` | `"continues"` |
+| `save_load_policy` | `"persist_timer_id_contract_duration_remaining_ms_and_resume_policy"` |
+| `wall_clock_forbidden` | `true` |
+| `current_v1_counts.event` | `35` |
+| `current_v1_counts.timer` | `6` |
+| `reserved_kinds.lifecycle` | `"reserved_until_field_contract_is_defined"` |
+| `reserved_kinds.server_control` | `"reserved_until_field_contract_is_defined"` |
+
+### D.5 Goal Revision
+
+| Field | Value |
+|---|---|
+| `type` | `"uint64_monotonic_per_npc"` |
+| `increase_on[0]` | `"active_goal_changed"` |
+| `increase_on[1]` | `"goal_suspended"` |
+| `increase_on[2]` | `"goal_resumed"` |
+| `increase_on[3]` | `"goal_aborted"` |
+| `increase_on[4]` | `"phase_changed"` |
+| `increase_on[5]` | `"authoritative_primary_target_changed"` |
+| `increase_on[6]` | `"allowed_skill_set_changed"` |
+| `increase_on[7]` | `"forbidden_skill_set_changed"` |
+| `increase_on[8]` | `"deadline_contract_changed"` |
+| `increase_on[9]` | `"interruptibility_changed"` |
+| `increase_on[10]` | `"resume_policy_changed"` |
+| `do_not_increase_on[0]` | `"progress_value_changed"` |
+| `do_not_increase_on[1]` | `"per_frame_timer_changed"` |
+| `do_not_increase_on[2]` | `"belief_revision_changed_without_goal_contract_change"` |
+| `do_not_increase_on[3]` | `"event_buffer_append"` |
+
+### D.6 Hash: candidate_set_hash
 
 - Algorithm: `SHA-256`
 - Byte order: `little`
@@ -671,7 +767,7 @@ Appendix A–D는 Schema와 Registry에서 생성한 enum ID·Tensor index·Targ
 | 5 | `target_mask` | `bitset` | `{"bit_count":17,"bit_order":"LSB-first","byte_count":3,"unused_high_bits":"zero"}` |
 | 6 | `candidate_mask` | `bitset` | `{"bit_count":272,"bit_order":"LSB-first","byte_count":34,"unused_high_bits":"none"}` |
 
-### D.4 Hash: decision_contract_hash
+### D.7 Hash: decision_contract_hash
 
 - Algorithm: `SHA-256`
 - Byte order: `little`
@@ -689,7 +785,7 @@ Appendix A–D는 Schema와 Registry에서 생성한 enum ID·Tensor index·Targ
 | 8 | `postprocess_contract_sha256` | `bytes[32]` | `{}` |
 | 9 | `calibration_ood_asset_sha256` | `bytes[32]` | `{}` |
 
-### D.5 Normalizer 의미 규칙
+### D.8 Normalizer 의미 규칙
 
 ```json
 {
@@ -714,6 +810,22 @@ Appendix A–D는 Schema와 Registry에서 생성한 enum ID·Tensor index·Targ
 ```
 
 <!-- END AUTO-GENERATED SCHEMA CONTRACT -->
+
+## Goal Runtime 구현 상태 안내 — manual
+
+Generated D.2–D.5는 Goal Registry `1.1.0`의 구조·순서·timer lifecycle·revision을 정확히 노출한다. 이것은 Runtime 구현 증거가 아니다.
+
+| Gate | 현재 상태 |
+|---|---|
+| Authority→generated Python/C++ | PASS — Goal `4`, Goal/phase `14`, transition `41 = 35 event + 6 timer` |
+| Consumer provenance | PASS — authority commit `2770b4a5a3aebd430420e5b330441aa044cc7db5`, generated header/hash lock과 sync `--check` |
+| Contract Dispatcher·Timer Core | RED — `GoalFsmRuntimeTests.cpp`만 존재, Runtime `.h/.cpp`와 Timer Component 없음 |
+| Production Integration | HOLD — Belief/Goal/Typed Target producer와 shipping owner 없음 |
+| Gameplay Goal FSM | HOLD — 29 guard·2 effect semantics, 전체 arbitration/save archive 없음 |
+
+Timer snapshot과 restore race의 실행 계약은 [세부 기술 요구사항 §5.9](technical-requirements.md#59-typed-goal-trigger와-phase-timeout)가 소유한다. 제한 Core는 format/Registry hash/Goal·phase generation/revision/timer identity에 결속된 versioned snapshot과 호출 시점의 비영속 `expected_current_token` CAS를 사용한다. mismatch는 live state를 바꾸지 않으며, expiry는 `phase_timeout` guard를 자동 true로 만들지 않는다.
+
+Timeout `2/15/8/4/6/5초`는 정상 completion의 대체가 아니라 event 누락 fallback이다. 같은 World의 authoritative game-time을 사용하므로 World pause 중 멈추고 time dilation을 따른다.
 
 ## Boss Pattern 확장 사용 안내
 
@@ -1020,10 +1132,16 @@ Client inference Gameplay authority: `false`
 | Utility·Decision Pipeline·Commit·Handoff | 구현·검증 완료 |
 | Neural raw-output canonicalization | 구현; NNE adapter와 ranking/tie/OOD pending |
 | Execution Safety Policy | 정책 구현; 실제 cleanup effect pending |
-| StateTree/C++ Executor·전투 효과·terminal unlock | pending |
+| Session-owned Event-driven Phase Executor·terminal barrier/unlock C++ Core | 완료(PASS) |
+| StateTree/Turn Task producer·Combat lifecycle event-source adapter | phase PASS |
+| production StateTree asset·native authoring MCP tool | phase PASS |
+| encounter Pawn/AIController Blueprint physical assembly | phase PASS |
+| fixture-backed Session Host·Commit→StateTree start handoff | phase PASS |
+| concrete gameplay authority provider·production PatternSet/selector trigger | pending |
+| authored transition/condition·Montage·Hitbox·Damage·Root Motion | pending |
 | Replication·Save/Load·quality·performance | pending |
 
-따라서 BP.8의 `unreal_pattern_runtime`은 계속 `pending`이다.
+따라서 BP.8의 `unreal_pattern_runtime`은 계속 `pending`이다. 위 phase PASS는 fixture-backed 실행 기반 증거이며 shipping gameplay provider와 실제 전투 효과 완료를 뜻하지 않는다.
 
 # Appendix E. 품질·안전·성능 승인 기준
 
@@ -1088,7 +1206,7 @@ Safety는 Baseline 비열등만으로 대체할 수 없다.
 ### E.3.1 Remediation 해석
 
 - E.2의 Target Recall과 Any-Acceptable Candidate Recall은 각각 §3.8과 §4.6의 numerator/denominator를 사용한다.
-- Critical `100%`는 512 sequence aggregate에서 miss 0건을 뜻하며 sequence·decision·target/candidate 분모를 모두 보고한다.
+- Critical `100%`는 576 sequence aggregate에서 miss 0건을 뜻하며 sequence·decision·target/candidate 분모를 모두 보고한다.
 - 현재 V1 Mandatory source cap 합은 9다. `MandatoryOverflow 0건`은 Runtime 방어 invariant와 malformed-cap negative mutation test로 측정한다.
 - Auto-generated E.2 표는 다음 Test Taxonomy patch에서 이 해석을 구조화된 metric contract로 흡수해야 한다.
 
@@ -1143,7 +1261,7 @@ V1의 3 Role × 4 Goal = 12 group 기준:
 | Gold Calibration | 400 | 4,800 |
 | Gold Test | 400 | 4,800 |
 | DAgger Intervention | 200 | 2,400 |
-| OOD Test | 8 family당 200 | 1,600 이상 |
+| OOD Test | 9 family당 200 | 1,800 이상 |
 | Critical Suite | `test_taxonomy_v1.yaml`에서 파생 | Appendix E.1–E.3의 자동 생성 계약 참조 |
 
 Silver는 25k→50k→100k→200k learning curve를 작성한다. 두 번 연속 doubling에서 전체 primary validation 개선 <0.5pp이고 worst-group 개선 <1.0pp이면 추가 합성의 한계로 판단한다. 최소 100k Silver 이전에는 V1 freeze 결정을 하지 않는다.

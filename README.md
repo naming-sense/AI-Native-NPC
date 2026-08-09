@@ -6,30 +6,32 @@ AI Native NPC는 NPC가 알고 있는 정보와 현재 Goal을 바탕으로 실�
 
 ## 현재 상태
 
-쉽게 말하면 **보스 공격 계획을 안전하게 고르고 전달하는 곳까지 구현**됐다. NPC 전체 판단과 실제 공격 실행은 아직 없다.
+쉽게 말하면 **보스 전투는 Commit 뒤 production StateTree를 시작하는 안전한 handoff까지 구현됐고, 공통 Goal FSM은 기계 계약 동기화 후 RED 테스트 단계**다. 실제 Belief/Target 기반 Goal 판단과 전투 효과는 아직 없다.
 
-- 현재 RC5 정적 계약: **v0.4.6 / Schema 2.0 RC5, 보관 하네스 검증 완료**
-- V1 보강 계약·최종 Freeze: **미완료**
-- 공통 NPC 판단: **목표·대상·272개 행동 후보·Skill 실행 구현 대기**
-- Boss Pattern C++ 선택 안전 Core: **승인 결과의 1회 전달까지 구현, Automation 31/31 통과**
-- Boss Pattern 남은 검증: **Definition JCS/cooked-content parity 대기**
-- Boss Pattern 실제 실행: **Phase 진행·애니메이션·Hitbox·Damage·Root Motion·종료 잠금 해제 구현 대기**
-- AI 모델과 전체 Release: **학습·ONNX·OOD·품질·성능 Gate가 남아 있어 NO-GO**
+- 정적 계약: **Schema 2.0 RC5 + Goal Registry 1.1.0**, Python↔C++ 생성·Golden 검증 완료
+- Goal 계약 배포: **41 transition = 35 event + 6 timer**, authority commit `2770b4a5...`로 consumer lock/sync 완료
+- 제한된 Goal Core: **`GoalFsmRuntimeTests.cpp` RED 테스트 존재; Runtime `.h/.cpp`와 server timer component는 아직 없음**
+- Gameplay Goal FSM: **production Belief·Goal·Typed Target producer, 29 guard·2 effect provider, 전체 arbitration/save archive가 없어 HOLD**
+- Boss Pattern 실행 기반: **fixture-backed Session/EventSource/Host exact-one, Commit 뒤 StateTree start handoff phase PASS; focused `2/2`, broad `53/53`**
+- Boss Pattern 남은 실행: **production PatternSet/selector trigger, authored transition, Montage·Hitbox·Damage·Root Motion·replication/save-load 대기**
+- AI 모델과 전체 Release: **학습·ONNX/NNE·OOD·품질·성능 Gate가 남아 있어 NO-GO**
 
 ## 먼저 읽을 문서
 
-`docs/current` 바로 아래의 네 문서가 현재 구현 기준입니다.
+`docs/current` 바로 아래의 다섯 문서가 현재 구현 기준입니다.
 
-1. [AI Native NPC 요구사항](docs/current/requirements.md)
-   - 시스템 목적, Runtime 동작, 권한, 입출력, 안전, 데이터·평가 요구사항을 정의합니다.
-2. [AI Native NPC 구현 계획](docs/current/implementation-plan.md)
+1. [AI Native NPC 제품 요구사항](docs/current/requirements.md)
+   - 도메인 지식 없이 시스템 목적, 판단 흐름, 책임과 현재 상태를 이해하는 문서입니다.
+2. [AI Native NPC 세부 기술 요구사항](docs/current/technical-requirements.md)
+   - Goal·Target·Candidate·timer·Commit·데이터·안전의 정확한 구현 계약입니다.
+3. [AI Native NPC 구현 계획](docs/current/implementation-plan.md)
    - Phase·Owner·완료 조건, Reference Model, Teacher LLM, 학습·릴리스 Pipeline을 정의합니다.
-3. [AI Native NPC Contract Appendices](docs/current/contract-appendices.md)
+4. [AI Native NPC Contract Appendices](docs/current/contract-appendices.md)
    - Schema·Registry의 생성 표와 품질·안전·성능 승인 기준을 제공합니다.
-4. [UE5.7 Manny 공간·시야·청각 구현 계획](docs/current/unreal-implementation-plan.md)
+5. [UE5.7 Manny 공간·시야·청각 구현 계획](docs/current/unreal-implementation-plan.md)
    - 요구사항을 Unreal에서 구현하고 시험하는 절차를 정의합니다.
 
-Requirements가 공통 규범을 소유합니다. Implementation Plan과 UE Plan은 실행 절차를, Contract Appendices는 생성된 정확한 값과 승인 Gate를 제공합니다.
+제품 요구사항은 목적과 책임을 설명합니다. 세부 기술 요구사항은 정확한 Runtime 의미를, Implementation Plan과 UE Plan은 실행 절차를, Contract Appendices는 생성된 값과 승인 Gate를 제공합니다.
 
 ## 구현 기준 파일
 

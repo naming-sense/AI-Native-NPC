@@ -1,11 +1,13 @@
 # AI Native NPC 구현 계획
 ## Phase·Owner·Reference Model·학습·릴리스 실행 계획
 
-- 문서 버전: **v0.4.6**
-- 개정일: 2026-08-06
+- 문서 버전: **v0.4.12**
+- 개정일: 2026-08-10
+- Unreal 상태: **Boss Pattern production StateTree/fixture-backed encounter Host/start handoff phase PASS / Goal Registry 1.1.0 consumer sync PASS / Goal Dispatcher·Timer Core RED / 실제 gameplay authority·전투 효과·replication/save-load pending**
 - 주 독자: **ML, Data, Gameplay AI, Server, Unreal NNE, QA, Release 승인자**
 - 범위: **Phase·Owner·일정, Reference Model 구조, ML pipeline, Training Config, Checkpoint·Report, 구현 명령, release pipeline, 최종 승인 절차**
-- 상위 요구사항: [AI Native NPC 의사결정 시스템 요구사항](requirements.md)
+- 제품 요구사항: [AI Native NPC 제품 요구사항](requirements.md)
+- 세부 기술 요구사항: [AI Native NPC 세부 기술 요구사항](technical-requirements.md)
 - 계약 부록: [AI Native NPC Contract Appendices](contract-appendices.md)
 
 상위 요구사항은 Runtime 동작·권한·입출력·안전·데이터·평가 규칙을 소유한다. 계약 부록은 생성된 정확한 계약값과 승인 Gate를 소유한다. 이 문서는 Phase·Owner·구현·검증 순서를 소유한다.
@@ -30,9 +32,15 @@ Phase 0은 Perception→Utility Baseline→Commit 연결과 데이터 Capture를
 
 | 현재 구현 | 상태 |
 |---|---|
-| 공통 Belief→Goal→17 Target Slot→272 Candidate→Skill Executor | 미구현 |
+| 공통 Belief→Goal producer→17 Target Slot→272 Candidate→Skill Executor | 미구현; 전체 gameplay integration HOLD |
+| Goal Registry `1.1.0` generated binding·consumer provenance sync | 완료(PASS), authority commit `2770b4a5a3aebd430420e5b330441aa044cc7db5` |
+| Goal Contract Dispatcher·Timer Runtime Core | `GoalFsmRuntimeTests.cpp` RED만 존재; Runtime `.h/.cpp`·Timer Component 미구현 |
 | Boss Pattern Data Asset→Hard Mask→Tensor→Utility/Commit→Handoff | C++ Core 구현·31/31; Definition JCS/cooked parity pending |
-| Boss Pattern Phase Executor와 실제 전투 효과 | 미구현 |
+| Boss Pattern Event-driven Phase Executor·terminal unlock C++ Core | 완료(PASS) |
+| Boss Pattern StateTree/Turn Task producer adapter·production StateTree asset | 완료(PASS) |
+| Boss Pattern encounter Pawn/AIController Blueprint physical assembly | 완료(PASS) |
+| authoritative Session host 초기화·Commit 뒤 StateTree start handoff | 완료(PASS), focused `2/2`·broad `53/53` |
+| production PatternSet/selector trigger·실제 전투 효과 | 미구현 |
 | Dataset·학습·ONNX·OOD·Calibration | 미구현 |
 
 ### 2.1.1 Phase 0 = MVP Vertical Slice
@@ -76,7 +84,7 @@ Phase 0은 Perception→Utility Baseline→Commit 연결과 데이터 Capture를
 | Workstream | Owner | Phase 0 예상 | Phase 1 예상 | 선행 의존성 |
 |---|---|---:|---:|---|
 | Belief/Target Runtime | Gameplay AI | 2주 | 3주 | Target contract |
-| Goal Manager/FSM | Gameplay AI + Designer | 2주 | 3주 | Goal Registry Appendix D.2 + typed trigger patch |
+| Goal Manager/FSM | Gameplay AI + Designer | 2주 | 3주 | Goal Registry Appendix D.2–D.5 `1.1.0` lifecycle·arbitration·definition·typed trigger authority |
 | Slotter/Candidate/Hash | Gameplay AI + ML | 2주 | 2주 | Schema Appendix A/C/D |
 | Utility Baseline | AI Designer | 1주 | 2주 | Candidate pipeline |
 | Feature Builder/Golden Test | ML + Gameplay AI | 2주 | 2주 | schema.yaml generator |
@@ -306,7 +314,7 @@ Test, OOD, Critical split은 checkpoint와 Calibration asset이 동결되기 전
 
 ## 4.2 Teacher LLM Silver Label 생성
 
-규범 계약은 [요구사항 §9.1.1](requirements.md#911-teacher-llm-silver-label-생성)이 소유한다. 이 절은 그 계약을 중복 정의하지 않고 구현 순서와 실행 지점만 제안한다.
+규범 계약은 [세부 기술 요구사항 §9.1.1](technical-requirements.md#911-teacher-llm-silver-label-생성)이 소유한다. 이 절은 그 계약을 중복 정의하지 않고 구현 순서와 실행 지점만 제안한다.
 
 별도 Unreal 구현 저장소에 다음 경로를 둔다.
 
@@ -474,8 +482,11 @@ Schema 2.0 Freeze는 다음 항목을 모두 요구한다.
 - [ ] 17 Target Slot과 272 Candidate layout parity
 - [ ] Typed Target Runtime Payload 구현
 - [ ] Target Slotter Target Recall Gate 통과
-- [ ] Goal Registry typed trigger·phase duration·revision contract 생성/검증
-- [ ] Goal Arbitration/FSM Phase 0 테스트와 UE generated Phase 표 parity 통과
+- [x] Goal Registry typed trigger·phase duration·revision contract 생성/검증
+- [x] Goal definition·14 phase/skill-mask·lifecycle/arbitration metadata generated C++ binding과 consumer provenance sync
+- [ ] Goal Contract Dispatcher Core: 41-row 소비·guard/effect fail-closed·destination/revision hostile test 통과
+- [ ] Goal Timer Runtime Core: `2/15/8/4/6/5초`, lifecycle·snapshot·expected-token CAS·pause/time-dilation hostile test 통과
+- [ ] Goal Arbitration/FSM Phase 0와 production Belief/Target·29 guard·2 effect provider 통합 통과
 - [ ] Dataset Record v2의 Switch Cost·feature/content/sample hash Validator 통과
 - [ ] OOD/Critical `test_case_catalog_v1.yaml` allowlist와 split 격리 통과
 - [ ] Adjusted Score→OOD→Calibration 순서와 Runtime threshold 0.80 parity
@@ -497,20 +508,29 @@ Schema 2.0 Freeze는 다음 항목을 모두 요구한다.
 
 현재 Runtime 계약은 RC5 YAML의 field index·enum·shape다.
 
-[Requirements §10.6](requirements.md#106-rc5-구조화-계약-remediation-backlog)의 항목은 새 patch 발급 후 활성화한다.
+[세부 기술 요구사항 §10.6](technical-requirements.md#106-rc5-구조화-계약-remediation-상태)의 항목은 새 patch 발급 후 활성화한다.
 
 새 patch는 YAML·generated artifacts·Golden·Decision Contract Hash를 포함한다.
 
-완료 전 상태는 Freeze·OOD Runtime 승격 대상에서 제외한다. 변경 이력은 `docs/history/requirements-history-v0.4.6.md`에 보관한다.
+완료 전 상태는 Freeze·OOD Runtime 승격 대상에서 제외한다. 변경 이력은 [`docs/history`](../history/README.md)에 보관한다.
 
-## 8.2 2026-08-06 Unreal 진행 증거
+## 8.2 2026-08-10 Unreal·Goal 진행 증거
 
-- Boss Pattern Automation: `31/31`, warning/failure/notRun `0/0/0`
-- Data Validation: `285 assets`, error/warning `0/0`
-- BossPatternValidation: `status=pass`, `issues=[]`
-- Generated contract sync: PASS
-- 완료 Core: Runtime Foundation, Utility/Commit, Decision Pipeline, Hard Mask, Tensor Normalization, Neural Output Canonicalization, Execution Safety Policy, Commit-bound Handoff
-- 남은 Runtime: 공통 NPC Phase 0, Pattern Phase Executor, 전투 효과, replication-save/load
-- 남은 ML/승격: ONNX/NNE parity, ranking/tie/OOD, Dataset, fairness/quality/performance
+### Boss Pattern encounter Host/start handoff
 
-위 증거는 Boss Pattern 선택 안전 Core의 단계 PASS다. Schema Freeze와 전체 제품 Release는 계속 NO-GO다.
+- exact focused `2/2`, broad `AINativeNPC.BossPattern` `53/53`, warning/failure `0/0`
+- `NeuralGameEditor Win64 Development` clean+cold UBT/UHT: PASS
+- Data Validation: `290 assets`, error/warning `0/0`
+- generated contract lock sync와 MCP restart Host/Session/EventSource `1/1/1`: PASS
+- StateTree ready/hash/clean, map dirty/unsaved `false/false`, active/interrupted ChangeSet `0/0`
+- authority/security·lifecycle/terminal·asset/test 독립 review: `Critical 0 / Important 0 — GO`
+
+### Goal Registry와 제한 Core
+
+- Goal Registry `1.1.0`: transition `41 = 35 event + 6 timer`, production timeout `2/15/8/4/6/5초`
+- focused Goal contract `20/20`, full Python harness `67/67`, generator/schema/golden, C++17 parity: PASS
+- authority provenance commit `2770b4a5a3aebd430420e5b330441aa044cc7db5`; consumer official sync와 `--check`: PASS
+- consumer `GoalFsmRuntimeTests.cpp`: RED 테스트 존재
+- `GoalFsmRuntime.h/.cpp`와 server Timer Runtime Component: 미구현
+
+현재 허용되는 판정은 **Goal binding/provenance PASS, Contract Dispatcher·Timer Core RED, Production Integration HOLD, Gameplay Goal FSM HOLD**다. Boss Pattern phase PASS와 Goal 정적 계약 PASS는 Schema Freeze나 전체 제품 Release PASS가 아니며, 최종 Release는 계속 NO-GO다.
