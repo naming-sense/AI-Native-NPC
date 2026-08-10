@@ -7,7 +7,7 @@
 - 범위: **Appendix A–D generated 공통 계약, Appendix BP generated Boss Pattern 계약, Appendix E 품질·안전·성능 Gate, UE 구현 승인 체크리스트**
 - 제품 요구사항: [AI Native NPC 제품 요구사항](requirements.md)
 - 세부 기술 요구사항: [AI Native NPC 세부 기술 요구사항](technical-requirements.md)
-- 구현 계획: [AI Native NPC 구현 계획](implementation-plan.md)
+- 구현 계획: [AI Native NPC를 만드는 순서](implementation-plan.md)
 - Unreal 구현 계획: [UE 5.7 Manny·Quinn 구현 계획](unreal-implementation-plan.md)
 
 Appendix A–D와 BP의 생성 marker 내부는 구조화된 YAML과 Generator가 소유한다. 이 문서에서 수동 편집하지 않는다.

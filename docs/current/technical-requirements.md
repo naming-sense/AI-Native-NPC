@@ -7,7 +7,7 @@
 - 현재 요약: **Knowledge는 NPC가 관측하거나 전달받아 보관하는 정보이며 현재 코드 이름은 `Belief`다. Boss Pattern Commit→StateTree start handoff phase는 PASS. Goal Registry `1.1.0`과 consumer provenance sync는 PASS지만 Contract Dispatcher·Timer Core는 RED 테스트 단계이고, production Knowledge·Goal·Target의 종류와 식별 정보·guard/effect provider·전체 gameplay FSM·ML/NNE·최종 Freeze는 보류**
 - 기계 판독 계약: **Schema 2.0.0 RC5 + Goal Registry 1.1.0**
 - 쉬운 요구사항: [초보자용 제품 요구사항](requirements.md)
-- 구현 계획: [AI Native NPC 구현 계획](implementation-plan.md)
+- 구현 계획: [AI Native NPC를 만드는 순서](implementation-plan.md)
 - 계약 부록: [AI Native NPC Contract Appendices](contract-appendices.md)
 - Unreal 구현 계획: [UE 5.7 Manny·Quinn 구현 계획](unreal-implementation-plan.md)
 - 검증·개정 이력: [Requirements History](../history/README.md)
@@ -83,7 +83,7 @@ Unreal class 구성과 작업 순서:
 | Gameplay AI·Server | [Goal](#5-goal-manager), [Target](#2-typed-target), [Candidate](#4-candidate-universe), [Commit](#7-비동기-추론과-atomic-commit) | [Appendix A–D](contract-appendices.md#appendix-ad-auto-generated-schemaregistry-계약) |
 | ML·Data | [Policy](#6-neural-policy와-post-process), [데이터·학습](#9-데이터학습baseline) | [Appendix B](contract-appendices.md#b-tensor-계약)·[Appendix E](contract-appendices.md#appendix-e-품질안전성능-승인-기준) |
 | Unreal NNE | [Policy](#6-neural-policy와-post-process), [Commit](#7-비동기-추론과-atomic-commit) | [UE 구현 계획](unreal-implementation-plan.md) |
-| QA·승인자 | [현재 상태](#02-현재-상태), [Hidden Information](#8-hidden-information-경계), [Parity](#10-schema-generator와-parity) | [Appendix E](contract-appendices.md#appendix-e-품질안전성능-승인-기준), [최종 승인](implementation-plan.md#8-최종-승인) |
+| QA·승인자 | [현재 상태](#02-현재-상태), [Hidden Information](#8-hidden-information-경계), [Parity](#10-schema-generator와-parity) | [Appendix E](contract-appendices.md#appendix-e-품질안전성능-승인-기준), [최종 승인](implementation-plan.md#final-approval) |
 
 이 문서는 구현 의존성 때문에 Target 형식부터 정의한다. 제품 흐름을 이해하려면 [쉬운 요구사항](requirements.md)의 Goal→Knowledge→Target→Candidate→Commit 순서로 읽는다.
 
@@ -2259,5 +2259,5 @@ Auto-generated marker 내부를 수동 편집해 위 문제를 숨기지 않는�
 
 # 11. 구현·승인 문서
 
-- Phase·Owner·일정과 최종 승인 체크리스트: [AI Native NPC 구현 계획](implementation-plan.md)
+- Phase·Owner·일정과 최종 승인 체크리스트: [AI Native NPC를 만드는 순서](implementation-plan.md)
 - 생성 Schema·Registry 계약과 품질·안전·성능 승인 기준: [AI Native NPC Contract Appendices](contract-appendices.md)

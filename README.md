@@ -1,20 +1,24 @@
 # AI Native NPC
 
-AI Native NPC는 NPC가 알고 있는 정보와 현재 Goal을 바탕으로 실행 가능한 행동 후보의 순위를 정하고, 서버 검증 후 Skill을 실행하는 의사결정 시스템입니다.
+AI Native NPC는 게임 속 NPC가 알고 있는 정보와 현재 목적을 보고 다음 행동을 고르는 시스템입니다. 서버는 선택한 행동의 안전성과 유효성을 검사한 뒤 실행합니다.
 
 이 저장소는 공통 요구사항, 구현 계획, Unreal Engine 5.7 계약과 기계 판독 Schema를 제공합니다.
 
 ## 현재 상태
 
-쉽게 말하면 **보스 전투는 Commit 뒤 production StateTree를 시작하는 안전한 handoff까지 구현됐고, 공통 Goal FSM은 기계 계약 동기화 후 RED 테스트 단계**다. 실제 Belief/Target 기반 Goal 판단과 전투 효과는 아직 없다.
+보스가 선택된 공격을 안전하게 시작하는 흐름은 고정된 테스트 입력으로 검증했습니다. 일반 NPC가 상황에 맞는 행동을 고르는 기능, 실제 전투 효과, 학습 데이터와 AI 모델은 다음 구현 대상입니다.
 
-- 정적 계약: **Schema 2.0 RC5 + Goal Registry 1.1.0**, Python↔C++ 생성·Golden 검증 완료
-- Goal 계약 배포: **41 transition = 35 event + 6 timer**, authority commit `2770b4a5...`로 consumer lock/sync 완료
-- 제한된 Goal Core: **`GoalFsmRuntimeTests.cpp` RED 테스트 존재; Runtime `.h/.cpp`와 server timer component는 아직 없음**
-- Gameplay Goal FSM: **production Belief·Goal·Typed Target producer, 29 guard·2 effect provider, 전체 arbitration/save archive가 없어 HOLD**
-- Boss Pattern 실행 기반: **fixture-backed Session/EventSource/Host exact-one, Commit 뒤 StateTree start handoff phase PASS; focused `2/2`, broad `53/53`**
-- Boss Pattern 남은 실행: **production PatternSet/selector trigger, authored transition, Montage·Hitbox·Damage·Root Motion·replication/save-load 대기**
-- AI 모델과 전체 Release: **학습·ONNX/NNE·OOD·품질·성능 Gate가 남아 있어 NO-GO**
+### 개발자용 상세 상태
+
+- 기계 계약: **Schema 2.0 RC5 + Goal Registry 1.1.0**, Python↔C++ 생성·Golden 검증 완료
+- Goal 규칙 데이터 전달: **41 transition = 35 event + 6 timer**, authority commit `2770b4a5...`로 consumer lock/sync 완료
+- Goal 전환 실행: 실패하는 테스트가 준비된 상태(RED). `GoalFsmRuntimeTests.cpp`가 있으며 Runtime `.h/.cpp`와 server timer component 구현이 필요
+- 일반 NPC 전체 판단: 선행 기능을 기다리는 상태(HOLD). production Knowledge(`Belief`)·Goal·Target의 종류와 식별 정보(`Typed Target`) producer, 29 guard·2 effect provider와 전체 arbitration/save archive 구현이 필요
+- 보스 공격 시작: 고정 테스트 입력 기반 검증 통과(PASS). Commit 뒤 StateTree start handoff focused `2/2`, broad `53/53`
+- 실제 보스 전투: production PatternSet·selector trigger·authored transition·Montage·Hitbox·Damage·Root Motion·replication·save/load 구현이 필요
+- AI 모델과 전체 Release: 학습·ONNX/NNE·OOD·품질·성능 검증이 남은 상태(NO-GO)
+
+상태 표시의 뜻은 [구현 계획의 현재 상태 표시](docs/current/implementation-plan.md#04-현재-상태-표시)에서 확인할 수 있습니다.
 
 ## 먼저 읽을 문서
 
@@ -24,8 +28,8 @@ AI Native NPC는 NPC가 알고 있는 정보와 현재 Goal을 바탕으로 실�
    - 도메인 지식 없이 시스템 목적, 판단 흐름, 책임과 현재 상태를 이해하는 문서입니다.
 2. [AI Native NPC 세부 기술 요구사항](docs/current/technical-requirements.md)
    - Goal·Target·Candidate·timer·Commit·데이터·안전의 정확한 구현 계약입니다.
-3. [AI Native NPC 구현 계획](docs/current/implementation-plan.md)
-   - Phase·Owner·완료 조건, Reference Model, Teacher LLM, 학습·릴리스 Pipeline을 정의합니다.
+3. [AI Native NPC를 만드는 순서](docs/current/implementation-plan.md)
+   - 무엇을 먼저 만들고 데이터를 어떻게 준비해 모델을 학습·검증할지 설명합니다.
 4. [AI Native NPC Contract Appendices](docs/current/contract-appendices.md)
    - Schema·Registry의 생성 표와 품질·안전·성능 승인 기준을 제공합니다.
 5. [UE5.7 Manny 공간·시야·청각 구현 계획](docs/current/unreal-implementation-plan.md)

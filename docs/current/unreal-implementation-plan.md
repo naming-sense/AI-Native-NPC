@@ -14,7 +14,7 @@
 - 계약 부록: `contract-appendices.md`
 - Tensor 단일 원본: `ai_native_npc_schema_v2_0.yaml`
 - Requirements SHA-256: `727660fc7e85cf90f80572b6dced09e5653d9c3de712fd04785f4d6756d1454a`
-- Technical Requirements SHA-256: `ad044ac9e97c70185afc6db3f55f2679b1c013a6dc009a90210db5e20d8de4a4`
+- Technical Requirements SHA-256: `7e6c656b7e15bbd94fad00e7c98ed7737f32ebfb80cbbbff0db86664b01428cc`
 - Schema YAML SHA-256: `a7791004de0534f29198ebf5eaaff7cd764185b59b05446d419f5d0a3303f886`
 - Boss Pattern Contract SHA-256: `e4f828c114fcc5db1cb04b5d0a6e2b3d29dada7e45c60a3dd18c674baa78c789`
 - Skill Registry SHA-256: `08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8`
@@ -77,10 +77,10 @@ Phase 0은 조건부 GO다.
 
 2026-07-30 보강은 다음 공통 구현 계획을 Unreal 구현 절차로 연결했다.
 
-- [§3 Reference Model](implementation-plan.md#3-policy_arch_v100-reference-model)
-- [§4 ML Pipeline](implementation-plan.md#4-ml-pipeline)
-- [§5 Training Config·Checkpoint·Report](implementation-plan.md#5-training-config와-checkpointreport)
-- [§6 구현 명령과 Phase](implementation-plan.md#6-구현-저장소-명령과-phase-구분)
+- [§3 NPC 행동 선택 모델](implementation-plan.md#reference-model)
+- [§4 학습 데이터와 모델 준비](implementation-plan.md#ml-pipeline)
+- [§5 학습 설정과 결과 선택](implementation-plan.md#training-config)
+- [§6 구현 명령](implementation-plan.md#implementation-cli)
 
 현 RC5 tensor/wire layout은 유지한다. Goal Registry는 `1.1.0` typed trigger authority를 사용한다. Phase 0은 fixture model로 ONNX Import→NNE→score/parameter Post-process→Commit/Fallback 경로를 먼저 증명한다.
 
