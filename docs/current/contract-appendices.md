@@ -1,7 +1,7 @@
 # AI Native NPC Contract Appendices
 ## 생성 Schema·Registry 계약과 승인 기준
 
-- 문서 버전: **v0.4.12**
+- 문서 버전: **v0.4.13**
 - 개정일: 2026-08-10
 - 주 독자: **Gameplay AI, ML, Data, Unreal NNE, QA, Release 승인자**
 - 범위: **Appendix A–D generated 공통 계약, Appendix BP generated Boss Pattern 계약, Appendix E 품질·안전·성능 Gate, UE 구현 승인 체크리스트**
@@ -820,7 +820,7 @@ Generated D.2–D.5는 Goal Registry `1.1.0`의 구조·순서·timer lifecycle�
 | Authority→generated Python/C++ | PASS — Goal `4`, Goal/phase `14`, transition `41 = 35 event + 6 timer` |
 | Consumer provenance | PASS — authority commit `2770b4a5a3aebd430420e5b330441aa044cc7db5`, generated header/hash lock과 sync `--check` |
 | Contract Dispatcher·Timer Core | RED — `GoalFsmRuntimeTests.cpp`만 존재, Runtime `.h/.cpp`와 Timer Component 없음 |
-| Production Integration | HOLD — Belief/Goal/Typed Target producer와 shipping owner 없음 |
+| Production Integration | HOLD — Knowledge(코드·Schema: `Belief`)/Goal/Target의 종류와 식별 정보(코드: `Typed Target`) producer와 shipping owner 없음 |
 | Gameplay Goal FSM | HOLD — 29 guard·2 effect semantics, 전체 arbitration/save archive 없음 |
 
 Timer snapshot과 restore race의 실행 계약은 [세부 기술 요구사항 §5.9](technical-requirements.md#59-typed-goal-trigger와-phase-timeout)가 소유한다. 제한 Core는 format/Registry hash/Goal·phase generation/revision/timer identity에 결속된 versioned snapshot과 호출 시점의 비영속 `expected_current_token` CAS를 사용한다. mismatch는 live state를 바꾸지 않으며, expiry는 `phase_timeout` guard를 자동 true로 만들지 않는다.
@@ -1324,7 +1324,7 @@ Gate:
 ## Phase 0
 
 - [ ] Manny/Quinn 수직 슬라이스
-- [ ] Belief/Ground Truth 분리
+- [ ] Knowledge/Ground Truth 분리
 - [ ] Goal FSM
 - [ ] Target Recall Critical 100%
 - [ ] Candidate Recall Critical 100%

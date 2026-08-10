@@ -1,10 +1,10 @@
 # AI Native NPC 세부 기술 요구사항
 ## Runtime·데이터·안전의 정확한 구현 계약
 
-- 문서 버전: **v0.4.12**
+- 문서 버전: **v0.4.13**
 - 개정일: 2026-08-10
 - 적용 범위: **Unreal 클라이언트, 서버 Gameplay AI, Python 학습·평가 코드**
-- 현재 요약: **Boss Pattern Commit→StateTree start handoff phase는 PASS. Goal Registry `1.1.0`과 consumer provenance sync는 PASS지만 Contract Dispatcher·Timer Core는 RED 테스트 단계이고, production Belief/Goal/Typed Target·guard/effect provider·전체 gameplay FSM·ML/NNE·최종 Freeze는 보류**
+- 현재 요약: **Knowledge는 NPC가 관측하거나 전달받아 보관하는 정보이며 현재 코드 이름은 `Belief`다. Boss Pattern Commit→StateTree start handoff phase는 PASS. Goal Registry `1.1.0`과 consumer provenance sync는 PASS지만 Contract Dispatcher·Timer Core는 RED 테스트 단계이고, production Knowledge·Goal·Target의 종류와 식별 정보·guard/effect provider·전체 gameplay FSM·ML/NNE·최종 Freeze는 보류**
 - 기계 판독 계약: **Schema 2.0.0 RC5 + Goal Registry 1.1.0**
 - 쉬운 요구사항: [초보자용 제품 요구사항](requirements.md)
 - 구현 계획: [AI Native NPC 구현 계획](implementation-plan.md)
@@ -14,6 +14,8 @@
 - 상세 검토: [Requirements Review](../history/reviews/requirements-review-v0.4.6.md)
 
 이 문서는 구현자가 따라야 하는 세부 동작, 권한 경계, Runtime 입출력, 안전, 데이터·평가 규칙을 보존한다. 처음 읽는 사람은 `requirements.md`부터 읽는다. 정확한 ID·크기·transition은 기계 판독 계약이, 세부 Runtime 의미는 이 문서가, 제품 수준의 목적과 책임은 쉬운 요구사항이 소유한다.
+
+독자용 이름은 **`Knowledge`**와 **“Target의 종류와 식별 정보”**다. 코드·Schema·API에서는 각각 기존 식별자 `Belief`와 `Typed Target`을 그대로 사용한다.
 
 ---
 
@@ -31,7 +33,7 @@ AI Native NPC는 **NPC가 현재 알고 있는 정보만으로 장기 목표 안
 |---|---|---|
 | Schema·Registry·Generated contract | Schema 2.0 RC5와 Goal Registry `1.1.0`; transition `41 = 35 event + 6 timer`, Python↔C++ Golden·consumer sync PASS | generated binding을 고정 입력으로 사용 |
 | Goal Contract Dispatcher·Timer Core | `GoalFsmRuntimeTests.cpp` RED 테스트만 존재; Runtime `.h/.cpp`와 server timer component 없음 | generated row 소비·timer lifecycle TDD만 진행 가능 |
-| Gameplay Goal FSM·공통 NPC Runtime | Belief·Goal producer·17 Target Slot·272 Candidate·Skill Executor·29 guard·2 effect provider 미구현 | production integration과 전체 arbitration/save archive는 HOLD |
+| Gameplay Goal FSM·공통 NPC Runtime | Knowledge·Goal producer·17 Target Slot·272 Candidate·Skill Executor·29 guard·2 effect provider 미구현 | production integration과 전체 arbitration/save archive는 HOLD |
 | Boss Pattern 선택 안전 Core | C++ Core는 one-shot Handoff까지 구현, Automation 31/31; Definition JCS/cooked parity pending | 모델 없이 Utility 경로와 Commit/Handoff Core 검증 |
 | Boss Pattern 실제 실행 | C++ Phase Executor·event/Session/Host adapter·production StateTree asset·encounter Blueprint physical assembly·fixture-backed Commit/start handoff PASS; concrete gameplay authority provider·전투 효과 미구현 | production Pawn 자동 possession, Session ready, Commit 뒤 `PreAttackTurn` Task 진입과 start-failure fail-closed terminalization 검증 |
 | RC5 2-output Neural 연결 | NNE/ONNX asset·adapter 없음 | generated I/O 계약과 raw-output canonicalization만 사용 가능 |
@@ -62,7 +64,7 @@ Unreal class 구성과 작업 순서:
 
 0. [문서 안내](#0-문서-안내)
 1. [시스템 구조](#1-시스템-구조)
-2. [Typed Target](#2-typed-target)
+2. [Target의 종류와 식별 정보 (기술명: Typed Target)](#2-typed-target)
 3. [Target Universe와 Slotter](#3-target-universe와-slotter)
 4. [Candidate Universe](#4-candidate-universe)
 5. [Goal Manager](#5-goal-manager)
@@ -83,7 +85,7 @@ Unreal class 구성과 작업 순서:
 | Unreal NNE | [Policy](#6-neural-policy와-post-process), [Commit](#7-비동기-추론과-atomic-commit) | [UE 구현 계획](unreal-implementation-plan.md) |
 | QA·승인자 | [현재 상태](#02-현재-상태), [Hidden Information](#8-hidden-information-경계), [Parity](#10-schema-generator와-parity) | [Appendix E](contract-appendices.md#appendix-e-품질안전성능-승인-기준), [최종 승인](implementation-plan.md#8-최종-승인) |
 
-이 문서는 구현 의존성 때문에 Target 형식부터 정의한다. 제품 흐름을 이해하려면 [쉬운 요구사항](requirements.md)의 Goal→Belief→Target→Candidate→Commit 순서로 읽는다.
+이 문서는 구현 의존성 때문에 Target 형식부터 정의한다. 제품 흐름을 이해하려면 [쉬운 요구사항](requirements.md)의 Goal→Knowledge→Target→Candidate→Commit 순서로 읽는다.
 
 ## 0.5 규칙의 소유자와 집행 위치
 
@@ -134,13 +136,13 @@ contracts/current/test_taxonomy_v1.yaml
 Authoritative World
     └─ 실제 Actor, 피해, 퀘스트, 자원 상태
          ↓
-Perception → Belief Runtime
+Perception → Knowledge Runtime (코드: `Belief`)
     └─ 이 NPC가 실제로 알 수 있는 정보만 보관
          ↓
 Goal Manager
     └─ 지금 달성하려는 목표와 현재 phase 결정
          ↓
-Typed Target Universe → Target Slotter
+Target의 종류와 식별 정보 통합 (코드: `Typed Target Universe`) → Target Slotter
     └─ Entity, 소리, 엄폐물, 위치 등을 공통 Target으로 만들고 17 slot에 배치
          ↓
 Candidate Builder
@@ -192,9 +194,9 @@ Runtime Snapshot과 Candidate
 | 계층 | 역할 | 출력 | 전용 책임 |
 |---|---|---|---|
 | Authoritative World | Actor·물리·피해·퀘스트·자원 상태 관리 | 최신 World state | 물리·피해·퀘스트 변경 |
-| Perception/Belief | 시야·소리·공유 정보 관리 | 출처·시각·confidence·TTL이 있는 Belief | NPC 지식 경계 |
+| Knowledge(코드: `Perception/Belief`) | 시야·소리·공유 정보 관리 | 출처·시각·confidence·TTL이 있는 Knowledge | NPC 지식 경계 |
 | Goal Manager | Goal 우선순위·phase·중단·재개 관리 | Active Goal과 revision | Goal lifecycle |
-| Typed Target Universe·Slotter | Target 통합·선정·slot 배치 | 일반 Target 16개와 `NoTarget` | Target identity와 순서 |
+| Target의 종류와 식별 정보 통합(코드: `Typed Target Universe`)·Slotter | Target 통합·선정·slot 배치 | 일반 Target 16개와 `NoTarget` | Target identity와 순서 |
 | Candidate Builder | Skill×Target 조합과 hard mask 생성 | 고정 Candidate 272개 | Candidate 유효성 |
 | Utility Baseline·Neural Policy | 전술적 선호 계산 | raw score와 parameter proposal | Candidate ranking |
 | Post-process | Switch Cost·OOD·Calibration 적용 | 선택 후보 또는 fallback | Neural 수용 여부 |
@@ -212,12 +214,12 @@ Neural Policy의 권한은 Candidate ranking으로 제한한다. Goal 생성은 
 
 | 용어 | 이 문서에서의 뜻 |
 |---|---|
-| Belief | NPC가 관측하거나 전달받은 상태 |
+| Knowledge (코드 이름: `Belief`) | NPC가 관측하거나 전달받아 보관하는 정보 |
 | Goal | `조사한다`, `전투한다`처럼 여러 행동에 걸쳐 유지되는 목적 |
 | Goal Phase | Goal 안의 현재 단계. 예: 소리 방향 보기 → 접근 → 주변 탐색 |
 | Skill | `LookAt`, `Approach`, `Attack`처럼 실행기가 수행할 수 있는 한 가지 행동 |
 | Target | Skill이 사용하는 Actor·소리·위치·엄폐물 |
-| Typed Target | 종류가 다른 Target을 공통 Handle과 Feature 형식으로 표현한 것 |
+| Target의 종류와 식별 정보 (`Typed Target`) | Entity·소리·위치·엄폐물의 종류와 실제 대상을 공통 Handle·Feature로 표현한 것 |
 | Target Slot | 이번 의사결정에서 모델에 보여주는 Target의 고정 위치 |
 | Candidate | `Skill + Target Slot` 조합. 예: `Investigate + SoundEvent slot 3` |
 | Boss Pattern | `Attack(Entity)`가 선택된 뒤 보스가 실행할 authored 공격 절차. Target Slot이나 공통 Candidate가 아님 |
@@ -247,9 +249,10 @@ Neural Policy의 권한은 Candidate ranking으로 제한한다. Goal 생성은 
 
 ---
 
-# 2. Typed Target
+<a id="2-typed-target"></a>
+# 2. Target의 종류와 식별 정보 (기술명: Typed Target)
 
-`Typed Target`은 Entity·소리·마지막 위치·엄폐물·Smart Object·Waypoint를 공통 형식으로 표현한다.
+Target에는 Entity·소리·마지막 위치·엄폐물·Smart Object·Waypoint처럼 여러 종류가 있다. 기술 계약은 이 Target 종류들을 공통 형식으로 표현하며, 이를 `Typed Target`이라고 부른다.
 
 ## 2.1 Runtime Handle과 Model Feature 분리
 
@@ -285,12 +288,12 @@ struct FTargetFeatures
 - Switch Cost의 `target_changed`, `same_as_current_target`, `same_as_current_skill_target`, Continue slot 재매핑은 `IdentityKey` 비교를 사용한다.
 - 같은 `IdentityKey`의 Revision-only 변경은 snapshot update로 처리한다.
 - immutable/resource Target의 exact Revision 변경은 stale로 처리한다.
-- Entity Belief 갱신은 §7.1의 제한된 non-material 조건을 만족할 때만 최신 Belief 재검증을 허용한다.
+- Entity Knowledge 갱신은 §7.1의 제한된 non-material 조건을 만족할 때만 최신 Knowledge 재검증을 허용한다.
 - Canonical serialization의 `FTargetHandle` 전체 byte 비교를 의미상 same-target 비교로 재사용하지 않는다.
 
 같은 적을 두 번 관측한 경우를 생각하면 쉽다. `IdentityKey`는 두 관측이 같은 적을 가리키는지 판정한다. `SnapshotKey`는 현재 관측이 요청 시점의 관측과 같은지 판정한다.
 
-새 Entity 관측에서 위치와 같은 연속값만 조금 바뀌면 50ms 한도 안에서 최신 Belief로 다시 검증할 수 있다. 시야, 실행 가능 여부, Candidate mask, immutable Target Revision 중 하나라도 바뀌면 이전 응답을 폐기한다.
+새 Entity 관측에서 위치와 같은 연속값만 조금 바뀌면 50ms 한도 안에서 최신 Knowledge로 다시 검증할 수 있다. 시야, 실행 가능 여부, Candidate mask, immutable Target Revision 중 하나라도 바뀌면 이전 응답을 폐기한다.
 
 금지 사항:
 
@@ -319,9 +322,9 @@ struct FTargetFeatures
 | Kind | StableId | Generation | Revision |
 |---|---|---|---|
 | NoTarget | 0 | 0 | 0 |
-| Entity | 서버 영속 Entity/Net ID | Actor spawn generation | Belief revision |
+| Entity | 서버 영속 Entity/Net ID | Actor spawn generation | Knowledge revision |
 | SoundEvent | World epoch 내 단조 증가 event ID | World event epoch | immutable event revision 0 |
-| LastKnownPosition | NPC별 단조 증가 snapshot ID | source Entity generation 또는 0 | snapshot 생성 시 Belief revision |
+| LastKnownPosition | NPC별 단조 증가 snapshot ID | source Entity generation 또는 0 | snapshot 생성 시 Knowledge revision |
 | CoverSlot | authored/runtime resource ID | resource spawn/rebuild generation | availability revision |
 | SmartObject | smart-object slot ID | resource spawn/rebuild generation | availability revision |
 | Waypoint | authored route+waypoint ID | route load generation | route revision |
@@ -452,7 +455,7 @@ Tensor Build
 
 # 3. Target Universe와 Slotter
 
-`Target Universe`는 현재 Goal과 Belief의 Typed Target을 모은다. `Target Slotter`는 필수 대상을 우선 보존하고 나머지를 quota 순서로 선정해 17개 slot에 배치한다.
+`Target Universe`는 현재 Goal과 Knowledge(`Belief`)에서 Target 종류를 모은다. `Target Slotter`는 필수 대상을 우선 보존하고 나머지를 quota 순서로 선정해 17개 slot에 배치한다.
 
 ## 3.1 고정 용량
 
@@ -481,7 +484,7 @@ Candidate Max        = 16 × 17 = 272
 
 ```text
 Perceived/Goal/Resource Universe
-→ Typed Target Universe
+→ Target의 종류와 식별 정보 통합 (코드: `Typed Target Universe`)
 → Dedupe
 → Mandatory Preserve
 → Quota Selection
@@ -613,7 +616,7 @@ target_slot     = candidate_index % 17
 - 동일 Skill/동일 Target을 다시 `Start`하는 일반 Candidate는 mask한다.
 - Skill이 종료된 상태에서는 Continue를 mask한다.
 - Commit 전에 반드시 `RunningSkill.CanContinue(LatestBelief, LatestGoalRevision)`를 호출한다.
-- 최신 Belief에서 Target이 더 이상 유효하지 않거나 Goal 계약이 바뀌면 Continue는 거부한다.
+- 최신 Knowledge에서 Target이 더 이상 유효하지 않거나 Goal 계약이 바뀌면 Continue는 거부한다.
 - `ContinueCurrentAction`은 실제 실행 Skill이 아니므로 `global_state[17]`은 항상 0인 reserved field다.
 
 따라서 “현재 실행 유지”와 “같은 Skill을 새로 시작”하는 의미가 중복되지 않는다.
@@ -716,7 +719,7 @@ pattern_raw_scores          float32 [B,32]
 pattern_parameter_proposals float32 [B,32,4]
 ```
 
-Feature divisor·clamp·padding은 `boss_pattern_contract_v1.yaml`에서 생성한다. 모든 field는 정확히 하나의 normalizer에 배정되며 Python Builder와 Unreal Builder가 generated spec을 공유한다. 외부 대상 정보는 허용된 Belief 또는 locked Attack Target source만 사용할 수 있고 Ground Truth source는 validator가 거부한다. `target_health_ratio_estimate`는 `target_health_estimate_confidence`와 함께 입력한다. 빈 Pattern row의 feature는 정규화 후 전부 0이며 masked score는 ranking 전에 `-∞`로 바꾼다.
+Feature divisor·clamp·padding은 `boss_pattern_contract_v1.yaml`에서 생성한다. 모든 field는 정확히 하나의 normalizer에 배정되며 Python Builder와 Unreal Builder가 generated spec을 공유한다. 외부 대상 정보는 허용된 Knowledge 또는 locked Attack Target source만 사용할 수 있고 Ground Truth source는 validator가 거부한다. `target_health_ratio_estimate`는 `target_health_estimate_confidence`와 함께 입력한다. 빈 Pattern row의 feature는 정규화 후 전부 0이며 masked score는 ranking 전에 `-∞`로 바꾼다.
 
 Pattern Policy는 ranking과 다음 제한값만 제안한다.
 
@@ -734,7 +737,7 @@ Damage, Hitbox, Active window, Root Motion, interruptibility, Phase transition�
 - `PreAttackTurn`, `Startup/Telegraph`, `Active`에서는 Pattern을 변경하지 않는다.
 - `Recovery`는 authored Branch Window에서만 successor 선택을 허용한다.
 - 일반 플레이어 이동, 새 Tactical score, 새 Pattern score는 실행 중 Pattern을 중단하지 않는다.
-- 잠금 뒤 Target identity와 Pattern은 유지한다. 선택용 Belief snapshot은 immutable이다.
+- 잠금 뒤 Target identity와 Pattern은 유지한다. 선택용 Knowledge snapshot은 immutable이다.
 - 결정론적 Executor만 Combat Targeting 정책이 허용한 현재 Target transform을 읽어 Data Asset의 Phase별 각도·속도 상한 안에서 추적할 수 있다.
 - Executor가 읽은 현재 transform은 Pattern Model 입력으로 되먹이지 않으며 Pattern 변경 사유가 아니다.
 - 강제 중단은 `Death`, `ActorDestroyed`, `AuthorityLost`다. `Stun`, `PostureBreak`, scripted Phase transition, Arena reset은 해당 Pattern Data Asset의 allowlist가 허용할 때만 중단한다.
@@ -744,7 +747,7 @@ Damage, Hitbox, Active window, Root Motion, interruptibility, Phase transition�
 
 ### 4.7.4 정보 경계·Hash·승격
 
-Pattern request는 공통 Attack Target의 허용된 Belief snapshot만 사용한다. 보이지 않는 플레이어의 실제 Transform, 미래 입력, ground-truth 상태는 사용할 수 없다.
+Pattern request는 공통 Attack Target의 허용된 Knowledge snapshot만 사용한다. 보이지 않는 플레이어의 실제 Transform, 미래 입력, ground-truth 상태는 사용할 수 없다.
 
 `pattern_candidate_set_hash`는 Contract hash, Pattern Asset bundle hash, 32개 Pattern ID·mask, Attack Target Handle, selection boundary, Boss Phase revision, Combat State revision을 고정 순서로 묶는다. 응답은 같은 hash와 `boss_pattern_decision_contract_hash`를 반환해야 하며 Commit에서 latest request와 다시 비교한다.
 
@@ -909,7 +912,7 @@ Task-entry/start 실패는 Combat lifecycle과 분리된 dedicated `ExecutionHos
 
 2026-08-09 evidence는 exact focused `2/2`, broad Boss Pattern `53/53`, warning/failure `0/0`, hostile client/foreign Pawn/duplicate/replay/stale revision/same-handle foreign Actor/same-Actor stale generation/preflight reject, client pending registration delta `0`, combat collision, failure report·Pump·terminal callback exact `+1`, Task acquisition `0`, Data Validation `290`·error/warning `0/0`, generated lock sync, changed-file SARIF `15/0`, MCP restart Host/Session/EventSource `1/1/1`, StateTree ready/hash/clean, map dirty/unsaved `false/false`, active/interrupted ChangeSet `0/0`이며 authority/security·lifecycle/terminal·asset/test 독립 review는 모두 `Critical 0 / Important 0 — GO`다.
 
-다음 단계는 common Belief/Goal/Typed-Target에서 live state를 공급하는 concrete gameplay authority provider와 production PatternSet/selector trigger다. authored transition/condition과 Montage·Hitbox·Damage·Root Motion·cleanup effect, replication/save-load는 그 이후 별도 단계다.
+다음 단계는 공통 Knowledge(`Belief`)/Goal/Target의 종류와 식별 정보(`Typed Target`)에서 live state를 공급하는 concrete gameplay authority provider와 production PatternSet/selector trigger다. authored transition/condition과 Montage·Hitbox·Damage·Root Motion·cleanup effect, replication/save-load는 그 이후 별도 단계다.
 
 ---
 
@@ -1014,7 +1017,7 @@ Suspended Goal 재개 순서는 Goal Registry의 `same_selection_key`를 따른�
 | 매 frame progress 변화 | 아니오 |
 | deadline countdown | 아니오 |
 | Event Buffer 변화 | 아니오 |
-| Belief revision 변화 | 아니오 |
+| Knowledge revision 변화 | 아니오 |
 | Candidate score 변화 | 아니오 |
 
 Goal Registry `revision_contract.increase_on`은 `interruptibility_changed`, `resume_policy_changed`를 포함한다. 이 authority patch는 완료됐지만, revision을 실제로 발행·검증하는 Goal Runtime과 hostile test가 구현되기 전에는 Goal Runtime Gate와 최종 Freeze를 통과할 수 없다.
@@ -1107,7 +1110,7 @@ Production 초기 timer authority:
 - `goal_registry_v1.yaml`은 transition 41개를 typed trigger 35 event + 6 timer로 고정하며 legacy `event` 필드를 금지한다.
 - 현 consumer는 authority commit `2770b4a5a3aebd430420e5b330441aa044cc7db5`의 generated C++ binding과 source hash를 lock으로 고정한다. 새 bytes에는 새 provenance commit이 필요하다.
 - 현재 `GoalFsmRuntimeTests.cpp`는 RED 테스트만 존재하고 Runtime `.h/.cpp`와 Timer Component는 없다. 따라서 Contract Dispatcher·Timer Core, Unreal Timer Core, Production Integration은 모두 아직 PASS가 아니다.
-- 29개 gameplay guard와 2개 effect의 executable provider, 전체 arbitration/save archive, production Belief/Goal/Typed Target producer가 닫히기 전에는 `Gameplay Goal FSM Runtime PASS`를 선언하지 않는다.
+- 29개 gameplay guard와 2개 effect의 executable provider, 전체 arbitration/save archive, production Knowledge(`Belief`)/Goal/Target의 종류와 식별 정보(`Typed Target`) producer가 닫히기 전에는 `Gameplay Goal FSM Runtime PASS`를 선언하지 않는다.
 - Companion UE 문서의 Phase 표가 Registry와 다르면 Registry transition을 우선하며, UE 문서는 수기 stale 표를 구현 근거로 사용하지 않는다.
 
 # 6. Neural Policy와 Post-process
@@ -1375,7 +1378,7 @@ Material change:
 - Active Goal instance/revision 변경
 - Candidate membership/order/mask 또는 Target `IdentityKey`/Generation 변경
 - SoundEvent·LastKnownPosition·Waypoint·WorldPosition처럼 exact match가 필요한 Target Revision 변경
-- Entity Belief Revision 변경이 현재 Perception/LOS, Target 유효성, Candidate mask, Skill precondition을 바꿈
+- Entity Knowledge Revision 변경이 현재 Perception/LOS, Target 유효성, Candidate mask, Skill precondition을 바꿈
 - Resource generation/availability 변경
 - Skill interruptibility 또는 authoritative deadline 변경
 - 피격·폭발·강제 Goal 같은 urgent event
@@ -1383,12 +1386,12 @@ Material change:
 Non-material change:
 
 - 로그·telemetry counter와 model input이 아닌 presentation state
-- 같은 Entity `IdentityKey`/Generation의 새 Belief Revision이면서 현재 허용 Perception이 유지되고 Candidate membership/order/mask와 Commit precondition이 그대로인 경우
+- 같은 Entity `IdentityKey`/Generation의 새 Knowledge Revision이면서 현재 허용 Perception이 유지되고 Candidate membership/order/mask와 Commit precondition이 그대로인 경우
 - 위 Entity 갱신 중 Schema에서 `staleness_class: continuous_nonmaterial`로 구조화한 float feature만 바뀐 경우
 
 허용된 Entity Revision 갱신은 `latest_snapshot_revision`을 올리지 않는다. 이 갱신은 `dirty_flag`를 설정한다.
 
-응답의 Candidate Hash는 요청 당시 pending hash와 비교한다. Commit은 최신 Entity Belief와 50ms age bound를 다시 검증한다.
+응답의 Candidate Hash는 요청 당시 pending hash와 비교한다. Commit은 최신 Entity Knowledge와 50ms age bound를 다시 검증한다.
 
 다른 Target Kind의 Revision 변경은 material이다. boolean·sentinel·eligibility 변화도 material이다.
 
@@ -1438,7 +1441,7 @@ Kind별 revision 규칙:
 
 | Target Kind | Commit revision 규칙 |
 |---|---|
-| Entity | Identity/Generation 일치 후 **최신 유효 Belief Revision**으로 재검증. Revision-only 갱신 허용은 §7.1의 `continuous_nonmaterial` 조건과 50ms age bound를 모두 만족할 때만 가능하며, 추적이 필요한 Skill은 현재 Perception/LOS를 다시 검사 |
+| Entity | Identity/Generation 일치 후 **최신 유효 Knowledge Revision**으로 재검증. Revision-only 갱신 허용은 §7.1의 `continuous_nonmaterial` 조건과 50ms age bound를 모두 만족할 때만 가능하며, 추적이 필요한 Skill은 현재 Perception/LOS를 다시 검사 |
 | SoundEvent | 요청 당시 immutable snapshot revision exact match + TTL |
 | LastKnownPosition | immutable snapshot revision exact match. Origin Actor 현재 위치 조회 금지 |
 | CoverSlot/SmartObject | Resource Generation + Availability Revision을 CAS하고 성공 시 ReservationId 생성 |
@@ -1468,7 +1471,7 @@ Reservation:
 
 1. 거부된 응답과 그 Execution Plan은 폐기한다.
 2. 기존 Skill이 `CanContinue(LatestBelief, LatestGoalRevision)`를 통과하면 새 결정을 준비하는 동안 유지한다.
-3. 더 최신인 commit-eligible 요청이 없을 때만 최신 Belief·Goal로 새 decision ID와 Candidate를 만든다. 오래된 요청의 Tensor나 Candidate Hash를 재사용하지 않는다.
+3. 더 최신인 commit-eligible 요청이 없을 때만 최신 Knowledge·Goal로 새 decision ID와 Candidate를 만든다. 오래된 요청의 Tensor나 Candidate Hash를 재사용하지 않는다.
 4. `utility_baseline_v1.0.0`이 같은 Target Slot, Candidate, hard mask와 Switch Cost로 후보를 고른다. Neural OOD·Calibration은 적용하지 않지만 §7.3 Commit 검증은 그대로 통과해야 한다.
 5. Utility에도 valid Candidate가 없거나 Commit이 실패하면 Goal Registry의 결정론적 fallback을 사용한다.
 
@@ -1493,7 +1496,7 @@ Reservation:
 
 ## 7.6 멀티플레이
 
-- 서버가 Perception, Belief, Goal, Inference 요청, Post-process, Commit을 소유한다.
+- 서버가 Perception, Knowledge, Goal, Inference 요청, Post-process, Commit을 소유한다.
 - 클라이언트는 선택 Skill, typed target Net reference 또는 snapshot, parameter, server start time을 복제받는다.
 - 피해·이동 권한·아이템·관계·Goal은 서버만 변경한다.
 
@@ -1501,18 +1504,18 @@ Reservation:
 
 # 8. Hidden Information 경계
 
-전술 판단은 NPC의 Perception과 Belief를 사용한다.
+전술 판단은 NPC의 Perception과 Knowledge를 사용한다.
 
 ## 8.1 원칙
 
 - 물리·충돌·피해·Actor 생존 검증은 Ground Truth를 사용한다.
-- 전술 선택·경로 목표·추적 판단은 Belief를 사용한다.
+- 전술 선택·경로 목표·추적 판단은 Knowledge를 사용한다.
 
 ## 8.2 Target Kind별 Commit 정보
 
 | Kind | 허용 정보 | 전술 판단/목표 갱신에 금지되는 정보 |
 |---|---|---|
-| Entity | identity/generation, 최신 유효 Belief, 현재 허용 Perception/LOS, 물리·피해 권위 판정 | Sight Lost 이후 숨은 Transform/Velocity |
+| Entity | identity/generation, 최신 유효 Knowledge, 현재 허용 Perception/LOS, 물리·피해 권위 판정 | Sight Lost 이후 숨은 Transform/Velocity |
 | SoundEvent | immutable 위치·class·TTL | attributed Actor 현재 Transform |
 | LastKnownPosition | immutable snapshot·age·confidence·Goal authority | Origin Actor 현재 위치·이동·생존을 이유로 취소 |
 | CoverSlot | ResourceGeneration·AvailabilityRevision·entry/peek snapshot·CAS 결과 | 숨은 적 위치로 cover utility 재계산 |
@@ -1529,7 +1532,7 @@ Authoritative 물리·충돌·피해 판정은 Ground Truth를 사용할 수 있
 - Sight Lost event가 발생하면 Commit 가능한 Entity candidate를 mask한다.
 - 다음 판단에서 immutable `LastKnownPosition`을 생성한다.
 - 이미 실행 중인 Entity 추적 Skill은 마지막 허용 위치를 freeze하고 즉시 재판단을 요청한다.
-- 공격의 collision/damage는 authoritative physics를 사용한다. 전술 위치는 Belief에서만 가져온다.
+- 공격의 collision/damage는 authoritative physics를 사용한다. 전술 위치는 Knowledge에서만 가져온다.
 
 ## 8.4 Path/LOS Pair Feature
 
@@ -1751,7 +1754,7 @@ Baseline ID: `utility_baseline_v1.0.0`
 
 동일한 다음 계약을 사용한다.
 
-- Belief Snapshot
+- Knowledge Snapshot
 - Goal Manager
 - 17 Target Slot
 - 272 Candidate와 Mask
@@ -1785,9 +1788,9 @@ Active Learning 우선순위는 calibrated confidence, OOD, Candidate/Target mis
 
 ## 9.7 Save/Load와 Model Hot-swap
 
-- V1은 Event Buffer, Goal Instance, Belief TTL 기준 시각, Skill 실행 상태를 서버 Save에 저장한다.
+- V1은 Event Buffer, Goal Instance, Knowledge TTL 기준 시각, Skill 실행 상태를 서버 Save에 저장한다.
 - Suspended Goal phase timer는 §5.9의 `remaining_ms`와 Resume Policy를 저장하고, absolute Goal deadline은 저장 시점의 remaining duration과 authority revision으로 복구한다.
-- Load 시 만료된 Belief/Event는 제거하고 Reservation은 재획득한다.
+- Load 시 만료된 Knowledge/Event는 제거하고 Reservation은 재획득한다.
 - Model/Calibration/Registry hot-swap은 새 Decision Contract Hash 활성화 전에 dry-run validation과 rollback asset을 요구한다.
 - Pending inference는 supersede하고 새 계약으로 재요청한다.
 - rollback 시 해당 버전의 Model, Calibration, Schema/Registry 생성 코드 세트를 함께 복구한다.

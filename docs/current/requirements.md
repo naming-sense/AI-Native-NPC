@@ -1,7 +1,7 @@
 # AI Native NPC 제품 요구사항
 ## 처음 보는 사람을 위한 의사결정 시스템 설명
 
-- 문서 버전: **v0.4.12**
+- 문서 버전: **v0.4.13**
 - 개정일: 2026-08-10
 - 주 독자: **기획자, 사업 책임자, Gameplay Designer, 새로 합류한 개발자**
 - 한 줄 상태: **보스 공격을 안전하게 시작하는 일부 기반만 검증됐으며, 일반 NPC의 목적·지식·대상 판단과 실제 AI 모델은 아직 구현되지 않았다.**
@@ -29,7 +29,7 @@
 
 1. [제품 목표](#product-goal)
 2. [Goal: 지금 무엇을 이루려는가](#goal)
-3. [Belief: NPC는 무엇을 알고 있는가](#belief)
+3. [Knowledge: NPC는 무엇을 알고 있는가](#belief)
 4. [Target: 누구·무엇·어디를 대상으로 하는가](#target)
 5. [Skill과 Candidate: 무엇을 할 수 있는가](#candidate)
 6. [행동 선택: 무엇이 가능하고 무엇이 더 좋은가](#selection)
@@ -55,7 +55,7 @@ AI Native NPC는 **NPC가 알고 있는 정보와 현재 목적을 바탕으로 
 |---|---|---|
 | Goal | 여러 행동에 걸쳐 유지되는 목적 | 소리 조사, 경계선 집행, 전투 |
 | Goal Phase | Goal 안의 현재 단계 | 방향 보기 → 접근 → 주변 찾기 |
-| Belief | NPC가 관측하거나 전달받아 알고 있는 정보 | 마지막으로 본 위치, 들은 발소리 |
+| Knowledge | NPC가 직접 보거나 듣거나 전달받아 보관하는 정보. 코드 이름은 `Belief` | 마지막으로 본 위치, 들은 발소리 |
 | Target | 행동 문장의 목적어 | 적, 소리, 엄폐물, 위치 |
 | Target Slot | 이번 판단에서 고려할 Target을 담는 NPC별 자리 | `slot 1 = 방금 들은 발소리` |
 | Skill | 실행기가 수행하는 한 가지 행동 | 바라보기, 접근하기, 공격하기 |
@@ -70,7 +70,7 @@ AI Native NPC는 **NPC가 알고 있는 정보와 현재 목적을 바탕으로 
 
 ```text
 발소리를 들음
-→ “발소리가 저쪽에서 났다”는 Belief를 저장
+→ “발소리가 저쪽에서 났다”는 정보를 Knowledge에 저장
 → “이상한 소리를 조사한다”는 Goal을 활성화
 → 발소리를 Target으로 선택
 → 돌아보기, 접근하기, 조사하기 같은 Candidate를 만듦
@@ -80,7 +80,7 @@ AI Native NPC는 **NPC가 알고 있는 정보와 현재 목적을 바탕으로 
 → 통과하면 Skill 실행
 ```
 
-실제 사건 처리에서는 관측이 Belief를 만들고 Goal을 활성화할 수 있다. 이 문서는 행동 선택의 기준인 Goal을 먼저 설명한 뒤, 그 판단에 쓰는 Belief와 Target을 설명한다.
+실제 사건 처리에서는 관측으로 얻은 Knowledge가 Goal을 활성화할 수 있다. 이 문서는 행동 선택의 기준인 Goal을 먼저 설명한 뒤, 그 판단에 쓰는 Knowledge와 Target을 설명한다.
 
 ---
 
@@ -141,9 +141,9 @@ Goal의 각 단계에는 완료 event와 timeout이 있다. Timeout은 정상 �
 ---
 
 <a id="belief"></a>
-# 3. Belief: NPC는 무엇을 알고 있는가
+# 3. Knowledge: NPC는 무엇을 알고 있는가
 
-Belief는 NPC가 직접 보거나 듣거나 전달받은 정보다. NPC의 전술 판단은 실제 월드 전체가 아니라 이 Belief를 사용한다.
+Knowledge는 NPC가 직접 보거나 듣거나 전달받아 보관하는 정보다. 현재 코드와 Schema에서는 호환성을 위해 `Belief`라는 이름을 사용한다. NPC의 전술 판단은 실제 월드 전체가 아니라 자신의 Knowledge를 사용한다.
 
 예를 들어 플레이어가 시야에서 사라지면 NPC는 플레이어의 현재 위치를 계속 알 수 없다. 마지막으로 본 위치는 기억할 수 있지만, 벽 뒤의 실제 이동을 따라가면 안 된다.
 
@@ -187,7 +187,7 @@ slot 16 = NoTarget
 
 V1은 일반 Target 16개와 `NoTarget` 1개를 합쳐 총 17개 slot을 사용한다.
 
-정확한 Target 종류와 신원은 [세부 기술 요구사항 §2](technical-requirements.md#2-typed-target)를, 정렬과 slot 유지 규칙은 [§3](technical-requirements.md#3-target-universe와-slotter)을 따른다.
+정확한 Target의 종류와 식별 정보는 [세부 기술 요구사항 §2](technical-requirements.md#2-typed-target)를, 정렬과 slot 유지 규칙은 [§3](technical-requirements.md#3-target-universe와-slotter)을 따른다.
 
 ---
 
@@ -245,7 +245,7 @@ Neural Policy가 timeout, 오류, OOD 또는 낮은 신뢰도로 거부되면 �
 
 1. 잘못되거나 늦은 응답을 폐기한다.
 2. 현재 Skill을 계속해도 안전하면 새 결정을 준비하는 동안 유지한다.
-3. 최신 Belief와 Goal로 Candidate를 다시 만든다.
+3. 최신 Knowledge와 Goal로 Candidate를 다시 만든다.
 4. 결정론적 Utility Baseline이 valid Candidate를 고른다.
 5. Utility도 실패하면 Goal Registry의 fallback을 사용한다.
 
@@ -265,7 +265,7 @@ Commit은 짧은 작업이다.
 ```text
 선택 결과 수신
 → 최신 Goal 확인
-→ Target 신원·유효성 확인
+→ Target의 종류와 식별 정보·유효성 확인
 → Skill 조건 확인
 → 필요한 자원 예약
 → 최종 확인
@@ -310,7 +310,7 @@ Commit 뒤 Skill Executor가 이동, 시선, 대화, 엄폐와 전투를 실제�
 
 다음은 아직 없다.
 
-- 실제 Gameplay Belief·Goal·Target을 공급하는 production authority provider
+- Knowledge·Goal·Target을 공급하는 production authority provider
 - production PatternSet과 selector trigger
 - authored transition과 실제 Montage·Hitbox·Damage·Root Motion
 - replication과 save/load
@@ -360,7 +360,7 @@ Teacher LLM은 개발용 Silver label만 만든다. Runtime에서 NPC를 조종�
 |---|---|---|
 | Schema·Registry·generated binding | PASS | 정확한 타입과 표는 Python/C++에 동기화됨 |
 | Goal Dispatcher·Timer Core | RED | 테스트만 있고 Runtime 구현 파일은 없음 |
-| 일반 NPC Gameplay Goal FSM | HOLD | production Belief·Goal·Target과 guard/effect provider가 없음 |
+| 일반 NPC Gameplay Goal FSM | HOLD | production Knowledge·Goal·Target과 guard/effect provider가 없음 |
 | Boss Pattern 안전 Core와 Host/start 기반 | 제한된 phase PASS | fixture-backed 실행 기반은 검증됨 |
 | 실제 Boss 전투 효과 | HOLD | production selector, Montage, Hitbox, Damage 등이 없음 |
 | Neural Policy·ONNX·NNE | HOLD | 실제 모델과 adapter가 없음 |
@@ -370,7 +370,7 @@ Teacher LLM은 개발용 Silver label만 만든다. Runtime에서 NPC를 조종�
 
 일반 NPC Runtime 완료에는 다음이 모두 필요하다.
 
-1. production Belief, Goal과 Typed Target owner
+1. production Knowledge, Goal과 Target의 종류와 식별 정보(`Typed Target`) owner
 2. Goal Dispatcher와 server timer Runtime
 3. 29개 guard와 2개 effect의 실제 provider
 4. Candidate Builder, Utility/Neural 선택과 Skill 실행 연결
@@ -396,7 +396,7 @@ AI 모델 Release에는 여기에 다음이 더 필요하다.
 |---|---|
 | 제품 목적과 전체 판단 흐름 | 이 문서 |
 | Goal 우선순위·phase·timer·save/load | [세부 기술 요구사항 §5](technical-requirements.md#5-goal-manager) |
-| Target 신원 | [세부 기술 요구사항 §2](technical-requirements.md#2-typed-target) |
+| Target의 종류와 식별 정보 | [세부 기술 요구사항 §2](technical-requirements.md#2-typed-target) |
 | Target 정렬·slot 선정 | [세부 기술 요구사항 §3](technical-requirements.md#3-target-universe와-slotter) |
 | Candidate 272행·Hard Mask | [세부 기술 요구사항 §4](technical-requirements.md#4-candidate-universe) |
 | Neural·Utility·OOD·fallback | [세부 기술 요구사항 §6](technical-requirements.md#6-neural-policy와-post-process) |

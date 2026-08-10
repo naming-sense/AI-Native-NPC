@@ -4,6 +4,8 @@
 
 ## 개정 이력
 
+- [Requirements History v0.4.13](requirements-history-v0.4.13.md)
+  - `Belief`와 `Typed Target`의 독자용 표시를 `Knowledge`와 “Target의 종류와 식별 정보”로 쉽게 바꿨습니다.
 - [Requirements History v0.4.12](requirements-history-v0.4.12.md)
   - 초보자용 제품 요구사항과 세부 기술 요구사항을 분리하고 목차·읽기 순서를 바로잡았습니다.
 - [Requirements History v0.4.11](requirements-history-v0.4.11.md)

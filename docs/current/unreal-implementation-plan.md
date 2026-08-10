@@ -1,8 +1,10 @@
 # AI Native NPC — Unreal Engine 5.7 / Manny·Quinn 공간·시야·소리 통합 구현 계획서
-## UE 클라이언트·신경망·Goal·Typed Target·Schema 2.0 통합 기준
+## UE 클라이언트·신경망·Goal·Target의 종류와 식별 정보(`Typed Target`)·Schema 2.0 통합 기준
 
-- 문서 버전: **v0.4.12**
-- 문서 상태: **Boss Pattern production StateTree·fixture-backed encounter Host/start handoff phase PASS / Goal Registry 1.1.0 consumer sync PASS / Goal Dispatcher·Timer Core RED / production Belief·Goal·Typed Target·guard/effect provider·전투 효과·ML/NNE pending**
+> **Knowledge**는 NPC가 관측하거나 전달받아 보관하는 정보이며 현재 코드 이름은 `Belief`다.
+
+- 문서 버전: **v0.4.13**
+- 문서 상태: **Boss Pattern production StateTree·fixture-backed encounter Host/start handoff phase PASS / Goal Registry 1.1.0 consumer sync PASS / Goal Dispatcher·Timer Core RED / production Knowledge·Goal·Target의 종류와 식별 정보(`Typed Target`)·guard/effect provider·전투 효과·ML/NNE pending**
 - 개정일: 2026-08-10
 - 문서 보강: **ML/NNE Implementation Supplement 1 + Requirements Review Remediation Binding Notice**
 - 대체 문서: 기존 `ai_native_npc_ue57_manny_spatial_vision_audio_implementation_plan.md` v0.3
@@ -11,8 +13,8 @@
 - 공통 구현 계획: `implementation-plan.md`
 - 계약 부록: `contract-appendices.md`
 - Tensor 단일 원본: `ai_native_npc_schema_v2_0.yaml`
-- Requirements SHA-256: `9eb3daf344b269b33d288408f56f8b5922c230e29cc36fff369a7cb630cdb398`
-- Technical Requirements SHA-256: `810f1669690f9205a2a9c090896fe49e2cd6501c5ca9eb0fa133ae42825c7e83`
+- Requirements SHA-256: `727660fc7e85cf90f80572b6dced09e5653d9c3de712fd04785f4d6756d1454a`
+- Technical Requirements SHA-256: `ad044ac9e97c70185afc6db3f55f2679b1c013a6dc009a90210db5e20d8de4a4`
 - Schema YAML SHA-256: `a7791004de0534f29198ebf5eaaff7cd764185b59b05446d419f5d0a3303f886`
 - Boss Pattern Contract SHA-256: `e4f828c114fcc5db1cb04b5d0a6e2b3d29dada7e45c60a3dd18c674baa78c789`
 - Skill Registry SHA-256: `08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8`
@@ -24,7 +26,7 @@
 - Schema 2.0 최종 Freeze: **NO-GO — 생성 계약과 Unreal Runtime Gate 재승격 필요**
 
 > 이 문서는 Unreal Engine 5.7 Third Person 프로젝트에서 Quinn을 플레이어로 유지하고, Manny를 학습 기반 NPC로 적용하기 위한 엔진 구현 기준서다.  
-> Tensor·Enum·Padding·Normalization·Hash가 충돌하면 본문보다 `ai_native_npc_schema_v2_0.yaml`이 우선하고, Goal·Target·Commit의 세부 동작이 충돌하면 v0.4.12 세부 기술 요구사항이 우선한다.
+> Tensor·Enum·Padding·Normalization·Hash가 충돌하면 본문보다 `ai_native_npc_schema_v2_0.yaml`이 우선하고, Goal·Target·Commit의 세부 동작이 충돌하면 v0.4.13 세부 기술 요구사항이 우선한다.
 
 ---
 
@@ -107,7 +109,7 @@ Goal typed trigger·phase timer·revision authority는 Goal Registry `1.1.0`과 
 완료: Goal Registry 1.1.0 generated binding→consumer provenance lock/sync
 RED: Goal Contract Dispatcher·Timer Core Automation test
 대기: GoalFsmRuntime.h/.cpp→server Timer Runtime Component
-대기: production Belief→Goal producer→Typed Target→29 guard·2 effect provider→전체 arbitration/save archive
+대기: production Knowledge→Goal producer→Target의 종류와 식별 정보(코드: `Typed Target`)→29 guard·2 effect provider→전체 arbitration/save archive
 대기: production PatternSet/selector trigger→authored transition/condition→Montage/Hitbox/Damage/Root Motion
 대기: Dataset→학습→ONNX/NNE→ranking/tie/OOD/Calibration
 ```
@@ -127,9 +129,9 @@ Boss Pattern Host 증거는 focused `2/2`, broad `53/53`, Data Validation `290/0
 |---|---|
 | Authoritative World | 실제 Actor 상태, 물리, 피해, 퀘스트, 서버 권위 |
 | AI Perception | Sight/Hearing/Damage 원시 Stimulus |
-| Belief Runtime | NPC가 아는 위치·상태, source, observed time, confidence, TTL |
+| Knowledge Runtime(코드: `Belief Runtime`) | NPC가 아는 위치·상태, source, observed time, confidence, TTL |
 | Goal Manager | Goal 생성, arbitration, phase transition, suspend/resume, revision |
-| Typed Target Universe | Entity·Sound·Position·Resource를 공통 Handle/Snapshot으로 변환 |
+| Target의 종류와 식별 정보 통합(코드: `Typed Target Universe`) | Entity·Sound·Position·Resource를 공통 Handle/Snapshot으로 변환 |
 | Target Slotter | Target Universe에서 일반 Target 16개를 결정론적으로 선정 |
 | Candidate Builder | 272개 고정 Candidate와 hard mask 생성 |
 | Feature Builder | Schema 2.0 순서와 정규화로 Tensor 생성 |
@@ -150,7 +152,7 @@ Quinn 위치·움직임·발소리
 Manny AI Sight / Hearing / Damage
         │
         ▼
-Belief Runtime
+Knowledge Runtime (코드: `Belief Runtime`)
 - 현재 보이는 Entity
 - immutable SoundEvent
 - Sight Lost 시 LastKnownPosition
@@ -163,7 +165,7 @@ Goal Manager
 - preemption / suspended stack
         │
         ▼
-Typed Target Universe
+Target의 종류와 식별 정보 통합 (코드: `Typed Target Universe`)
         │
         ▼
 Target Slotter
@@ -355,8 +357,8 @@ Unreal 구현 저장소는 임의의 최신 계약을 따라가지 않는다. `A
 ## 3.1 계약 우선순위
 
 1. 현행 5개 YAML 기계 계약: Schema, Skill Registry, Goal Registry, Test Taxonomy, Boss Pattern Contract
-2. v0.4.12 세부 기술 요구사항: Goal, Target, Candidate, Commit, KPI
-3. v0.4.12 제품 요구사항: 목적, 흐름, 책임, 현재 상태
+2. v0.4.13 세부 기술 요구사항: Goal, Target, Candidate, Commit, KPI
+3. v0.4.13 제품 요구사항: 목적, 흐름, 책임, 현재 상태
 4. 본 UE 문서: Unreal 클래스와 실행 방식
 5. Data Asset: 상위 계약이 허용한 범위의 센서·Skill 파라미터만 튜닝
 
@@ -499,7 +501,7 @@ PrivateDependencyModuleNames.AddRange(new string[]
 - Guard home Waypoint
 - 제한 구역 Trigger
 - 디버그 HUD
-- Ground Truth와 Belief를 비교하는 Debug Actor
+- Ground Truth와 Knowledge를 비교하는 Debug Actor
 
 ---
 
@@ -515,7 +517,7 @@ PrivateDependencyModuleNames.AddRange(new string[]
 - `UPlayerNoiseEmitterComponent`
 - 선택: `UNPCObservableStateComponent`
 
-Quinn의 정확한 상태를 모델에 직접 전달하지 않는다. `UNPCObservableStateComponent`는 NPC가 현재 관측할 수 있는 외형·자세·무기 표현을 Belief Builder가 읽기 위한 인터페이스다.
+Quinn의 정확한 상태를 모델에 직접 전달하지 않는다. `UNPCObservableStateComponent`는 NPC가 현재 관측할 수 있는 외형·자세·무기 표현을 Knowledge Builder가 읽기 위한 인터페이스다.
 
 ```cpp
 UINTERFACE(BlueprintType)
@@ -577,7 +579,7 @@ Phase 1 멀티플레이로 전환할 때 정책 소유권을 다시 옮기지 �
 | Module | 책임 |
 |---|---|
 | `AINativeNPCContracts` | 생성된 Enum, Tensor shape, hash, POD snapshot |
-| `AINativeNPCRuntime` | Perception, Belief, Goal, Slotter, NNE, Commit, Skill |
+| `AINativeNPCRuntime` | Perception, Knowledge, Goal, Slotter, NNE, Commit, Skill |
 | `AINativeNPCEditor` | Inspector, Replay, Labeling, Schema 검사 |
 | `AINativeNPCTests` | Automation, Golden, Scenario, Performance |
 
@@ -587,7 +589,7 @@ Phase 1 멀티플레이로 전환할 때 정책 소유권을 다시 옮기지 �
 |---|---|
 | `AAINativeNPCCharacter` | Manny Pawn과 Component 소유 |
 | `AAINativeNPCController` | AI Perception, Navigation, Possession |
-| `UNPCBeliefComponent` | 현재 지각·추정 상태와 Typed Target 원본 |
+| `UNPCBeliefComponent` | 현재 지각·추정 상태와 Target의 종류와 식별 정보 원본 |
 | `UNPCSocialStateComponent` | 사건 기반 감정·관계 권위 상태; Policy에는 read-only |
 | `UNPCEventBufferComponent` | 최근 12개 명시적 Event |
 | `UNPCGoalManagerComponent` | Goal arbitration, FSM, revision |
@@ -693,7 +695,7 @@ struct FTargetHandle
 
 ## 7.3 Runtime Payload
 
-GameThread의 Typed Target은 Kind별 payload를 가진다.
+GameThread에서 Target의 종류와 식별 정보(코드: `Typed Target`)는 Kind별 payload를 가진다.
 
 ```cpp
 using FTargetPayloadVariant = TVariant<
@@ -746,9 +748,9 @@ struct FTargetFeatures
 | Kind | StableId | Generation | Revision | 필수 Runtime Payload |
 |---|---|---|---|---|
 | NoTarget | 0 | 0 | 0 | 없음 |
-| Entity | 서버 영속 Entity/Net ID | Actor spawn generation | Belief revision | current permitted perceived position, belief source, observed_at, confidence, trackable_now |
+| Entity | 서버 영속 Entity/Net ID | Actor spawn generation | Knowledge revision | current permitted perceived position, Knowledge source, observed_at, confidence, trackable_now |
 | SoundEvent | World epoch 내 단조 event ID | World event epoch | 0 | immutable position, created_at, loudness, attribution confidence, TTL, sound class |
-| LastKnownPosition | NPC별 snapshot ID | source Entity generation 또는 0 | 생성 시 Belief revision | immutable position, source, observed_at, creation confidence, TTL, optional subject identity |
+| LastKnownPosition | NPC별 snapshot ID | source Entity generation 또는 0 | 생성 시 Knowledge revision | immutable position, source, observed_at, creation confidence, TTL, optional subject identity |
 | CoverSlot | resource ID | resource spawn/rebuild generation | availability revision | entry/peek position, resource generation, availability revision |
 | SmartObject | Smart Object slot ID | resource generation | availability revision | entry position, use type, capacity/availability |
 | Waypoint | route+waypoint ID | route load generation | route revision | authored position, sequence index, semantic flags |
@@ -862,7 +864,7 @@ struct FNPCInferenceRequest
 
 `uint8` Mask buffer는 ONNX BOOL Tensor에 바인딩하는 adapter에서 0/1을 보장한다. Schema dtype 자체를 float로 임의 변경하지 않는다.
 
-`BeliefRevision`은 로그와 최신 snapshot 비교용이다. 모든 Belief 변화가 Commit을 무효화하지는 않는다. Commit Gate는 선택된 Target의 SnapshotKey와 Skill에 필요한 Belief 조건만 검증해 불필요한 stale 폐기를 방지한다.
+`BeliefRevision`은 로그와 최신 snapshot 비교용이다. 모든 Knowledge 변화가 Commit을 무효화하지는 않는다. Commit Gate는 선택된 Target의 SnapshotKey와 Skill에 필요한 Knowledge 조건만 검증해 불필요한 stale 폐기를 방지한다.
 
 ## 7.11 Inference Response
 
@@ -883,7 +885,7 @@ OOD, Calibration, Switch Cost는 Unreal authoritative post-process에서 계산�
 
 ---
 
-# 8. AI Perception과 Belief Runtime
+# 8. AI Perception과 Knowledge Runtime (코드: `Belief Runtime`)
 
 ## 8.1 Component 배치
 
@@ -903,7 +905,7 @@ AI Perception callback은 Skill을 실행하지 않는다.
 
 ```text
 Stimulus 수집
-→ Belief 갱신
+→ Knowledge 갱신
 → Event Buffer 기록
 → Goal Event 전달
 → Decision dirty/urgent 표시
@@ -1006,7 +1008,7 @@ void UPlayerNoiseEmitterComponent::EmitFootstep(
 }
 ```
 
-## 8.7 Belief 위치 Feature
+## 8.7 Knowledge 위치 Feature
 
 ```cpp
 const FTransform NPCTransform = NPC->GetActorTransform();
@@ -1152,7 +1154,7 @@ Resume Policy:
 - 매 frame progress
 - deadline countdown
 - Event Buffer 변화
-- Belief Revision 변화
+- Knowledge Revision 변화
 - Candidate score 변화
 
 ## 10.5 Generated Goal FSM 사용 규칙
@@ -1190,7 +1192,7 @@ Timeout은 정상 completion event가 누락됐을 때의 fallback이다. expiry
 
 구현하지 않는 범위:
 
-- Belief/Goal/Typed Target producer와 production Pawn 설치
+- Knowledge/Goal/Target의 종류와 식별 정보(코드: `Typed Target`) producer와 production Pawn 설치
 - 29개 gameplay guard·2개 effect semantics
 - Emergency/ForceAbort/PhaseBoundary 전체 arbitration
 - Inactive/Suspended collection과 full Goal archive/save
@@ -1234,7 +1236,7 @@ active_dialogue_subject desc
 
 V1 구현 대상은 `IdleObserve`, `InvestigateDisturbance`, `EnforceBoundary`, `CombatEngage` 네 개다. `Disengage`, `Escort`는 Post-V1이다. Phase 표와 Allowed Skill은 `goal_registry_v1.yaml`에서 생성하거나 검증한다.
 
-# 11. Typed Target Universe와 Target Slotter
+# 11. Target의 종류와 식별 정보 통합과 Target Slotter (코드: `Typed Target Universe`)
 
 ## 11.1 고정 Slot
 
@@ -1259,7 +1261,7 @@ Phase 0에서 미사용 Kind의 quota는 overflow backfill에 사용될 수 있�
 
 ## 11.2 Target Universe 원천
 
-- Belief Component: Entity, SoundEvent, LastKnownPosition
+- Knowledge Component(코드: `UNPCBeliefComponent`): Entity, SoundEvent, LastKnownPosition
 - Goal Manager: Waypoint, WorldPosition, primary/secondary Target
 - Resource Subsystem: CoverSlot, SmartObject
 - Skill Executor: 현재 Target, 예약 Resource
@@ -1368,7 +1370,7 @@ target_slot     = candidate_index % 17
 - 실행 중 Skill이 있을 때 정확히 하나만 valid다.
 - 동일 Skill/동일 Target을 새로 Start하는 Candidate는 mask한다.
 - Commit 직전에 `ActiveSkill->CanContinue(LatestBelief, LatestGoalRevision)`를 호출한다.
-- Latest Belief/Goal에서 유효하지 않으면 Continue를 거부하고 재판단한다.
+- 최신 Knowledge/Goal에서 유효하지 않으면 Continue를 거부하고 재판단한다.
 - `global_state[17]`은 `current_skill_ContinueCurrentAction_reserved_zero`이며 항상 0이다.
 - Executor의 CurrentSkillId에 1을 기록해서는 안 된다.
 
@@ -1424,7 +1426,7 @@ Schema의 16개 Feature를 Candidate마다 생성한다.
 - confidence/age/distance
 - believed position의 path
 - Skill LOS/resource 요구
-- current belief의 LOS/resource 가능
+- current Knowledge의 LOS/resource 가능
 - Goal 허용
 - Kind 호환
 - default parameter
@@ -1437,7 +1439,7 @@ Candidate Set Hash의 magic, field 순서, byte type, endianness와 bit packing�
 
 - Response 수신 시 hash를 pending request에 저장된 CandidateSetHash와 먼저 비교한다.
 - 첫 비교를 위해 현재 월드 상태에서 Candidate Hash를 재계산하지 않는다.
-- Hash 일치 후 최신 Goal/Belief/Resource 상태를 Target Kind별 Commit 규칙으로 검증한다.
+- Hash 일치 후 최신 Goal/Knowledge/Resource 상태를 Target Kind별 Commit 규칙으로 검증한다.
 - raw float, score, Switch Cost와 parameter proposal은 Candidate Set Hash에 포함하지 않는다.
 
 # 13. Schema 2.0 Feature Builder
@@ -1502,7 +1504,7 @@ Unused Event:
 ```text
 1. Authority self snapshot
 2. Active Goal snapshot
-3. Belief snapshot
+3. Knowledge snapshot
 4. Event Buffer snapshot
 5. Target Universe
 6. Target Slotter
@@ -1648,7 +1650,7 @@ Physical = FMath::Clamp(Physical, Min, Max); // Commit 시 재검증
 
 - 같은 Target Slot
 - 같은 Candidate Mask
-- 같은 Belief
+- 같은 Knowledge
 - 같은 Goal
 - 같은 Switch Cost
 
@@ -1765,7 +1767,7 @@ Unreal Capture와 ML 파이프라인의 책임은 다음처럼 분리한다.
 
 ```text
 Unreal
-  Belief/Goal/Target/Candidate snapshot
+  Knowledge/Goal/Target/Candidate snapshot
   → Schema Feature Builder
   → candidate hash와 contract hash
   → immutable Capture Record
@@ -2250,7 +2252,7 @@ Server Game Thread
 3. decision ID가 commit eligible인지 확인
 4. deadline, NPC generation, Goal Revision 확인
 5. Kind별 Target 검증
-   - Entity: identity/generation 일치, 최신 유효 Belief revision 허용, tracking Skill은 현재 Perception/LOS 필요
+   - Entity: identity/generation 일치, 최신 유효 Knowledge revision 허용, tracking Skill은 현재 Perception/LOS 필요
    - Sound/LastKnown/WorldPosition: immutable snapshot exact revision + TTL
    - Cover/SmartObject: resource generation + availability revision CAS
    - Waypoint: authored definition revision exact
@@ -2307,7 +2309,7 @@ blocking path search, asset load, network wait를 하지 않는다.
 | Kind | Revision/Commit 정책 | Hidden Information 제한 |
 |---|---|---|
 | NoTarget | 검증 없음 | Target 조회 금지 |
-| Entity | Identity/Generation 일치 후 최신 유효 Belief Revision 허용 | Sight Lost 이후 Transform/Velocity로 전술 목표 갱신 금지 |
+| Entity | Identity/Generation 일치 후 최신 유효 Knowledge Revision 허용 | Sight Lost 이후 Transform/Velocity로 전술 목표 갱신 금지 |
 | SoundEvent | immutable exact revision + TTL | Instigator 현재 Transform 금지 |
 | LastKnownPosition | immutable exact revision + TTL | Origin Actor 현재 상태 조회로 취소/갱신 금지 |
 | CoverSlot | ResourceGeneration + AvailabilityRevision CAS | 숨은 적 위치로 utility 재계산 금지 |
@@ -2459,7 +2461,7 @@ Attack은 현재 허용된 Entity Perception과 Combat Module의 authoritative �
 |---|---|
 | `UBossPatternSetDataAsset` | 보스 archetype의 stable `pattern_id` 목록, `SafeDefaultPatternId`, Utility profile, optional Model Bundle, bundle hash |
 | `UBossPatternDataAsset` | 거리·Phase·선후행·Montage·timing·tracking·Hitbox·Damage·Interrupt 규칙 |
-| `FBossPatternDecisionSnapshot` | 32 Pattern ID·mask, Belief 기반 Attack Target, boundary, Boss/Combat revision, hash |
+| `FBossPatternDecisionSnapshot` | 32 Pattern ID·mask, Knowledge 기반 Attack Target, boundary, Boss/Combat revision, hash |
 | `UBossPatternCandidateBuilderComponent` | stable ID 정렬, `[B,32,*]` Tensor, hard mask 생성 |
 | `UBossPatternPolicyComponent` | Utility Baseline 또는 별도 NNE Model Bundle 실행, OOD/Calibration/fallback |
 | `UBossPatternCommitCoordinator` | latest request·contract·candidate-set·revision·resource CAS 검증 |
@@ -2467,7 +2469,7 @@ Attack은 현재 허용된 Entity Perception과 Combat Module의 authoritative �
 
 공통 `UDecisionSubsystem`과 Boss Pattern Policy는 request ID, model bundle, pending response queue를 공유하지 않는다. Boss Pattern에는 별도 `pattern_decision_id`와 `boss_pattern_decision_contract_hash`를 사용한다.
 
-`UBossPatternCandidateBuilderComponent`는 `AINativeNPCBossPatternContracts.generated.h`의 normalizer table을 직접 사용한다. 거리·속도·시간 divisor와 clamp를 수동 복제하지 않는다. non-finite feature는 request 전체를 거부하고, 비어 있는 Pattern row는 feature 0·`invalid_pattern_id`·`pattern_mask=false`로 채운다. Target 관련 field는 parent Attack의 허용된 Belief snapshot만 읽으며 `target_health_ratio_estimate`와 confidence를 함께 기록한다.
+`UBossPatternCandidateBuilderComponent`는 `AINativeNPCBossPatternContracts.generated.h`의 normalizer table을 직접 사용한다. 거리·속도·시간 divisor와 clamp를 수동 복제하지 않는다. non-finite feature는 request 전체를 거부하고, 비어 있는 Pattern row는 feature 0·`invalid_pattern_id`·`pattern_mask=false`로 채운다. Target 관련 field는 parent Attack의 허용된 Knowledge snapshot만 읽으며 `target_health_ratio_estimate`와 confidence를 함께 기록한다.
 
 ### 19.5.2 Attack 시작 흐름
 
@@ -2713,7 +2715,7 @@ Telegraph 중 새 추론에서 QuickSlash 점수가 높아져도 현재 DelayedH
 
 표시:
 
-- Ground Truth와 Belief 별도
+- Ground Truth와 Knowledge 별도
 - Active Goal/Phase/Revision
 - Event Buffer 12개
 - Target Universe
@@ -2776,7 +2778,7 @@ Telegraph 중 새 추론에서 QuickSlash 점수가 높아져도 현재 DelayedH
 
 - 이전 10~30초 Event
 - Goal stack
-- Belief Snapshot
+- Knowledge Snapshot
 - Target Universe/Slot Map
 - Candidate/Hash
 - 모델/Baseline 결과
@@ -2795,7 +2797,7 @@ Telegraph 중 새 추론에서 QuickSlash 점수가 높아져도 현재 DelayedH
 서버가 소유한다.
 
 - Perception
-- Belief
+- Knowledge
 - Goal
 - Target Slotter
 - inference request
@@ -2815,7 +2817,7 @@ Telegraph 중 새 추론에서 QuickSlash 점수가 높아져도 현재 DelayedH
 - animation state
 - Skill terminal result
 
-신경망 raw score와 모든 Belief는 일반 플레이 클라이언트에 복제할 필요가 없다.
+신경망 raw score와 모든 Knowledge는 일반 플레이 클라이언트에 복제할 필요가 없다.
 
 ## 23.3 Late Join
 
@@ -2831,8 +2833,8 @@ Telegraph 중 새 추론에서 QuickSlash 점수가 높아져도 현재 DelayedH
 
 ## 23.4 Save/Load
 
-- 서버는 Goal Instance/Revision, Event Buffer, Belief source·age·TTL, Active Skill snapshot을 저장한다.
-- Load 시 만료된 Belief/Event를 제거하고 Resource Reservation은 재획득한다.
+- 서버는 Goal Instance/Revision, Event Buffer, Knowledge source·age·TTL, Active Skill snapshot을 저장한다.
+- Load 시 만료된 Knowledge/Event를 제거하고 Resource Reservation은 재획득한다.
 - Pending NNE request와 cancellation token은 저장하지 않고 재요청한다.
 
 ## 23.5 Model Hot-swap과 Rollback
@@ -2889,7 +2891,7 @@ Candidate Retriever를 도입할 경우 Target/Candidate Recall Gate를 별도�
 
 NPC별 주요 상태:
 
-- Belief/Target Universe
+- Knowledge/Target의 종류와 식별 정보 통합
 - Event 12
 - Goal stack
 - Target slot 17
@@ -2930,7 +2932,7 @@ Float feature: abs ≤1e-6 or rel ≤1e-5
 FP32 model output: abs ≤1e-4 or rel ≤1e-4
 ```
 
-## 25.2 Belief/Hidden Information
+## 25.2 Knowledge/Hidden Information
 
 - 숨은 Quinn Ground Truth 이동 시 Tensor 불변
 - LastKnownPosition immutable
@@ -3101,7 +3103,7 @@ OOD family:
 - Quinn stimuli/noise
 - Manny Controller
 - Sight/Hearing
-- Belief
+- Knowledge
 - LastKnownPosition
 
 ### Stream C — Goal/Skill, Gameplay+Designer
@@ -3161,7 +3163,7 @@ OOD family:
 
 | Workstream | Owner | Phase 0 예상 | Phase 1 예상 | 선행 의존성 |
 |---|---|---:|---:|---|
-| Belief/Target Runtime | Gameplay AI | 2주 | 3주 | Typed Target 계약 |
+| Knowledge·Target의 종류와 식별 정보 Runtime | Gameplay AI | 2주 | 3주 | `Typed Target` 계약 |
 | Goal Manager/FSM | Gameplay AI + AI Designer | 2주 | 3주 | Goal FSM |
 | Slotter/Candidate/Hash | Gameplay AI + ML | 2주 | 2주 | Schema/Registry |
 | Utility Baseline | AI Designer | 1주 | 2주 | Candidate Pipeline |
@@ -3303,7 +3305,7 @@ Scenarios/NPCMannyQuinnScenarioTest.cpp
 ## 28.1 Phase 0 클라이언트
 
 - Quinn Sight/Hearing stimulus
-- Manny Sight/Hearing Belief
+- Manny Sight/Hearing Knowledge
 - Sight Lost → LastKnownPosition
 - Goal Manager 2개 Goal
 - Target Slot 17
@@ -3489,4 +3491,4 @@ start/Task-entry 실패는 dedicated `ExecutionHost` one-shot slot·sequence·hi
 - changed-file SARIF: `15 files / 0 results`
 - restart MCP: Host/Session/EventSource `1/1/1`, StateTree ready/hash/clean, map dirty/unsaved `false/false`, active/interrupted ChangeSet `0/0`
 
-다음 구현은 common Belief/Goal/Typed-Target에서 값을 공급하는 concrete gameplay authority provider, production PatternSet/selector trigger, authored transitions/conditions, combat effects다. replication/save-load도 아직 범위 밖이다.
+다음 구현은 common Knowledge/Goal/Target의 종류와 식별 정보(코드: `Typed Target`)에서 값을 공급하는 concrete gameplay authority provider, production PatternSet/selector trigger, authored transitions/conditions, combat effects다. replication/save-load도 아직 범위 밖이다.

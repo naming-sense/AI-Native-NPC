@@ -1,7 +1,7 @@
 # AI Native NPC 구현 계획
 ## Phase·Owner·Reference Model·학습·릴리스 실행 계획
 
-- 문서 버전: **v0.4.12**
+- 문서 버전: **v0.4.13**
 - 개정일: 2026-08-10
 - Unreal 상태: **Boss Pattern production StateTree/fixture-backed encounter Host/start handoff phase PASS / Goal Registry 1.1.0 consumer sync PASS / Goal Dispatcher·Timer Core RED / 실제 gameplay authority·전투 효과·replication/save-load pending**
 - 주 독자: **ML, Data, Gameplay AI, Server, Unreal NNE, QA, Release 승인자**
@@ -32,7 +32,7 @@ Phase 0은 Perception→Utility Baseline→Commit 연결과 데이터 Capture를
 
 | 현재 구현 | 상태 |
 |---|---|
-| 공통 Belief→Goal producer→17 Target Slot→272 Candidate→Skill Executor | 미구현; 전체 gameplay integration HOLD |
+| 공통 Knowledge→Goal producer→17 Target Slot→272 Candidate→Skill Executor | 미구현; 전체 gameplay integration HOLD |
 | Goal Registry `1.1.0` generated binding·consumer provenance sync | 완료(PASS), authority commit `2770b4a5a3aebd430420e5b330441aa044cc7db5` |
 | Goal Contract Dispatcher·Timer Runtime Core | `GoalFsmRuntimeTests.cpp` RED만 존재; Runtime `.h/.cpp`·Timer Component 미구현 |
 | Boss Pattern Data Asset→Hard Mask→Tensor→Utility/Commit→Handoff | C++ Core 구현·31/31; Definition JCS/cooked parity pending |
@@ -83,7 +83,7 @@ Phase 0은 Perception→Utility Baseline→Commit 연결과 데이터 Capture를
 
 | Workstream | Owner | Phase 0 예상 | Phase 1 예상 | 선행 의존성 |
 |---|---|---:|---:|---|
-| Belief/Target Runtime | Gameplay AI | 2주 | 3주 | Target contract |
+| Knowledge·Target의 종류와 식별 정보 Runtime | Gameplay AI | 2주 | 3주 | Target contract |
 | Goal Manager/FSM | Gameplay AI + Designer | 2주 | 3주 | Goal Registry Appendix D.2–D.5 `1.1.0` lifecycle·arbitration·definition·typed trigger authority |
 | Slotter/Candidate/Hash | Gameplay AI + ML | 2주 | 2주 | Schema Appendix A/C/D |
 | Utility Baseline | AI Designer | 1주 | 2주 | Candidate pipeline |
@@ -261,7 +261,7 @@ Heads
 
 ### 3.2.1 학습·Bundle 분리
 
-Boss Pattern Dataset은 공통 272 Candidate Dataset과 별도 record type으로 저장한다. 각 record는 Pattern candidate-set hash, Pattern asset-bundle hash, Attack Target Belief snapshot, Boss/Combat revision, valid mask, acceptable Pattern set, 선택 boundary, 실행 결과를 포함한다.
+Boss Pattern Dataset은 공통 272 Candidate Dataset과 별도 record type으로 저장한다. 각 record는 Pattern candidate-set hash, Pattern asset-bundle hash, Attack Target Knowledge snapshot, Boss/Combat revision, valid mask, acceptable Pattern set, 선택 boundary, 실행 결과를 포함한다.
 
 `boss_pattern_model_bundle_v1`은 다음 digest를 묶는다.
 
@@ -480,13 +480,13 @@ Schema 2.0 Freeze는 다음 항목을 모두 요구한다.
 - [ ] `source_moving_probability` 의미·dtype remediation과 migration 완료
 - [ ] Pair Feature same-target comparison이 Schema의 `identity_key`로 구조화되고 Revision-only Golden 통과
 - [ ] 17 Target Slot과 272 Candidate layout parity
-- [ ] Typed Target Runtime Payload 구현
+- [ ] Target의 종류와 식별 정보 Runtime Payload(코드: `Typed Target`) 구현
 - [ ] Target Slotter Target Recall Gate 통과
 - [x] Goal Registry typed trigger·phase duration·revision contract 생성/검증
 - [x] Goal definition·14 phase/skill-mask·lifecycle/arbitration metadata generated C++ binding과 consumer provenance sync
 - [ ] Goal Contract Dispatcher Core: 41-row 소비·guard/effect fail-closed·destination/revision hostile test 통과
 - [ ] Goal Timer Runtime Core: `2/15/8/4/6/5초`, lifecycle·snapshot·expected-token CAS·pause/time-dilation hostile test 통과
-- [ ] Goal Arbitration/FSM Phase 0와 production Belief/Target·29 guard·2 effect provider 통합 통과
+- [ ] Goal Arbitration/FSM Phase 0와 production Knowledge/Target의 종류와 식별 정보·29 guard·2 effect provider 통합 통과
 - [ ] Dataset Record v2의 Switch Cost·feature/content/sample hash Validator 통과
 - [ ] OOD/Critical `test_case_catalog_v1.yaml` allowlist와 split 격리 통과
 - [ ] Adjusted Score→OOD→Calibration 순서와 Runtime threshold 0.80 parity
