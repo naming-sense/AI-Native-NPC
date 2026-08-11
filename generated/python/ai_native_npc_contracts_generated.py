@@ -7,8 +7,8 @@ import hashlib, math, re, struct
 
 GENERATOR_VERSION = '0.4.6'
 SCHEMA_SOURCE_SHA256 = 'a7791004de0534f29198ebf5eaaff7cd764185b59b05446d419f5d0a3303f886'
-SKILL_REGISTRY_SHA256 = '08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8'
-GOAL_REGISTRY_SHA256 = 'ede7aaba704ecbbd9c6e1cb649c87e03fd24e9dc71ea4166f82baa42fb00ee43'
+SKILL_REGISTRY_SHA256 = 'ed0454691c17761d81ee52ac0c729f6f83adec97a954a4808107d078ba49975d'
+GOAL_REGISTRY_SHA256 = 'd9eb13898cf2d066320977073b1e82458cc0d7bdfd512ef6983ad9a2d44c8f3e'
 GOAL_REGISTRY_VERSION = '1.1.0'
 GOAL_STATES = ['Inactive', 'Active', 'Suspended', 'Succeeded', 'Failed', 'Aborted']
 GOAL_ARBITRATION = {'max_active_goals': 1, 'max_suspended_goals': 8, 'selection_key': [{'field': 'priority', 'direction': 'desc', 'dtype': 'uint8'}, {'field': 'source_priority', 'direction': 'desc', 'dtype': 'uint8'}, {'field': 'created_time_quantized_ms', 'direction': 'asc', 'dtype': 'uint64'}, {'field': 'goal_instance_id', 'direction': 'asc', 'dtype': 'uint64'}], 'preemption_margin': 50, 'interruptibility_modes': ['Always', 'PhaseBoundary', 'EmergencyOnly', 'Never'], 'resume_policies': ['ResumeSamePhase', 'RestartPhase', 'AbortOnPreempt'], 'on_new_goal_activation_failure': 'keep_previous_active_goal', 'terminal_goal_reactivation': False, 'suspended_resume_order': 'same_selection_key'}

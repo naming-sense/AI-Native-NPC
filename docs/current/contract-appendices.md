@@ -12,6 +12,16 @@
 
 Appendix A–D와 BP의 생성 marker 내부는 구조화된 YAML과 Generator가 소유한다. 이 문서에서 수동 편집하지 않는다.
 
+
+<!-- BEGIN GOAL GAMEPLAY SEMANTICS V1 STATUS -->
+### Bounded Goal gameplay authority status
+
+- Goal Registry: `1.1.0` / SHA-256 `d9eb13898cf2d066320977073b1e82458cc0d7bdfd512ef6983ad9a2d44c8f3e`
+- `GuardPhase0` bounded semantics authority: **PASS**
+- Authority scope: 9 executable unique guards, 3 provider-unavailable unique guards, 12 executable transition bindings, 2 staged effects, 5 production executable Skills
+- Gameplay Goal FSM: **HOLD** — complete guard catalog, other Goals, full Utility/Commit/Skill-result progression, arbitration/save archive, and product release are not claimed by this bounded authority PASS.
+<!-- END GOAL GAMEPLAY SEMANTICS V1 STATUS -->
+
 ---
 
 ## Appendix A–D 사용 안내
@@ -27,8 +37,8 @@ Appendix A–D는 Schema와 Registry에서 생성한 enum ID·Tensor index·Targ
 - Generator: `0.4.6`
 - Contract revision: `2.0.0-rc5`
 - Schema SHA-256: `a7791004de0534f29198ebf5eaaff7cd764185b59b05446d419f5d0a3303f886`
-- Skill Registry SHA-256: `08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8`
-- Goal Registry SHA-256: `ede7aaba704ecbbd9c6e1cb649c87e03fd24e9dc71ea4166f82baa42fb00ee43`
+- Skill Registry SHA-256: `ed0454691c17761d81ee52ac0c729f6f83adec97a954a4808107d078ba49975d`
+- Goal Registry SHA-256: `d9eb13898cf2d066320977073b1e82458cc0d7bdfd512ef6983ad9a2d44c8f3e`
 - Test Taxonomy SHA-256: `2c4f911c23c8502231351fd2a1ffc606a04c29c4c3e39ea384099462811dad79`
 
 ## A. Constants와 Enum
@@ -813,15 +823,20 @@ Appendix A–D는 Schema와 Registry에서 생성한 enum ID·Tensor index·Targ
 
 ## Goal Runtime 구현 상태 안내 — manual
 
-Generated D.2–D.5는 Goal Registry `1.1.0`의 구조·순서·timer lifecycle·revision을 정확히 노출한다. 이것은 Runtime 구현 증거가 아니다.
+Generated D.2–D.5는 Goal Registry `1.1.0`의 구조·순서·timer lifecycle·revision을 정확히 노출한다. 생성 표 자체는 Runtime 구현 증거가 아니며, 아래 별도 Gate가 실제 Runtime 증거를 기록한다.
 
-| Gate | 현재 상태 |
+Skill 실행 의미의 authority는 `contracts/current/skill_registry_v1.yaml`의 `execution_semantics_v1`이다. 사람이 읽는 generated 보기는 [`generated/docs/skill_execution_semantics_v1.md`](../../generated/docs/skill_execution_semantics_v1.md)다. C++ consumer는 `AINativeNPCSkillExecutionSemantics.generated.h`를 사용한다.
+
+| 구분 | 현재 상태 |
 |---|---|
 | Authority→generated Python/C++ | PASS — Goal `4`, Goal/phase `14`, transition `41 = 35 event + 6 timer` |
-| Consumer provenance | PASS — authority commit `2770b4a5a3aebd430420e5b330441aa044cc7db5`, generated header/hash lock과 sync `--check` |
-| Contract Dispatcher·Timer Core | RED — `GoalFsmRuntimeTests.cpp`만 존재, Runtime `.h/.cpp`와 Timer Component 없음 |
-| Production Integration | HOLD — Knowledge(코드·Schema: `Belief`)/Goal/Target의 종류와 식별 정보(코드: `Typed Target`) producer와 shipping owner 없음 |
-| Gameplay Goal FSM | HOLD — 29 guard·2 effect semantics, 전체 arbitration/save archive 없음 |
+| Consumer byte provenance | PASS — Goal Registry SHA `d9eb13898cf2d066320977073b1e82458cc0d7bdfd512ef6983ad9a2d44c8f3e`, generated header/hash lock, Unreal byte parity와 sync `--check` |
+| Source publication | PASS — Registry, generator, generated Python/C++/Markdown과 회귀 검사를 같은 `main` 변경으로 게시 |
+| Contract Dispatcher·Timer Core | PASS — 41-row typed dispatcher와 `2/15/8/4/6/5초` Timer Runtime Core 구현, `AINativeNPC.GoalFsm` `23/23` |
+| Phase 3A: 소리 감지→조사 Goal 시작 | 완료 — exact Pawn/Controller, generated `IdleObserve/Observe`, exact current Hearing revision·Sound handle·location, non-reentrant Pump, prepare-before-publish Goal replacement, timer 준비 실패 시 old Goal·running Skill 보존, 준비 성공 시 old Idle/TurnTo callback-free interrupt와 pending Decision supersede, non-wrapping registration-epoch exact-sink dispatch lease와 실패 시 current lease 보존, dependency loss의 armed Timer·Goal Runtime 즉시 teardown, Host·Timer·Knowledge unregister→re-register fail-closed, `InvestigateDisturbance/Orient` 단일 activation과 generated timer |
+| 5-Skill 실행 기반 | 완료 — Perception Knowledge, execution Target snapshot, committed capability→StateTree handoff, `Idle`·`TurnTo`·`Approach`·`Investigate`·`SearchArea` 구현 |
+| Phase 3B: Target→Candidate→Utility→Commit→Skill-result | 다음 작업 — 각 순수 Core와 Skill result sink는 구현됨. Goal Host production 연결과 `Orient→Navigate→Search→Return` 진행이 필요 |
+| Gameplay Goal FSM 전체 | 진행 중 — 나머지 gameplay effect provider, 다른 Goal, 전체 arbitration과 save/archive가 남음 |
 
 Timer snapshot과 restore race의 실행 계약은 [세부 기술 요구사항 §5.9](technical-requirements.md#59-typed-goal-trigger와-phase-timeout)가 소유한다. 제한 Core는 format/Registry hash/Goal·phase generation/revision/timer identity에 결속된 versioned snapshot과 호출 시점의 비영속 `expected_current_token` CAS를 사용한다. mismatch는 live state를 바꾸지 않으며, expiry는 `phase_timeout` guard를 자동 true로 만들지 않는다.
 

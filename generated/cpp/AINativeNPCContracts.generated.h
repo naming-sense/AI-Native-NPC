@@ -12,8 +12,8 @@ namespace AINativeNPC::SchemaV2 {
 inline constexpr const char* SchemaVersion = "2.0.0";
 inline constexpr const char* ContractRevision = "2.0.0-rc5";
 inline constexpr const char* SchemaSourceSha256 = "a7791004de0534f29198ebf5eaaff7cd764185b59b05446d419f5d0a3303f886";
-inline constexpr const char* SkillRegistrySha256 = "08141111029cc43aa7abe6c52668719fd3d5f1927fc497a7c122ce22d83665d8";
-inline constexpr const char* GoalRegistrySha256 = "ede7aaba704ecbbd9c6e1cb649c87e03fd24e9dc71ea4166f82baa42fb00ee43";
+inline constexpr const char* SkillRegistrySha256 = "ed0454691c17761d81ee52ac0c729f6f83adec97a954a4808107d078ba49975d";
+inline constexpr const char* GoalRegistrySha256 = "d9eb13898cf2d066320977073b1e82458cc0d7bdfd512ef6983ad9a2d44c8f3e";
 inline constexpr const char* GoalRegistryVersion = "1.1.0";
 inline constexpr std::array<std::uint8_t, 32> SchemaSourceSha256Bytes{{0xa7, 0x79, 0x10, 0x04, 0xde, 0x05, 0x34, 0xf2, 0x91, 0x98, 0xeb, 0xf5, 0xea, 0xaf, 0xf7, 0xcd, 0x76, 0x41, 0x85, 0xb5, 0x9b, 0x05, 0x44, 0x6d, 0x41, 0x9f, 0x5d, 0x0a, 0x33, 0x03, 0xf8, 0x86}};
 inline constexpr std::array<std::uint8_t, 8> CandidateHashMagic{{65, 78, 80, 67, 83, 69, 84, 50}};

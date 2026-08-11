@@ -6,14 +6,14 @@ AI Native NPC는 게임 속 NPC가 알고 있는 정보와 현재 목적을 보�
 
 ## 현재 상태
 
-보스가 선택된 공격을 안전하게 시작하는 흐름은 고정된 테스트 입력으로 검증했습니다. 일반 NPC가 상황에 맞는 행동을 고르는 기능, 실제 전투 효과, 학습 데이터와 AI 모델은 다음 구현 대상입니다.
+일반 NPC가 평소 주변을 살피다가 유효한 소리를 들으면 조사 Goal을 시작하는 흐름을 실제 Unreal 경로에서 검증했습니다. 다음 작업은 현재 Goal에 맞는 행동을 고르고 실행 결과에 따라 다음 Goal 단계로 진행하는 흐름입니다.
 
 ### 개발자용 상세 상태
 
 - 기계 계약: **Schema 2.0 RC5 + Goal Registry 1.1.0**, Python↔C++ 생성·Golden 검증 완료
-- Goal 규칙 데이터 전달: **41 transition = 35 event + 6 timer**, authority commit `2770b4a5...`로 consumer lock/sync 완료
-- Goal 전환 실행: 실패하는 테스트가 준비된 상태(RED). `GoalFsmRuntimeTests.cpp`가 있으며 Runtime `.h/.cpp`와 server timer component 구현이 필요
-- 일반 NPC 전체 판단: 선행 기능을 기다리는 상태(HOLD). production Knowledge(`Belief`)·Goal·Target의 종류와 식별 정보(`Typed Target`) producer, 29 guard·2 effect provider와 전체 arbitration/save archive 구현이 필요
+- 소리를 듣고 조사 Goal 시작(Phase 3A): **완료**. `IdleObserve/Observe`에서 유효한 소리를 받으면 `InvestigateDisturbance/Orient`로 안전하게 전환
+- 목표에 맞는 행동 선택과 진행(Phase 3B): **다음 작업**. Goal-owned Target 해결 → Candidate·Feature 생성 → Utility 선택 → Commit → Skill 실행 → 결과에 따른 Goal 단계 진행
+- 일반 NPC 실행 Skill: `Idle`, `TurnTo`, `Approach`, `Investigate`, `SearchArea` 구현과 자동검사 완료
 - 보스 공격 시작: 고정 테스트 입력 기반 검증 통과(PASS). Commit 뒤 StateTree start handoff focused `2/2`, broad `53/53`
 - 실제 보스 전투: production PatternSet·selector trigger·authored transition·Montage·Hitbox·Damage·Root Motion·replication·save/load 구현이 필요
 - AI 모델과 전체 Release: 학습·ONNX/NNE·OOD·품질·성능 검증이 남은 상태(NO-GO)
@@ -59,11 +59,15 @@ AI Native NPC는 게임 속 NPC가 알고 있는 정보와 현재 목적을 보�
 - [Goal Registry](contracts/current/goal_registry_v1.yaml)
 - [Test Taxonomy](contracts/current/test_taxonomy_v1.yaml)
 - [생성 Python 계약](generated/python/ai_native_npc_contracts_generated.py)
+- [생성 Goal Gameplay 계약](generated/python/ai_native_npc_goal_gameplay_semantics_generated.py)
+- [생성 Skill 실행 계약](generated/python/ai_native_npc_skill_execution_semantics_generated.py)
 - [생성 Boss Pattern Python 계약](generated/python/ai_native_npc_boss_pattern_contracts_generated.py)
 - [생성 C++ 계약 Header](generated/cpp/AINativeNPCContracts.generated.h)
+- [생성 Goal Gameplay C++ Header](generated/cpp/AINativeNPCGoalGameplaySemantics.generated.h)
+- [생성 Skill 실행 C++ Header](generated/cpp/AINativeNPCSkillExecutionSemantics.generated.h)
 - [생성 Boss Pattern C++ 계약 Header](generated/cpp/AINativeNPCBossPatternContracts.generated.h)
 
-YAML 5개가 기계 판독 가능한 기준 계약입니다. 공통 생성 계약은 272 Candidate를, Boss Pattern 생성 계약은 `Attack(Entity)` 하위의 별도 32 Pattern row를 정의합니다. 생성 Python 계약은 Dataset Builder·학습·ONNX Export에서, 생성 C++ Header는 Unreal Runtime에서 사용하며 수동 수정하지 않습니다.
+YAML 5개가 기계 판독 가능한 기준 계약입니다. Goal과 Skill 생성기는 각 Registry에서 Python·C++·사람이 읽는 표를 만듭니다. 공통 생성 계약은 272 Candidate를, Boss Pattern 생성 계약은 `Attack(Entity)` 하위의 별도 32 Pattern row를 정의합니다. 생성 파일은 수동으로 수정하지 않습니다.
 
 현재 `main`은 현행 문서와 계약 YAML·생성 계약을 유지합니다. 완료된 감사·계획 기록은 [`docs/history`](docs/history/README.md)에 분리합니다.
 

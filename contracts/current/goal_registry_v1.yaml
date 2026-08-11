@@ -87,6 +87,502 @@ revision_contract:
   - per_frame_timer_changed
   - belief_revision_changed_without_goal_contract_change
   - event_buffer_append
+goal_gameplay_semantics_v1:
+  version: 1.0.0
+  status: approved_production_authority
+  approved_on: '2026-08-11'
+  scope:
+    profile_id: GuardPhase0
+    supported_goals:
+    - IdleObserve
+    - InvestigateDisturbance
+    production_path:
+    - Observe
+    - Orient
+    - Navigate
+    - Search
+    - Return
+    - IdleResume
+    claims:
+      executable_unique_guards: 9
+      unavailable_unique_guards: 3
+      executable_transition_bindings: 12
+      unavailable_transition_bindings: 4
+      effects: 2
+      production_executable_skills: 5
+      full_guard_catalog_pass: false
+  initial_profiles:
+  - profile_id: GuardPhase0
+    initial_goal: IdleObserve
+    initial_phase: Observe
+    goal_instance_id_policy: session_monotonic_nonzero
+    initial_goal_revision: 1
+    initial_phase_generation: 1
+    lifecycle: Active
+    activation_authority: server_game_thread_exact_assembly_once
+    activation_precondition_target: HomeWaypoint
+    failure_policy: remain_dormant_fail_closed
+  target_authorities:
+  - id: HomeWaypoint
+    target_kind: Waypoint
+    owner: GameplayGoalAuthority
+    lifetime: AuthoritySession
+    stable_id_policy: session_monotonic_nonzero_goal_target_allocator
+    generation: 1
+    initial_revision: 1
+    mutable: false
+    stored_in_knowledge: false
+    provenance_only: false
+    candidate_usable: true
+    capture_source: FirstExactAssemblyPawnFiniteWorldPosition
+    actor_transform_lookup: false
+    source_ttl_expiry_policy: not_applicable
+  - id: SourceSoundHandle
+    target_kind: SoundEvent
+    owner: Knowledge
+    lifetime: SourceKnowledgeFact
+    stable_id_policy: exact_source_handle
+    generation: 0
+    initial_revision: 0
+    mutable: false
+    stored_in_knowledge: true
+    provenance_only: true
+    candidate_usable: false
+    capture_source: ExactCurrentSoundEventHandleAtRequest
+    actor_transform_lookup: false
+    source_ttl_expiry_policy: may_expire_after_goal_activation
+  - id: DisturbancePosition
+    target_kind: WorldPosition
+    owner: GameplayGoalAuthority
+    lifetime: InvestigateGoalInstance
+    stable_id_policy: session_monotonic_nonzero_goal_target_allocator
+    generation: 1
+    initial_revision: 1
+    mutable: false
+    stored_in_knowledge: false
+    provenance_only: false
+    candidate_usable: true
+    capture_source: ExactSoundEventStimulusLocation
+    actor_transform_lookup: false
+    source_ttl_expiry_policy: preserve_immutable_position
+  phase_target_policies:
+  - goal: IdleObserve
+    phase: Observe
+    policy: AnyAllowedTargetOrNoTarget
+    target_authority: ''
+    required_target_kind: NoTarget
+    exact_identity_and_revision: false
+    continue_policy: running_skill_target_must_match_when_targeted
+    entry_target_change: none
+  - goal: InvestigateDisturbance
+    phase: Orient
+    policy: ActiveGoalPrimaryTargetOnly
+    target_authority: DisturbancePosition
+    required_target_kind: WorldPosition
+    exact_identity_and_revision: true
+    continue_policy: running_skill_target_must_equal_current_primary
+    entry_target_change: none
+  - goal: InvestigateDisturbance
+    phase: Navigate
+    policy: ActiveGoalPrimaryTargetOnly
+    target_authority: DisturbancePosition
+    required_target_kind: WorldPosition
+    exact_identity_and_revision: true
+    continue_policy: running_skill_target_must_equal_current_primary
+    entry_target_change: none
+  - goal: InvestigateDisturbance
+    phase: Search
+    policy: ActiveGoalPrimaryTargetOnly
+    target_authority: DisturbancePosition
+    required_target_kind: WorldPosition
+    exact_identity_and_revision: true
+    continue_policy: running_skill_target_must_equal_current_primary
+    entry_target_change: none
+  - goal: InvestigateDisturbance
+    phase: Resolve
+    policy: UnavailableInGuardPhase0
+    target_authority: ''
+    required_target_kind: NoTarget
+    exact_identity_and_revision: false
+    continue_policy: unavailable
+    entry_target_change: none
+  - goal: InvestigateDisturbance
+    phase: Return
+    policy: ActiveGoalPrimaryTargetOnly
+    target_authority: HomeWaypoint
+    required_target_kind: Waypoint
+    exact_identity_and_revision: true
+    continue_policy: running_skill_target_must_equal_current_primary
+    entry_target_change: install_home_waypoint_and_increment_goal_revision_once
+  production_skills:
+    executable:
+    - Idle
+    - TurnTo
+    - Approach
+    - Investigate
+    - SearchArea
+    control: ContinueCurrentAction
+    all_others_policy: hard_mask_false_even_if_precondition_true
+  utility_profile:
+    profile_id: GuardPhase0UtilityV1
+    deterministic: true
+    score_formula: skill_bias_plus_pair_feature_dot_product
+    tie_break: adjusted_score_desc_then_candidate_id_asc
+    all_other_skill_bias: -2.5
+    skill_biases:
+      SearchArea: 1.5
+      Investigate: 1.25
+      TurnTo: 1.0
+      Approach: 0.75
+      ContinueCurrentAction: 0.5
+      Idle: 0.0
+    candidate_pair_feature_weights:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+    switch_cost_policy: existing_postprocess_v1
+    parameter_policy: skill_registry_defaults_normalized
+  typed_event_fact:
+    immutability: value_immutable
+    queue_validation: reject_before_enqueue
+    event_sequence_policy: session_monotonic_nonzero_at_most_once
+    stale_goal_token_policy: reject
+    wrong_source_policy: reject
+    field_applicability_violation_policy: reject
+    fields:
+    - name: EventSequence
+      type: uint64
+      required_for_sources: [Knowledge, SkillExecutor, GoalTimer, GoalAuthority]
+      canonical_default: 0
+      constraint: nonzero
+      required_when: always
+    - name: EventType
+      type: EEventType
+      required_for_sources: [Knowledge, SkillExecutor, GoalAuthority]
+      canonical_default: NoneOrPadding
+      constraint: exact_generated_event_or_timer_default
+      required_when: source_applicable
+    - name: Source
+      type: EFactSource
+      required_for_sources: [Knowledge, SkillExecutor, GoalTimer, GoalAuthority]
+      canonical_default: None
+      constraint: exact_trusted_producer
+      required_when: always
+    - name: GoalToken
+      type: FGoalToken
+      required_for_sources: [Knowledge, SkillExecutor, GoalTimer, GoalAuthority]
+      canonical_default: ZeroGoalToken
+      constraint: full_exact_current_nonzero_token
+      required_when: always
+    - name: KnowledgeRevision
+      type: uint64
+      required_for_sources: [Knowledge]
+      canonical_default: 0
+      constraint: nonzero_when_required
+      required_when: source_applicable
+    - name: DecisionId
+      type: uint64
+      required_for_sources: [SkillExecutor]
+      canonical_default: 0
+      constraint: nonzero_when_required
+      required_when: source_applicable
+    - name: Skill
+      type: ESkillId
+      required_for_sources: [SkillExecutor]
+      canonical_default: SkillCountSentinel
+      constraint: exact_committed_skill_when_required
+      required_when: source_applicable
+    - name: Target
+      type: FTargetHandleWire
+      required_for_sources: [Knowledge, SkillExecutor, GoalAuthority]
+      canonical_default: ZeroTargetHandle
+      constraint: exact_identity_generation_revision_when_required
+      required_when: source_applicable
+    - name: ExecutionStatus
+      type: EExecutionStatus
+      required_for_sources: [SkillExecutor]
+      canonical_default: None
+      constraint: SucceededOrFailedWhenRequired
+      required_when: source_applicable
+    - name: FailureReason
+      type: EFailureReason
+      required_for_sources: []
+      canonical_default: None
+      constraint: exact_nondefault_when_required
+      required_when: SkillExecutorAndExecutionStatusFailed
+    - name: TimerId
+      type: string
+      required_for_sources: [GoalTimer]
+      canonical_default: ''
+      constraint: nonempty_when_required
+      required_when: source_applicable
+    - name: TimerRuntimeEpoch
+      type: uint64
+      required_for_sources: [GoalTimer]
+      canonical_default: 0
+      constraint: nonzero_when_required
+      required_when: source_applicable
+  guard_authorities:
+  - guard: valid_disturbance_target
+    availability: executable
+    bindings:
+    - goal: IdleObserve
+      phase: Observe
+      order: 0
+      trigger: {kind: event, event_type: SoundHeard}
+      fact_source: Knowledge
+      accepted_skills: []
+      accepted_target_kinds: [SoundEvent]
+      target_authorities: [SourceSoundHandle]
+      accepted_failure_reasons: []
+      requirements: [ExactCurrentGoalToken, NonzeroTargetIdentity, ExactCurrentKnowledgeRevision, ExactCurrentAvailableSoundCapture, FiniteStimulusLocation, DisturbancePositionPrepareSucceeds]
+  - guard: social_subject
+    availability: executable
+    bindings:
+    - goal: IdleObserve
+      phase: Observe
+      order: 1
+      trigger: {kind: event, event_type: SightAcquired}
+      fact_source: Knowledge
+      accepted_skills: []
+      accepted_target_kinds: [Entity]
+      target_authorities: []
+      accepted_failure_reasons: []
+      requirements: [ExactCurrentGoalToken, ExactCurrentKnowledgeRevision, ExactCurrentVisibleEntityBinding, ExactPrimarySocialSubject]
+  - guard: orientation_complete
+    availability: executable
+    bindings:
+    - goal: InvestigateDisturbance
+      phase: Orient
+      order: 0
+      trigger: {kind: event, event_type: SkillSucceeded}
+      fact_source: SkillExecutor
+      accepted_skills: [TurnTo]
+      accepted_target_kinds: [WorldPosition]
+      target_authorities: [DisturbancePosition]
+      accepted_failure_reasons: []
+      requirements: [ExactCurrentGoalToken, ExactCurrentDecisionId, ExactTargetIdentityAndRevision, ExecutionStatusSucceeded]
+  - guard: no_valid_snapshot
+    availability: executable
+    bindings:
+    - goal: InvestigateDisturbance
+      phase: Orient
+      order: 1
+      trigger: {kind: event, event_type: TargetInvalidated}
+      fact_source: GoalAuthority
+      accepted_skills: []
+      accepted_target_kinds: [WorldPosition]
+      target_authorities: [DisturbancePosition]
+      accepted_failure_reasons: []
+      requirements: [ExactCurrentGoalToken, ExactCurrentPrimaryTarget, GoalOwnedResolverCannotResolve, SourceSoundExpiryAloneForbidden]
+  - guard: phase_timeout
+    availability: executable
+    bindings:
+    - goal: InvestigateDisturbance
+      phase: Orient
+      order: 2
+      trigger: {kind: timer, timer_id: phase_timeout, after_seconds: 2.0}
+      fact_source: GoalTimer
+      accepted_skills: []
+      accepted_target_kinds: []
+      target_authorities: []
+      accepted_failure_reasons: []
+      requirements: [ExactCurrentGoalToken, ExactTransitionTimerId, NonzeroTimerRuntimeEpoch, CurrentOneShotTimerEpoch, WallClockForbidden]
+    - goal: InvestigateDisturbance
+      phase: Navigate
+      order: 3
+      trigger: {kind: timer, timer_id: phase_timeout, after_seconds: 15.0}
+      fact_source: GoalTimer
+      accepted_skills: []
+      accepted_target_kinds: []
+      target_authorities: []
+      accepted_failure_reasons: []
+      requirements: [ExactCurrentGoalToken, ExactTransitionTimerId, NonzeroTimerRuntimeEpoch, CurrentOneShotTimerEpoch, WallClockForbidden]
+    - goal: InvestigateDisturbance
+      phase: Search
+      order: 2
+      trigger: {kind: timer, timer_id: phase_timeout, after_seconds: 8.0}
+      fact_source: GoalTimer
+      accepted_skills: []
+      accepted_target_kinds: []
+      target_authorities: []
+      accepted_failure_reasons: []
+      requirements: [ExactCurrentGoalToken, ExactTransitionTimerId, NonzeroTimerRuntimeEpoch, CurrentOneShotTimerEpoch, WallClockForbidden]
+  - guard: arrived_at_snapshot
+    availability: executable
+    bindings:
+    - goal: InvestigateDisturbance
+      phase: Navigate
+      order: 0
+      trigger: {kind: event, event_type: SkillSucceeded}
+      fact_source: SkillExecutor
+      accepted_skills: [Approach, Investigate]
+      accepted_target_kinds: [WorldPosition]
+      target_authorities: [DisturbancePosition]
+      accepted_failure_reasons: []
+      requirements: [ExactCurrentGoalToken, ExactCurrentDecisionId, ExactTargetIdentityAndRevision, ExecutionStatusSucceeded]
+  - guard: PathUnavailable
+    availability: executable
+    bindings:
+    - goal: InvestigateDisturbance
+      phase: Navigate
+      order: 1
+      trigger: {kind: event, event_type: SkillFailed}
+      fact_source: SkillExecutor
+      accepted_skills: [Approach, Investigate]
+      accepted_target_kinds: [WorldPosition]
+      target_authorities: [DisturbancePosition]
+      accepted_failure_reasons: [PathUnavailable]
+      requirements: [ExactCurrentGoalToken, ExactCurrentDecisionId, ExactTargetIdentityAndRevision, ExecutionStatusFailed, ExactFailureReason]
+    - goal: InvestigateDisturbance
+      phase: Return
+      order: 1
+      trigger: {kind: event, event_type: SkillFailed}
+      fact_source: SkillExecutor
+      accepted_skills: [Approach]
+      accepted_target_kinds: [Waypoint]
+      target_authorities: [HomeWaypoint]
+      accepted_failure_reasons: [PathUnavailable]
+      requirements: [ExactCurrentGoalToken, ExactCurrentDecisionId, ExactTargetIdentityAndRevision, ExecutionStatusFailed, ExactFailureReason]
+  - guard: subject_identified
+    availability: provider_unavailable
+    bindings:
+    - goal: InvestigateDisturbance
+      phase: Navigate
+      order: 2
+      trigger: {kind: event, event_type: SightAcquired}
+      fact_source: Unavailable
+      accepted_skills: []
+      accepted_target_kinds: []
+      target_authorities: []
+      accepted_failure_reasons: []
+      requirements: [ProviderUnavailableFailClosed]
+    - goal: InvestigateDisturbance
+      phase: Search
+      order: 0
+      trigger: {kind: event, event_type: SightAcquired}
+      fact_source: Unavailable
+      accepted_skills: []
+      accepted_target_kinds: []
+      target_authorities: []
+      accepted_failure_reasons: []
+      requirements: [ProviderUnavailableFailClosed]
+  - guard: search_budget_exhausted
+    availability: executable
+    bindings:
+    - goal: InvestigateDisturbance
+      phase: Search
+      order: 1
+      trigger: {kind: event, event_type: SkillSucceeded}
+      fact_source: SkillExecutor
+      accepted_skills: [SearchArea]
+      accepted_target_kinds: [WorldPosition]
+      target_authorities: [DisturbancePosition]
+      accepted_failure_reasons: []
+      requirements: [ExactCurrentGoalToken, ExactCurrentDecisionId, ExactTargetIdentityAndRevision, ExecutionStatusSucceeded, AtLeastOneSearchPointVisitedWhenDeadlineSucceeded]
+  - guard: resolution_complete
+    availability: provider_unavailable
+    bindings:
+    - goal: InvestigateDisturbance
+      phase: Resolve
+      order: 0
+      trigger: {kind: event, event_type: SkillSucceeded}
+      fact_source: Unavailable
+      accepted_skills: []
+      accepted_target_kinds: []
+      target_authorities: []
+      accepted_failure_reasons: []
+      requirements: [ProviderUnavailableFailClosed]
+  - guard: no_valid_belief
+    availability: provider_unavailable
+    bindings:
+    - goal: InvestigateDisturbance
+      phase: Resolve
+      order: 1
+      trigger: {kind: event, event_type: TargetInvalidated}
+      fact_source: Unavailable
+      accepted_skills: []
+      accepted_target_kinds: []
+      target_authorities: []
+      accepted_failure_reasons: []
+      requirements: [ProviderUnavailableFailClosed]
+  - guard: at_return_target
+    availability: executable
+    bindings:
+    - goal: InvestigateDisturbance
+      phase: Return
+      order: 0
+      trigger: {kind: event, event_type: SkillSucceeded}
+      fact_source: SkillExecutor
+      accepted_skills: [Approach]
+      accepted_target_kinds: [Waypoint]
+      target_authorities: [HomeWaypoint]
+      accepted_failure_reasons: []
+      requirements: [ExactCurrentGoalToken, ExactCurrentDecisionId, ExactTargetIdentityAndRevision, ExecutionStatusSucceeded]
+  effects:
+  - name: request_new_goal
+    apply_effect_policy: stage_intent_only_no_external_mutation
+    pump_result: GoalRequested
+    transaction_policy: owner_bounded_prepare_interrupt_commit
+    failure_before_interrupt: preserve_old_goal_timer_and_running_skill
+    interrupt_failure: keep_old_goal_active_and_replan
+    failure_after_interrupt: keep_old_goal_active_without_running_skill_and_replan
+    post_commit_skill_start_failure: keep_new_goal_and_replan_or_wait_timeout
+    callback_free_atomic_steps:
+    - suspend_old_goal_and_pause_timer
+    - activate_new_goal_and_install_primary_target
+    - arm_new_phase_timer
+    - supersede_pending_old_decision
+    preserve: []
+    revision_without_target_change: not_applicable
+    revision_with_target_change: active_goal_transaction_single_publication
+  - name: remain_and_replan
+    apply_effect_policy: stage_intent_only_no_external_mutation
+    pump_result: ReplanRequested
+    transaction_policy: supersede_pending_decision_then_request_new_snapshot
+    failure_before_interrupt: not_applicable
+    interrupt_failure: not_applicable
+    failure_after_interrupt: preserve_current_goal_and_pending_state
+    post_commit_skill_start_failure: remain_in_current_phase_and_replan
+    callback_free_atomic_steps: []
+    preserve: [GoalInstance, Lifecycle, Phase, PhaseGeneration, PhaseDeadline, TimerRuntimeEpoch]
+    revision_without_target_change: unchanged
+    revision_with_target_change: increment_once_authoritative_primary_target_changed
+  terminal_resume:
+    terminal_states: [Succeeded, Failed]
+    record_outcome: once_for_exact_goal_token
+    remove_terminal_goal: true
+    resume_goal: IdleObserve
+    resume_policy: ResumeSamePhase
+    required_suspended_goal_count: 1
+    timer_policy: reuse_stored_remaining
+    request_new_decision: true
+    missing_or_stale_idle_policy: dormant_fail_closed_no_synthetic_idle
+  decision_scheduling:
+    component_tick: false
+    max_pending_decisions_per_npc: 1
+    supersede_previous_pending: terminal_superseded
+    commit_deadline_policy: captured_ms_plus_40
+    request_edges:
+    - initial_goal_activation
+    - committed_phase_change
+    - remain_and_replan
+    - terminal_goal_resume
+    - running_skill_terminal_phase_unchanged
+    - accepted_urgent_preemption
 goal_types:
 - id: 0
   name: None

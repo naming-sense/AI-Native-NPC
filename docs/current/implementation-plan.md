@@ -1,9 +1,9 @@
 # AI Native NPC를 만드는 순서
 ## 데이터 준비부터 모델 학습·Unreal 검증까지 설명하는 구현 계획
 
-- 문서 버전: **v0.4.13**
-- 개정일: 2026-08-10
-- 현재 상태: **보스가 선택된 공격을 안전하게 시작하는 흐름을 고정된 테스트 입력으로 검증했다. 일반 NPC가 상황에 맞는 행동을 고르는 기능, 학습 데이터, AI 모델과 실제 전투 효과는 다음 구현 대상이다.**
+- 문서 버전: **v0.4.15**
+- 개정일: 2026-08-12
+- 현재 상태: **소리를 듣고 조사 Goal을 시작하는 Phase 3A는 완료됐다. 다음 Phase 3B는 기존 Target·Candidate·Feature·Utility·Commit·Skill Core를 production Goal 경로로 연결한다.**
 - 주 독자: **기획자, 사업 책임자, 새로 합류한 개발자, ML·Data·Gameplay AI·Server·Unreal NNE·QA·Release 담당자**
 - 설명 범위: **구현 순서, 담당 팀, 모델 구조, 학습 데이터 생성, 학습 설정, Unreal 검증과 최종 승인 절차**
 - 제품 요구사항: [AI Native NPC 제품 요구사항](requirements.md)
@@ -11,6 +11,16 @@
 - 계약 부록: [AI Native NPC Contract Appendices](contract-appendices.md)
 
 세부 기술 요구사항은 게임 실행 중 동작과 안전 규칙을 정한다. 계약 부록은 정확한 ID·모델 입출력 크기·승인 기준을 정한다. 이 문서는 구현 순서와 담당 팀, 산출물, 검증 방법을 정한다.
+
+
+<!-- BEGIN GOAL GAMEPLAY SEMANTICS V1 STATUS -->
+### Bounded Goal gameplay authority status
+
+- Goal Registry: `1.1.0` / SHA-256 `d9eb13898cf2d066320977073b1e82458cc0d7bdfd512ef6983ad9a2d44c8f3e`
+- `GuardPhase0` bounded semantics authority: **PASS**
+- Authority scope: 9 executable unique guards, 3 provider-unavailable unique guards, 12 executable transition bindings, 2 staged effects, 5 production executable Skills
+- Gameplay Goal FSM: **HOLD** — complete guard catalog, other Goals, full Utility/Commit/Skill-result progression, arbitration/save archive, and product release are not claimed by this bounded authority PASS.
+<!-- END GOAL GAMEPLAY SEMANTICS V1 STATUS -->
 
 ---
 
@@ -96,18 +106,20 @@
 
 2단계(Phase 1)는 전체 Dataset, Neural 모델, OOD, Calibration과 배포 승인 기준을 적용한다. 각 단계는 실제 Runtime 경로와 테스트 증거로 완료한다.
 
-현재 구현은 보스 공격 패턴의 안전 Core를 먼저 완성했다. 일반 NPC의 전체 1단계 흐름은 구현 전이다.
+현재 구현은 보스 공격 패턴의 안전 Core와 deterministic Phase 0 Core를 완성했다. 일반 NPC는 소리를 듣고 조사 Goal을 시작하는 Phase 3A와 5개 Skill 실행기를 구현했다. Target Slotter, Candidate Builder, Feature Builder, Utility Selection과 Commit Coordinator의 순수 Core도 구현돼 있다. Phase 3B는 이 Core를 실제 Goal Host에 연결한다.
 
 | 기능 | 현재 상태 |
 |---|---|
-| 일반 NPC의 전체 판단 흐름 | 구현 전. 전체 gameplay 연결은 HOLD |
+| 일반 NPC의 전체 판단 흐름 | Phase 3A 완료. Phase 3B인 Goal-owned Target→Candidate→Utility→Commit→Skill-result 연결은 다음 작업 |
 | Goal 규칙 데이터와 Unreal 전달 | 완료(PASS). Goal Registry `1.1.0`과 consumer sync 검증 |
-| Goal 전환과 Timer 실행 코드 | RED 테스트만 준비됨. `GoalFsmRuntime.h/.cpp`와 server Timer component 구현 필요 |
+| Goal 전환과 Timer 실행 코드 | pure Contract Dispatcher·Timer Core·Unreal Timer Core, exact Pawn/Controller Goal host, generated initial `IdleObserve/Observe`, production Hearing→`InvestigateDisturbance/Orient`와 one-shot timer 구현. 나머지 guard/effect provider와 전체 progression은 HOLD |
+| 일반 NPC Knowledge와 Target Actor binding | production Perception Knowledge, exact Handle/Revision/Actor binding, exact-one identity와 sight-loss invalidation 구현. Knowledge `6/6` PASS |
+| 일반 NPC StateTree 시작 경계 | private one-shot committed capability, authored handoff StateTree와 task-entry exact-once consume 구현. exact-one Executor는 5개 V1 Skill을 실행한다. 행동별 focused PASS, broad `134/134`, Data Validation `291/0/0`. Goal-owned Skill Commit authority와 완료→Goal event는 HOLD |
 | 보스 패턴 검사·규칙 기반 선택·Commit | C++ 안전 Core 구현. 테스트 `31/31` PASS |
 | 보스 StateTree·Pawn·AIController 연결 | 구현과 저장 에셋 검증 PASS |
 | Commit 뒤 보스 StateTree 시작 | fixture 기반 `2/2`, 관련 보스 테스트 `53/53` PASS |
 | 실제 보스 패턴 목록·선택 시작 조건·전투 효과 | 구현 전 |
-| 학습 Dataset·AI 모델·ONNX·OOD·Calibration | 구현 전 |
+| 학습 Dataset·AI 모델·ONNX·OOD·Calibration | Decision Record v2 capture/replay와 C++↔Python Golden validator는 Core PASS. 실제 대량 Dataset·Teacher·학습 모델·ONNX·OOD·Calibration은 구현 전 |
 
 ### 2.1.1 1단계: 작은 NPC 판단 흐름을 연결한다 (`Phase 0`)
 
@@ -128,6 +140,90 @@
 - Perception→Utility Baseline→Commit/Fallback 경로가 재현 가능한 Runtime 테스트를 통과한다.
 - Capture record, 272 feature layout, score·parameter output이 Schema·Golden parity를 통과한다.
 - Phase 0 증거와 남은 Runtime Gate를 [최종 승인 체크리스트](#final-approval)에 기록한다.
+
+<a id="phase-3a"></a>
+#### 2.1.1.1 소리를 듣고 조사 Goal을 시작한다 (Phase 3A — 완료)
+
+Phase 3A는 `IdleObserve/Observe`에서 유효한 소리를 받아 `InvestigateDisturbance/Orient`를 한 번 활성화한다.
+
+```text
+Perception Hearing
+→ Knowledge 저장
+→ 현재 revision·Sound handle·X/Y/Z 위치 재확인
+→ 새 Goal·Timer 준비
+→ 기존 Idle/TurnTo와 대기 중인 Decision 정리
+→ InvestigateDisturbance/Orient 공개
+```
+
+현재 구현은 다음 경계를 닫는다.
+
+- exact Pawn·Controller·Knowledge·GoalTimer·SkillHandoff·SkillExecutor assembly
+- generated `GuardPhase0` initial Goal
+- 오래된 소리, 위치 변경, 잘못된 대상, 중복 event와 Pump 재진입 거부
+- 새 Goal 준비 실패 시 기존 Goal·Skill·Decision 보존
+- Host·Timer·Knowledge 제거와 재등록 시 이전 Timer·Runtime·callback 폐기
+- ID 최댓값 뒤 재사용 금지와 새 lease 발급 실패 시 기존 lease 보존
+- `Idle`, `TurnTo`, `Approach`, `Investigate`, `SearchArea` production 실행
+
+최종 증거는 Contract `39/39`, GoalFsm `23/23`, Knowledge `6/6`, shipping `10/10`, broad `134/134`, Data Validation `291 assets / 0 errors / 0 warnings`다. Round 6 manifest는 관련 파일 `116/116`을 고정했고 좁은 독립 재검토는 문제 `0`으로 통과했다.
+
+Skill Registry `execution_semantics_v1`은 5개 Skill의 실행 의미를 소유한다. `TurnTo`는 5°를 0.10초 유지한다. `Approach`는 preferred distance 안에 들어간다. `Investigate`는 preferred distance와 15°를 0.50초 유지한다. `SearchArea`는 world-axis 고정 9점을 순회한다. 이동 행동은 완전한 Nav path만 허용한다. server Timer는 0.05초 간격으로 상태를 평가한다.
+
+<a id="phase-3b"></a>
+#### 2.1.1.2 목표에 맞는 행동을 고르고 다음 단계로 진행한다 (Phase 3B — 다음 작업)
+
+Phase 3B는 현재 Goal이 Target과 Skill을 고르고 실행 결과를 다음 Goal 단계로 연결한다.
+
+```text
+Goal
+→ Knowledge
+→ Goal-owned Target resolver
+→ Target Slotter
+→ Candidate Builder
+→ Decision Feature Builder
+→ Utility Selection
+→ Decision Commit Coordinator
+→ StateTree handoff와 Skill Executor
+→ typed Skill result
+→ Goal Runtime
+```
+
+기존 Core와 연결 상태:
+
+| 부품 | 현재 상태 | Phase 3B 작업 |
+|---|---|---|
+| Goal-owned home·disturbance Target | Host 내부 capture 구현 | 현재 Goal·phase용 resolver로 공개하고 Target Slotter 입력에 연결 |
+| `FTargetSlotter` | 순수 Core 구현 | 현재 Knowledge와 Goal-owned Target을 production 입력으로 제공 |
+| `FCandidateBuilder` | 272행 Hard Mask Core 구현 | generated phase별 허용 Skill과 현재 실행 조건을 production fact로 제공 |
+| `FDecisionFeatureBuilder` | Candidate와 Feature 동시 확정 Core 구현 | 실제 Goal·Knowledge·Event Feature를 채워 immutable Snapshot 생성 |
+| `FUtilitySelection` | 결정론적 선택 Core 구현 | generated `GuardPhase0UtilityV1` profile로 호출 |
+| `FDecisionCommitCoordinator` | 재검사·중복 방지 Core 구현 | Goal Host의 concrete `IDecisionCommitAuthority`에 연결 |
+| StateTree handoff와 5-Skill Executor | 실행 구현 | Commit 성공 때만 한 번 사용할 수 있는 실행 권한 발행 |
+| Skill result sink | Executor 내부 발행 구현 | Goal Host에 exact sink 설치 후 typed Goal event로 변환 |
+
+Phase 3B는 다음 순서로 구현한다.
+
+1. **Goal-owned Target 해결:** `AINativeNPCGoalHostComponent`의 private authority가 현재 Goal token에 맞는 disturbance position과 home Waypoint를 반환한다.
+2. **판단 Snapshot 구성:** Host가 `FTargetSlotter`, `FCandidateBuilder`, `FDecisionFeatureBuilder`를 순서대로 호출한다. 세 Core는 같은 Target·Candidate identity를 공유한다.
+3. **Utility 선택:** Host가 generated Utility profile로 `FUtilitySelection`을 호출한다. 실행 가능한 Candidate가 0개면 Skill을 시작하지 않는다.
+4. **Commit 연결:** `FAINativeNPCGameplayCommitAuthority`가 `IDecisionCommitAuthority`를 구현한다. Commit 직전에 Goal·Knowledge·Target·Candidate·Skill 조건을 다시 읽는다.
+5. **Skill 시작:** Commit 성공은 `FAINativeNPCCommittedSkillStart`를 한 번 발행한다. 기존 private StateTree handoff가 이를 소비한다.
+6. **결과 연결:** Goal Host가 Executor result sink를 설치한다. exact Goal token·DecisionId·Skill·Target과 일치하는 결과만 Goal Runtime event로 변환한다.
+7. **단계 진행:** `Orient → Navigate → Search → Return`을 진행한다. Return은 session 시작 위치로 만든 home Waypoint를 사용한다. 완료 뒤 `IdleObserve`를 재개한다.
+
+각 순서는 실패하는 Automation을 먼저 추가한다. 수정 뒤 focused test, 전체 `AINativeNPC`, Data Validation과 실제 production Pawn smoke를 실행한다.
+
+Phase 3B의 완료 조건:
+
+- 실제 Hearing 한 번이 `Orient → Navigate → Search → Return → IdleObserve`를 끝까지 진행한다.
+- 각 단계의 Skill은 generated phase 규칙과 같은 Target만 사용한다.
+- 오래된 Goal·Knowledge·Target·Decision·Skill result는 상태를 바꾸지 않는다.
+- Commit 실패와 실행 가능 Candidate 0개는 기존 Goal·Skill을 손상시키지 않는다.
+- 같은 Decision과 Skill result는 한 번만 적용된다.
+- Host·Timer·Knowledge·Executor 제거와 재등록 뒤 이전 판단·Timer·callback은 부활하지 않는다.
+- Contract → Editor build → focused → broad → Data Validation 순서의 최종 증거가 모두 통과한다.
+
+이번 범위는 `InvestigateDisturbance/Resolve`, 다른 V1 Goal, Cover·SmartObject production 예약, Neural 모델, 전체 arbitration, save/load와 replication을 구현하지 않는다.
 
 ### 2.1.2 2단계: 학습 모델과 전체 기능을 붙인다 (`Phase 1`)
 
@@ -386,7 +482,7 @@ Boss Pattern Dataset은 공통 272 Candidate Dataset과 별도 record type으로
 
 학습 코드는 Unreal 프로젝트 `NeuralGame`의 루트에 만든다. 현재 기준 작업 공간은 `/mnt/d/Codex-cli/NeuralProject/NeuralGame`이다.
 
-이 문서의 `ML/...` 경로와 `python -m anpc_ml...` 명령은 `NeuralGame` 루트를 기준으로 한다. 기계 계약 입력은 AI-Native-NPC authority commit `2770b4a5a3aebd430420e5b330441aa044cc7db5`의 generated contract와 consumer provenance lock을 사용한다.
+이 문서의 `ML/...` 경로와 `python -m anpc_ml...` 명령은 `NeuralGame` 루트를 기준으로 한다. 기계 계약 입력은 source SHA로 고정한 generated contract와 consumer provenance lock을 사용한다. Registry, generator, generated 산출물과 회귀 검사는 같은 `main` 변경으로 게시한다.
 
 ## 4.1 게임 상황을 학습 Record로 만든다
 
@@ -627,7 +723,7 @@ Schema semantic validation
 
 ## 8.2 Gate 2: 규칙 기반 NPC 판단과 안전한 실행을 완료한다
 
-**결론:** 보스 공격 전달 fixture와 Goal binding은 PASS다. Goal Runtime Core와 production integration은 HOLD다.
+**결론:** 보스 공격 전달 fixture, Goal Dispatcher·Timer Core, bounded 일반 NPC 5-Skill 실행, generated initial Goal과 production Hearing→`InvestigateDisturbance/Orient` 전환은 PASS다. 전체 Goal-owned Utility→Commit→Skill-result progression과 전체 production integration은 HOLD다.
 
 ### 현재 증거
 
@@ -636,15 +732,16 @@ Schema semantic validation
 
 ### 남은 Phase 0 조건
 
-- **미완료:** Target의 종류와 식별 정보 Runtime Payload(코드: `Typed Target`) 구현
+- **부분 완료:** Entity·SoundEvent·LastKnownPosition production Knowledge와 exact Entity Actor binding은 구현됐다. bounded `HomeWaypoint`와 Hearing에서 고정한 `DisturbancePosition`은 Goal authority가 생성한다. CoverSlot·SmartObject와 일반 Waypoint·WorldPosition producer는 남아 있다.
 - **미완료:** Target Slotter Target Recall Gate 통과
-- **미완료:** Goal Contract Dispatcher Core의 41-row 소비·guard/effect fail-closed·destination/revision hostile test
-- **미완료:** Goal Timer Runtime Core의 `2/15/8/4/6/5초`, lifecycle·snapshot·expected-token CAS·pause/time-dilation hostile test
-- **미완료:** Goal Arbitration/FSM Phase 0와 production Knowledge·Target·29 guard·2 effect provider 통합
-- **미완료:** `snapshot_revision` stale response와 `SnapshotSuperseded` Runtime 테스트
-- **미완료:** 40ms request deadline의 39/40/41ms·overflow Runtime 테스트
-- **미완료:** Candidate Hash mismatch를 `CandidateHashMismatch`로 거부하고 Neural 실패→latest Utility→Goal fallback 순서 테스트
-- **미완료:** Atomic Commit rollback·lease·urgent cancellation 테스트
+- **완료:** Goal Contract Dispatcher Core의 41-row 소비·guard/effect fail-closed·destination/revision hostile test. `AINativeNPC.GoalFsm` `23/23` PASS
+- **완료:** Goal Timer Runtime Core의 `2/15/8/4/6/5초`, lifecycle·snapshot·expected-token CAS·pause/time-dilation hostile test
+- **부분 완료:** exact general-NPC Pawn/Controller assembly, live typed Actor binding, authoritative generated initial Goal, production Hearing 전환과 committed capability→StateTree handoff foundation
+- **완료:** production `Idle(NoTarget)`은 Registry duration 동안 이동을 멈추고 one-shot Timer 완료 시 정확히 한 번 Succeeded가 된다. 최종 19-file SHA 독립 재리뷰 `3/3`은 모두 `19/19`, PASS, blocker `0`이다.
+- **구현됨:** pending proposal은 Executor effect 전에 이동·비우고 acquisition guard를 먼저 세운다. 이동 정지 callback 전에는 Running·재진입 guard를 설치하고 callback 뒤 authority·owner·Controller·exact assembly를 다시 검사한다. 재진입 중 assembly가 바뀌면 Running 또는 Succeeded를 publish하지 않고 Failed로 닫는다.
+- **완료:** Skill Registry `execution_semantics_v1`에서 생성한 immutable C++ 표로 `TurnTo`·`Approach`·`Investigate`·`SearchArea`를 committed capability 뒤에서 실행한다. Target 위치는 실행 시작 시 다시 확인해 고정한다. 행동별 hostile RED→GREEN, 최신 encompassing broad `134/134`, Data Validation `291/0/0` PASS다.
+- **부분 완료:** generated bounded authority는 9 executable guard·3 provider-unavailable guard·2 staged effect다. production은 initial `IdleObserve/Observe`, `valid_disturbance_target`, staged `request_new_goal`, suspended old Goal, active `InvestigateDisturbance/Orient`와 generated timer까지 연결했다. 나머지 guard/effect provider, Goal Arbitration, Utility→actual Commit authority, Skill 완료→Goal event와 전체 save/archive는 남아 있다.
+- **완료:** `snapshot_revision` stale response, 40ms deadline 경계, Candidate Hash mismatch와 Atomic Commit rollback·replay hostile tests. Policy `14/14` PASS
 - **미완료:** Hidden Information Leakage Test
 
 **Gate 2 승인 산출물:** Unreal Automation report, Target Recall report, Goal lifecycle·Timer report, Commit/fallback hostile test report와 production integration smoke.
@@ -693,11 +790,13 @@ Schema semantic validation
 ### Goal 계약과 남은 Runtime 구현
 
 - Goal Registry `1.1.0`: transition `41 = 35 event + 6 timer`, production timeout `2/15/8/4/6/5초`
-- focused Goal contract `20/20`, full Python harness `67/67`, generator/schema/golden, C++17 parity: PASS
-- authority provenance commit `2770b4a5a3aebd430420e5b330441aa044cc7db5`; consumer official sync와 `--check`: PASS
-- consumer `GoalFsmRuntimeTests.cpp`: RED 테스트 존재
-- `GoalFsmRuntime.h/.cpp`와 server Timer Runtime Component: 미구현
+- focused Goal contract `23/23`, full Python harness `67/67`, generator/schema/golden, C++17 parity: PASS
+- Goal Registry SHA `d9eb13898cf2d066320977073b1e82458cc0d7bdfd512ef6983ad9a2d44c8f3e`; consumer byte parity·lock sync와 `--check`: PASS. Registry·generator·generated 산출물·회귀 검사는 같은 `main` 변경으로 게시
+- `GoalFsmRuntime.h/.cpp`와 server Timer Runtime Component: 구현, `AINativeNPC.GoalFsm` `23/23` PASS
+- exact Pawn/Controller·Perception Knowledge·execution Target snapshot·committed capability→StateTree handoff·5개 bounded Skill: 구현
+- generated initial Goal과 production Hearing→`InvestigateDisturbance/Orient` 전환: 구현
+- 나머지 gameplay guard/effect provider·실제 Goal-owned Utility→Commit authority·Skill 완료→Goal event·전체 arbitration/save: 미구현
 
-현재 판정은 **Goal binding/provenance PASS, Contract Dispatcher·Timer Core RED, Production Integration HOLD, Gameplay Goal FSM HOLD**다.
+현재 판정은 **Goal binding/provenance PASS, Contract Dispatcher·Timer Core PASS, bounded initial/Hearing Goal integration PASS, bounded 5-Skill execution PASS, 전체 Goal-owned Commit/Skill-result progression HOLD, Gameplay Goal FSM HOLD**다.
 
 보스 공격 전달 흐름과 Goal 정적 계약은 제한된 범위에서 PASS다. Schema Freeze와 전체 제품 Release는 **NO-GO**다.

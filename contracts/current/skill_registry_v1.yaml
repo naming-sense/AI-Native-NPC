@@ -51,6 +51,90 @@ target_commit_policies:
     ttl_required_if_configured: true
   NoTarget:
     mode: none
+execution_semantics_v1:
+  status: approved_production_authority
+  approved_on: '2026-08-11'
+  common:
+    authority: server_game_thread
+    target_position_policy: recapture_at_execution_start_then_freeze
+    evaluation_interval_seconds: 0.05
+    intensity_speed_multiplier:
+      formula: base_plus_scale_times_intensity
+      base: 0.5
+      scale: 0.5
+      input_min: 0.0
+      input_max: 1.0
+      output_min: 0.5
+      output_max: 1.0
+    same_time_resolution: success_before_timeout
+    new_perception_policy: knowledge_only_until_next_selection
+    decision_record_v2_layout: unchanged
+    tensor_contract: unchanged
+    navigation:
+      path_mode: complete_path_only
+      allow_partial_path: false
+      projection_horizontal_cm: 100.0
+      projection_vertical_cm: 200.0
+      include_agent_radius_in_acceptance: false
+      include_goal_radius_in_acceptance: false
+  local_failure_reasons:
+  - TargetInvalid
+  - TargetUnsupported
+  - PathUnavailable
+  - TimedOut
+  - MovementModeUnsupported
+  - AuthorityLost
+  - AssemblyInvalidated
+  - Interrupted
+  skills:
+    TurnTo:
+      skill_id: 3
+      target_position_policy: frozen_execution_start_position
+      planar_coincident_distance_cm: 1.0
+      facing_tolerance_degrees: 5.0
+      success_stable_seconds: 0.10
+      rotation_axis: yaw_only
+      root_motion_policy: fail_movement_mode_unsupported
+      timeout_result: TimedOut
+    Approach:
+      skill_id: 4
+      target_position_policy: frozen_execution_start_position
+      success_distance: planar_center_to_frozen_target_lte_preferred_distance
+      already_inside_policy: succeed_without_move
+      completion_recheck: recompute_planar_distance
+      path_failure_result: PathUnavailable
+      timeout_result: TimedOut
+    Investigate:
+      skill_id: 8
+      target_position_policy: frozen_execution_start_position
+      distance_condition: planar_distance_lte_preferred_distance
+      facing_tolerance_degrees: 15.0
+      success_stable_seconds: 0.50
+      condition_loss_policy: reset_stable_time_to_zero
+      base_turn_speed_degrees_per_second: 360.0
+      success_meaning: arrived_faced_and_observed_not_evidence_found
+      path_failure_result: PathUnavailable
+      timeout_result: TimedOut
+    SearchArea:
+      skill_id: 9
+      target_position_policy: frozen_execution_start_center
+      basis: world_positive_x_positive_y
+      point_acceptance_radius_cm: 100.0
+      revisit_policy: no_revisit_per_execution
+      invalid_point_policy: skip
+      all_points_invalid_result: PathUnavailable
+      deadline_without_visited_point_result: TimedOut
+      success_meaning: allocated_area_checked_not_evidence_found
+      normalized_offsets:
+      - [0.0, 0.0]
+      - [0.5, 0.0]
+      - [0.0, 0.5]
+      - [-0.5, 0.0]
+      - [0.0, -0.5]
+      - [0.7071067811865476, 0.7071067811865476]
+      - [-0.7071067811865476, 0.7071067811865476]
+      - [-0.7071067811865476, -0.7071067811865476]
+      - [0.7071067811865476, -0.7071067811865476]
 failure_taxonomy:
 - TargetInvalid
 - TargetGenerationChanged

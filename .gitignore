@@ -1,0 +1,4 @@
+# Local Python and agent artifacts
+__pycache__/
+*.py[cod]
+.hermes/
