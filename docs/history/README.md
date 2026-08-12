@@ -4,6 +4,8 @@
 
 ## 개정 이력
 
+- [Unreal 구현 계획 v0.4.15 원문](unreal-implementation-history-v0.4.15.md)
+  - 독자 중심 v0.4.16 개편 전의 상세 구현 상태, 계약 설명과 검증 기록을 보존합니다.
 - [Requirements History v0.4.13](requirements-history-v0.4.13.md)
   - `Belief`와 `Typed Target`의 독자용 표시를 `Knowledge`와 “Target의 종류와 식별 정보”로 쉽게 바꿨습니다.
 - [Requirements History v0.4.12](requirements-history-v0.4.12.md)
