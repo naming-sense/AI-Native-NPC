@@ -1,9 +1,9 @@
 # Unreal에서 NPC 판단을 연결하는 구현 계획
 ## AI Native NPC · Unreal Engine 5.7 · NeuralGame
 
-- 문서 버전: **v0.4.19**
+- 문서 버전: **v0.4.20**
 - 개정일: **2026-08-13**
-- 현재 상태: **소리를 Knowledge에 저장하고 조사 Goal을 시작하는 bounded C++·Automation slice와 Quinn identity 기반은 완료됐다. 명시적 Sight source, Quinn 발소리, 전용 Test Level과 Manny·Quinn 제품 Play 경로는 아직 구현 전이다.**
+- 현재 상태: **bounded Goal·Skill C++ slice, Quinn identity 기반, Profile C++ 3종과 exact native Guard Pawn·Controller 적용은 완료됐다. Profile Asset 3개, Debug Component, 명시적 Sight source, Quinn 발소리, 전용 Test Level과 Manny·Quinn 제품 Play 경로는 아직 구현 전이다.**
 - 실제 Unreal 프로젝트: `D:\Codex-cli\NeuralProject\NeuralGame\NeuralGame.uproject`
 - Unreal 모듈: `Source/NeuralGame/AINativeNPC`
 
@@ -67,8 +67,9 @@
 | Phase 3A C++ 연결 | 완료 | native shipping Pawn을 사용하는 Automation fixture에서 유효한 소리를 저장하고 조사 Goal의 `Orient`를 시작한다. | 완료 상태를 유지한다. |
 | 5개 Skill 실행 | 완료 | `Idle`, `TurnTo`, `Approach`, `Investigate`, `SearchArea`를 실행한다. | Goal이 고른 Candidate에서 실행 권한을 발행하도록 연결한다. |
 | Quinn identity 기반 | 완료 | 실제 `BP_ThirdPersonCharacter`가 서버 세션의 `Player.Main` identity를 받고 Sight·Hearing이 같은 검증 규칙을 사용한다. | 명시적 Sight source와 Quinn 발소리를 연결한다. |
+| Profile C++ 기반 | 완료 | Visual·Sensor·Debug Profile을 검증하고 exact native Guard Pawn·Controller에 Visual·Sensor를 한 번 적용한다. | Profile Asset 3개와 Debug Component를 만든다. |
 | Phase 3B | 다음 작업 | 개별 Target·Candidate·Feature·Utility·Commit Core를 사용할 수 있다. | 실제 Goal Host 안에서 전체 흐름을 연결한다. |
-| Unreal 실게임 수직 구성 | C++ 기반 진행 중 | Quinn 기본 Player Asset이 유효한 Entity identity를 받으며 Manny 기본 Mesh·Animation을 재사용할 수 있다. | Profile, Sight source, 발소리, 전용 Test Level, 보이는 Manny Guard와 디버그 표시를 만든다. |
+| Unreal 실게임 수직 구성 | C++ 기반 진행 중 | Quinn identity와 Profile C++ class·native 적용 경로를 검증할 수 있다. | Profile Asset, Sight source, 발소리, 전용 Test Level, 보이는 Manny Guard와 디버그 표시를 만든다. |
 | 일반 NPC 전체 Goal Runtime | 진행 중 | Phase 3A의 native Pawn Automation 경로를 검증할 수 있다. | Quinn·Test Level Play 경로, 다른 Goal, 전체 중단 경쟁, 저장과 복제를 추가한다. |
 | 보스 공격 패턴 | 제한된 실행 기반 완료 | 고정된 테스트 자산으로 Commit부터 StateTree 시작까지 확인한다. | 실제 전투 선택 정보와 공격 효과를 연결한다. |
 | Neural Policy | 후속 작업 | 생성된 입력 계약과 Utility 경로를 사용할 수 있다. | ONNX, NNE Adapter, Calibration과 OOD를 구현한다. |
@@ -465,7 +466,7 @@ Phase 3A bounded C++ slice는 다음 검증을 순서대로 통과했다.
 | Shipping 일반 NPC | 10/10 |
 | Goal FSM | 23/23 |
 | Knowledge | 6/6 |
-| 전체 AINativeNPC Automation | 134/134 |
+| 전체 AINativeNPC Automation | 136/136 |
 | Data Validation | 291 assets, error 0, warning 0 |
 | 독립 재검토 | 문제 0 |
 
@@ -660,12 +661,12 @@ Phase 3B는 다음 조건을 모두 만족하면 완료다.
 
 | 항목 | 현재 상태 | 구현자가 할 일 |
 |---|---|---|
-| Quinn Player | 기본 조작 Asset 있음·AI identity 없음 | 기존 Third Person Player를 재사용하고 AI 입력용 identity ingress를 추가한다. |
-| Manny Mesh와 이동 Animation | 기본 Asset 있음 | native Guard Pawn이 읽는 Manny Visual Profile에 지정한다. |
-| 일반 NPC native Pawn과 Controller | C++ 구현 있음 | C++ Class를 Test Level에 직접 배치한다. |
+| Quinn Player | 기본 조작 Asset과 AI identity 기반 있음 | 기존 Third Person Player를 재사용하고 명시적 Sight source와 발소리 입력을 추가한다. |
+| Manny Mesh와 이동 Animation | 기본 Asset 있음 | native Guard Pawn이 읽는 Manny Visual Profile Asset에 지정한다. |
+| 일반 NPC native Pawn과 Controller | C++와 Profile 적용 구현 있음 | C++ Class를 Test Level에 직접 배치한다. |
 | 일반 NPC Skill StateTree | Asset 있음 | 자동 연결 경로와 Asset 유효성을 확인한다. |
 | 전용 Test Level | 제작 전 | `L_AINativeNPC_MVP`를 만든다. |
-| Manny Visual Profile | 제작 전 | exact native Pawn을 유지하고 Mesh·Animation Profile을 만든다. |
+| Manny Visual Profile Asset | 제작 전 | 구현된 Visual Profile class로 Mesh·Animation Asset을 만든다. |
 | Quinn 발소리 발생 Component와 Notify | 제작 전 | Hearing 수직 흐름 작업에서 만든다. |
 | Goal·Knowledge 디버그 화면 | 제작 전 | 수동 Play 검증 전에 읽기 전용 표시 기능을 만든다. |
 | Phase 3B 전체 행동 연결 | 구현 전 | Target부터 Skill 결과까지 연결한다. |
@@ -923,7 +924,9 @@ Blueprint에는 C++에서 상속된 identity Component 참조가 보인다.
 
 stable ID, generation과 초기화 상태는 Blueprint에 노출되지 않는다.
 
-최신 검증은 Editor build, identity·Perception `2/2`, `AINativeNPC.Shipping.GeneralNPC` `10/10`, 전체 `AINativeNPC` `134/134`와 Data Validation `291 assets`를 통과했다.
+identity closure 검증은 Editor build, identity·Perception `2/2`, `AINativeNPC.Shipping.GeneralNPC` `10/10`, 당시 전체 `AINativeNPC` `134/134`와 Data Validation `291 assets`를 통과했다.
+
+Profile C++ 추가 뒤의 최신 전체 수치는 13.4에 따로 적는다.
 
 ### 7.5.3 Sight 입력
 
@@ -1077,6 +1080,8 @@ Skill 속도, 회전과 도착 조건은 생성 Skill 실행 계약이 우선한
 
 Guard Pawn은 C++ 기본 soft path로 Manny Visual Profile을 가리킨다.
 
+기본 object path는 `/Game/AINativeNPC/Characters/DA_AINativeNPCVisual_Manny.DA_AINativeNPCVisual_Manny`다.
+
 `PostInitializeComponents()`는 BeginPlay 전에 Profile을 읽어 inherited Mesh에 적용한다.
 
 Profile load가 실패하면 권한 Runtime을 임의 설정으로 계속 꾸미지 않고 `visual_ready=false`를 기록한다.
@@ -1140,7 +1145,11 @@ assembly는 각 역할이 정확히 한 개일 때 준비된다.
 
 ### 7.6.3 현재 Perception 시작값
 
-현재 값은 `AAINativeNPCGuardController.cpp`가 소유한다.
+`AAINativeNPCGuardController.cpp`의 생성자는 Profile load 실패 때도 Perception이 안전하게 존재하도록 같은 시작값을 가진다.
+
+유효한 Sensor Profile Asset이 있으면 `PostInitializeComponents()`가 모든 값을 검증한 뒤 Perception과 Knowledge TTL에 한 번 적용한다.
+
+기본 object path는 `/Game/AINativeNPC/Perception/DA_AINativeNPCSensor_Guard.DA_AINativeNPCSensor_Guard`다.
 
 | 설정 | 현재 값 |
 |---|---:|
@@ -1153,7 +1162,7 @@ assembly는 각 역할이 정확히 한 개일 때 준비된다.
 
 과거 계획의 `2000/2500/70` 예시는 현재 코드 값이 아니다.
 
-Sensor Data Asset 전환 전에는 위 C++ 값을 기준으로 Level 크기를 정한다.
+Sensor Profile Asset을 만들기 전에는 위 생성자 기본값을 기준으로 Level 크기를 정한다.
 
 ### 7.6.4 Perception이 Knowledge와 Goal로 가는 순서
 
@@ -1168,19 +1177,6 @@ Component가 끝나거나 등록 해제되면 callback과 Goal event sink를 해
 ```text
 Perception 자극
 → Knowledge가 Sight 또는 Hearing을 구분
-→ 서버 권한 확인
-→ exact-one이고 bInitialized인 identity Component 확인
-→ Sight는 Entity 종류를 추가 확인
-→ Hearing은 종류·stable ID·generation 재확인이 아직 없음
-→ 통과한 사실을 Knowledge에 저장
-→ Knowledge revision 증가
-→ 필요한 사건만 Goal Host에 전달
-```
-
-identity hardening 뒤의 목표 순서는 다음과 같다.
-
-```text
-Perception 자극
 → 서버 권한 확인
 → 공통 validator가 exact-one·Entity·nonzero stable ID·nonzero generation 확인
 → Sight 또는 Hearing 사실을 Knowledge에 저장
@@ -1205,8 +1201,7 @@ Perception callback은 Skill을 직접 시작하지 않는다.
 다음 항목은 현재 완료로 보지 않는다.
 
 - 같은 Quinn을 다시 봤을 때 이전 `LastKnownPosition`을 자동 제거하는 제품 경로
-- Sensor 시작값과 TTL을 Data Asset에서 읽는 경로
-- Quinn의 production identity ingress와 hostile identity hardening
+- Sensor Profile Asset과 surface loudness Curve
 - Quinn의 발 접촉에서 시작하는 Hearing 경로
 
 위 항목은 hostile RED 검사를 먼저 추가한 뒤 구현한다.
@@ -1268,7 +1263,19 @@ Goal과 Utility 값은 generated Registry가 소유한다.
 
 세 class는 `UPrimaryDataAsset`을 상속한다.
 
-세 Asset은 soft object path로 C++ 기본값에 연결한다.
+세 C++ class와 `IsDataValid()` 재사용 경로는 구현됐다.
+
+Visual·Sensor는 transient hostile Automation에서 exact native Pawn·Controller 적용까지 검증됐다.
+
+Debug Profile은 class와 검증만 완료됐으며, `UAINativeNPCDebugComponent` 적용은 다음 단계다.
+
+Debug 값은 public C++ getter로만 읽고 setter를 제공하지 않는다.
+
+세 실제 Profile Asset은 아직 만들지 않았다.
+
+Visual과 Sensor Asset은 구현된 C++ 기본 soft object path에 연결한다.
+
+Debug Asset의 기본 soft object path는 다음 단계의 `UAINativeNPCDebugComponent`가 소유한다.
 
 Profile 참조는 Blueprint와 Level 인스턴스에서 다른 Asset로 바꾸지 않는다.
 
@@ -1278,9 +1285,9 @@ Profile 참조는 Blueprint와 Level 인스턴스에서 다른 Asset로 바꾸�
 
 Visual Profile은 다음 필드만 가진다.
 
-- `TSoftObjectPtr<USkeletalMesh> SkeletalMesh`
-- `TSoftClassPtr<UAnimInstance> AnimClass`
-- `FTransform MeshRelativeTransform`
+- `TSoftObjectPtr<USkeletalMesh> mSkeletalMesh`
+- `TSoftClassPtr<UAnimInstance> mAnimClass`
+- `FTransform mMeshRelativeTransform`
 
 Validation은 Mesh·Anim Class 누락, Skeleton 불일치, non-finite transform과 0 scale을 거부한다.
 
@@ -1290,26 +1297,35 @@ Goal, Skill, Sensor와 이동 의미는 Visual Profile에 넣지 않는다.
 
 Sensor Config는 다음 필드를 가진다.
 
-- Sight Radius
-- Lose Sight Radius
-- Peripheral Vision Half Angle
-- Sight Max Age
-- Hearing Range
-- Hearing Max Age
-- LastKnownPosition TTL
-- SoundEvent TTL
-- 감지할 affiliation
-- surface별 footstep loudness Curve
+- `float mSightRadius`
+- `float mLoseSightRadius`
+- `float mPeripheralVisionHalfAngleDegrees`
+- `float mSightMaxAgeSeconds`
+- `float mHearingRange`
+- `float mHearingMaxAgeSeconds`
+- `float mLastKnownPositionTtlSeconds`
+- `float mSoundEventTtlSeconds`
+- `FAISenseAffiliationFilter mDetectionByAffiliation`
+- `TObjectPtr<UCurveFloat> mWalkFootstepLoudnessBySurface`
+- `TObjectPtr<UCurveFloat> mJogFootstepLoudnessBySurface`
 
 첫 Asset은 현재 C++ 값 `3000 / 3500 / 90 / 3000`, LastKnown `10초`, SoundEvent `3초`에서 시작한다.
 
+Sight와 Hearing Max Age의 첫 값은 현재 Perception 기본 동작을 보존하는 `0초`다.
+
+`0초`는 Unreal Perception이 해당 자극을 age로 자동 만료하지 않는 명시적 값이다.
+
 과거 `2000 / 2500 / 70`, LastKnown `6초`는 현재 시작값으로 복사하지 않는다.
 
-Validation은 non-finite 값, 0 이하 거리·수명, `Lose Sight < Sight`, 잘못된 angle과 누락 Curve를 거부한다.
+Validation은 non-finite 값, 0 이하 거리·Knowledge TTL, 음수 Perception Max Age, `Lose Sight < Sight`, `0` 초과 `180`도 이하가 아닌 half angle, 비어 있는 affiliation과 누락·빈 Curve를 거부한다.
 
 Guard Controller는 모든 값을 검증한 뒤 Perception에 한 번 적용한다.
 
-적용 실패는 C++ 기본값으로 조용히 섞지 않고 `sensor_ready=false`로 assembly를 막는다.
+적용 실패는 C++ 기본 Perception 값을 바꾸지 않고 `sensor_ready=false`를 유지한다.
+
+기존 Goal·Skill assembly와 Sensor readiness는 별도 상태다.
+
+Test Level 완료 판정은 둘 다 true일 때만 통과한다.
 
 Sensor 값은 월드 단위의 감지와 수명 설정이다.
 
@@ -1317,18 +1333,30 @@ Schema normalization 상수는 모델 입력 계약이므로 Sensor Asset에서 
 
 ### 7.8.4 Debug Profile 필드
 
-Debug Profile은 다음 bool과 색만 가진다.
+Debug Profile은 다음 필드만 가진다.
 
-- Sight cone
-- 현재 Entity
-- LastKnownPosition
-- SoundEvent와 남은 TTL
-- Goal Target
-- Target slot 번호
-- Nav path
-- Editor 전용 Ground Truth
-- Decision·Commit·Skill 실패 이유
-- 각 표시의 색과 최대 거리
+- `bool mShowSightCone`
+- `bool mShowCurrentEntity`
+- `bool mShowLastKnownPosition`
+- `bool mShowSoundEventTtl`
+- `bool mShowGoalTarget`
+- `bool mShowTargetSlotIndex`
+- `bool mShowNavigationPath`
+- `bool mShowEditorGroundTruth`
+- `bool mShowFailureReason`
+- `FLinearColor mSightColor`
+- `FLinearColor mEntityColor`
+- `FLinearColor mLastKnownPositionColor`
+- `FLinearColor mSoundEventColor`
+- `FLinearColor mGoalTargetColor`
+- `FLinearColor mNavigationPathColor`
+- `FLinearColor mEditorGroundTruthColor`
+- `FLinearColor mFailureColor`
+- `float mMaxDrawDistance`
+
+첫 Debug Asset은 모든 표시 bool을 `false`로 시작한다.
+
+Validation은 non-finite 색과 non-finite 또는 0 이하 최대 거리를 거부한다.
 
 Ground Truth 표시는 Editor·Test에서만 허용한다.
 
@@ -1349,6 +1377,10 @@ Neural Policy는 model SHA-256, schema·Registry SHA-256, decision contract hash
 Goal·Skill ID, transition, phase Timer와 Utility 가중치는 generated Registry가 계속 소유한다.
 
 모든 Data Asset class는 `IsDataValid()`에서 잘못된 ID, non-finite 값, 범위 역전과 누락 참조를 거부한다.
+
+현재 세 Profile Asset은 없으므로 Project Data Validation의 `291 assets`에는 이 class 인스턴스가 포함되지 않는다.
+
+Automation은 transient Profile을 사용해 같은 구조 검증과 native 적용을 직접 확인한다.
 
 ## 7.9 Manny와 Quinn Animation을 구성한다
 
@@ -1581,9 +1613,9 @@ Debug Component는 필요한 현재 상태를 한 번 복사해 `FAINativeNPCDeb
 
 Unreal 수직 구성은 다음 순서로 만든다.
 
-현재 2~3단계인 Identity Subsystem, Component hardening과 Quinn composition은 완료됐다.
+현재 2~7단계인 identity 기반, Profile C++ 3종과 exact native Pawn·Controller 적용은 완료됐다.
 
-다음 구현은 4단계인 Visual·Sensor·Debug Profile의 하네스와 RED 검사다.
+다음 구현은 8단계인 읽기 전용 Debug Snapshot·Capture·Replay RED 검사다.
 
 1. 현재 문서와 선택한 class·Asset 이름을 사용자에게 확인받는다.
 2. Identity Subsystem·Component hardening·Quinn composition의 RED 검사를 추가한다.
@@ -2075,12 +2107,12 @@ Source/NeuralGame/AINativeNPC/
 | `Knowledge/AINativeNPCEntityIdentitySubsystem.h/.cpp` | persistent key, stable ID, spawn generation과 private ingress를 소유한다. | 완료 |
 | `Knowledge/AINativeNPCTargetIdentityComponent.h/.cpp` | Editor 수정 경로와 public initializer를 제거한다. | identity hardening 완료 |
 | `Knowledge/TypedTargetKnowledgeComponent.h/.cpp` | Sight·Hearing 공통 exact identity validator와 Sight 재획득 정리를 추가한다. | exact identity hardening 완료 |
-| `Knowledge/AINativeNPCGuardController.h/.cpp` | `UAINativeNPCSensorConfig`을 검증하고 한 번 적용한다. | 현재 C++ 시작값 사용 |
-| `Execution/AINativeNPCGuardPawn.h/.cpp` | exact native class를 유지하고 `UAINativeNPCVisualProfile`을 적용한다. | visual 적용 없음 |
+| `Knowledge/AINativeNPCGuardController.h/.cpp` | `UAINativeNPCSensorConfig`을 검증하고 한 번 적용한다. | C++ 적용 완료, Sensor Asset 미제작 |
+| `Execution/AINativeNPCGuardPawn.h/.cpp` | exact native class를 유지하고 `UAINativeNPCVisualProfile`을 적용한다. | C++ 적용 완료, Visual Asset 미제작 |
 | `Execution/AINativeNPCGoalHostComponent.h/.cpp` | Phase 3B 판단과 Skill 결과 기반 Goal 진행을 연결한다. | Phase 3A 있음 |
-| `Profiles/AINativeNPCVisualProfile.h/.cpp` | Manny Mesh·Anim Class·relative transform을 제공한다. | 새 파일 목표 |
-| `Profiles/AINativeNPCSensorConfig.h/.cpp` | Sight·Hearing·TTL과 surface loudness를 제공한다. | 새 파일 목표 |
-| `Profiles/AINativeNPCDebugProfile.h/.cpp` | Editor·Development 표시 bool·색·거리를 제공한다. | 새 파일 목표 |
+| `Profiles/AINativeNPCVisualProfile.h/.cpp` | Manny Mesh·Anim Class·relative transform을 제공한다. | C++와 validation 완료 |
+| `Profiles/AINativeNPCSensorConfig.h/.cpp` | Sight·Hearing·TTL과 surface loudness를 제공한다. | C++와 validation 완료 |
+| `Profiles/AINativeNPCDebugProfile.h/.cpp` | Editor·Development 표시 bool·색·거리를 제공한다. | C++와 validation 완료, 적용 Component 미구현 |
 | `Player/PlayerNoiseEmitterComponent.h/.cpp` | Quinn의 속도·surface별 Hearing Event를 서버에서 만든다. | 새 파일 목표 |
 | `Player/AnimNotify_ReportAINoise.h/.cpp` | 발 접촉 프레임을 Noise Emitter에 전달한다. | 새 파일 목표 |
 | `Tests/AINativeNPCNoiseTestEmitter.h/.cpp` | test-only identity가 있는 Hearing 자극을 한 번 만든다. | 새 파일 목표 |
@@ -2088,7 +2120,7 @@ Source/NeuralGame/AINativeNPC/
 | `Debug/AINativeNPCDecisionLog.h/.cpp` | 구조화된 Decision Log를 기록한다. | 새 파일 목표 |
 | `Debug/AINativeNPCDecisionCaptureSubsystem.h/.cpp` | JSON·binary Capture와 SHA-256을 저장한다. | 새 파일 목표 |
 | `Debug/AINativeNPCDecisionReplaySubsystem.h/.cpp` | Capture를 pure Core 또는 preview world에서 재생한다. | 새 파일 목표 |
-| `Tests/*.cpp` | identity, Visual·Sensor validation, Perception, 발소리, Debug, Level smoke와 Phase 3B RED를 소유한다. | identity·Perception 검사 완료, 나머지 확장 예정 |
+| `Tests/*.cpp` | identity, Visual·Sensor validation, Perception, 발소리, Debug, Level smoke와 Phase 3B RED를 소유한다. | identity·Profile·native 적용 검사 완료, 나머지 확장 예정 |
 
 표의 상대 경로는 `Source/NeuralGame/AINativeNPC/` 아래다.
 
@@ -2175,6 +2207,7 @@ Windows 실행기는 Unreal Engine 5.7의 `UnrealEditor-Cmd.exe`를 사용한다
 |---|---|
 | Knowledge | 숨은 정보 사용, revision, TTL과 event sink 수명 |
 | Entity identity | exact-one native 구성, private server 발급, stable ID·generation 수명, hostile Sight·Hearing 입력 |
+| Profile C++ | Visual·Sensor·Debug 구조 검증, invalid 적용 불변, exact native Pawn·Controller one-shot 적용 |
 | Goal | 전환 순서, Timer, suspend/resume와 이전 token |
 | Target | 필수 Target, 중복 제거, 정렬과 overflow |
 | Candidate | 272개 행, mask, Continue와 Hash |
@@ -2185,7 +2218,23 @@ Windows 실행기는 Unreal Engine 5.7의 `UnrealEditor-Cmd.exe`를 사용한다
 | Phase 3B | 전체 단계 진행, teardown과 재등록 |
 | Neural | Python·ONNX·NNE 결과 일치, cook와 fallback |
 
-## 13.4 완료 판정
+## 13.4 현재 Profile C++ 검증 증거
+
+Profile C++과 native 적용의 최신 검증은 다음과 같다.
+
+| 검사 | 결과 |
+|---|---:|
+| Editor build | PASS |
+| `AINativeNPC.Shipping.Profiles` | 2/2 |
+| `AINativeNPC.Shipping.GeneralNPC` | 10/10 |
+| 전체 `AINativeNPC` | 136/136 |
+| Data Validation | 291 assets, error 0, warning 0 |
+
+이 증거는 C++ class와 transient Profile 적용 범위만 완료한다.
+
+Profile Asset 3개, Debug Component, cook 포함, Test Level과 Play smoke는 완료하지 않는다.
+
+## 13.5 완료 판정
 
 | 판정 | 뜻 |
 |---|---|
