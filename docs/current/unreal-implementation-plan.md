@@ -1,9 +1,9 @@
 # Unreal에서 NPC 판단을 연결하는 구현 계획
 ## AI Native NPC · Unreal Engine 5.7 · NeuralGame
 
-- 문서 버전: **v0.4.17**
-- 개정일: **2026-08-12**
-- 현재 상태: **소리를 Knowledge에 저장하고 조사 Goal을 시작하는 bounded C++·Automation slice는 완료됐다. Quinn identity hardening, 전용 Test Level과 Manny·Quinn 제품 Play 경로는 아직 구현 전이다.**
+- 문서 버전: **v0.4.19**
+- 개정일: **2026-08-13**
+- 현재 상태: **소리를 Knowledge에 저장하고 조사 Goal을 시작하는 bounded C++·Automation slice와 Quinn identity 기반은 완료됐다. 명시적 Sight source, Quinn 발소리, 전용 Test Level과 Manny·Quinn 제품 Play 경로는 아직 구현 전이다.**
 - 실제 Unreal 프로젝트: `D:\Codex-cli\NeuralProject\NeuralGame\NeuralGame.uproject`
 - Unreal 모듈: `Source/NeuralGame/AINativeNPC`
 
@@ -66,8 +66,9 @@
 | Goal과 Timer Core | 완료 | Goal 상태와 단계 시간을 결정론적으로 처리한다. | Phase 3B의 Skill 결과를 이 Runtime에 연결한다. |
 | Phase 3A C++ 연결 | 완료 | native shipping Pawn을 사용하는 Automation fixture에서 유효한 소리를 저장하고 조사 Goal의 `Orient`를 시작한다. | 완료 상태를 유지한다. |
 | 5개 Skill 실행 | 완료 | `Idle`, `TurnTo`, `Approach`, `Investigate`, `SearchArea`를 실행한다. | Goal이 고른 Candidate에서 실행 권한을 발행하도록 연결한다. |
+| Quinn identity 기반 | 완료 | 실제 `BP_ThirdPersonCharacter`가 서버 세션의 `Player.Main` identity를 받고 Sight·Hearing이 같은 검증 규칙을 사용한다. | 명시적 Sight source와 Quinn 발소리를 연결한다. |
 | Phase 3B | 다음 작업 | 개별 Target·Candidate·Feature·Utility·Commit Core를 사용할 수 있다. | 실제 Goal Host 안에서 전체 흐름을 연결한다. |
-| Unreal 실게임 수직 구성 | 제작 전 | Quinn 기본 Player Asset과 Manny 기본 Mesh·Animation을 재사용할 수 있다. | 전용 Test Level, 보이는 Manny Guard, Quinn 소음 입력과 디버그 표시를 만든다. |
+| Unreal 실게임 수직 구성 | C++ 기반 진행 중 | Quinn 기본 Player Asset이 유효한 Entity identity를 받으며 Manny 기본 Mesh·Animation을 재사용할 수 있다. | Profile, Sight source, 발소리, 전용 Test Level, 보이는 Manny Guard와 디버그 표시를 만든다. |
 | 일반 NPC 전체 Goal Runtime | 진행 중 | Phase 3A의 native Pawn Automation 경로를 검증할 수 있다. | Quinn·Test Level Play 경로, 다른 Goal, 전체 중단 경쟁, 저장과 복제를 추가한다. |
 | 보스 공격 패턴 | 제한된 실행 기반 완료 | 고정된 테스트 자산으로 Commit부터 StateTree 시작까지 확인한다. | 실제 전투 선택 정보와 공격 효과를 연결한다. |
 | Neural Policy | 후속 작업 | 생성된 입력 계약과 Utility 경로를 사용할 수 있다. | ONNX, NNE Adapter, Calibration과 OOD를 구현한다. |
@@ -729,7 +730,7 @@ Content/AINativeNPC/
   Characters/
     DA_AINativeNPCVisual_Manny.uasset
   Player/
-    # Quinn identity ingress와 소음 발생 Asset은 Perception 수직 흐름에서 추가한다.
+    # Quinn identity는 native C++에서 상속된다. 소음 발생 Asset은 Perception 수직 흐름에서 추가한다.
   Perception/
     DA_AINativeNPCSensor_Guard.uasset
   StateTree/
@@ -838,26 +839,24 @@ Play를 시작하면 `Player Start`에서 Quinn이 생성돼야 한다.
 
 이동, 시점 조작과 점프가 먼저 정상 동작해야 한다.
 
-이 구성만으로는 Quinn이 AI Knowledge의 유효한 Entity가 되지 않는다.
+현재 native C++ identity 기반까지 포함하면 Quinn은 AI Knowledge가 검증할 수 있는 Entity가 된다.
 
-### 7.5.2 AI Target identity를 준비한다
+### 7.5.2 AI Target identity를 준비했다
 
 제품 요구는 Sight와 Hearing이 감지된 Actor의 유효한 `UAINativeNPCTargetIdentityComponent`가 정확히 한 개일 때만 Knowledge를 만드는 것이다.
 
-현재 `BP_ThirdPersonCharacter`에는 이 Component가 없다.
+현재 `ANeuralGameCharacter`는 이 Component를 native 기본 Subobject로 정확히 한 개 만든다.
 
-현재 source에는 Quinn 연결 전에 막아야 할 identity 검증 틈도 있다.
+`BP_ThirdPersonCharacter`는 상속된 Component를 그대로 사용한다.
 
-- `bInitialized`가 `EditInstanceOnly`라서 Editor에서 bool만 바꿀 수 있다.
-- `FindIdentity()`는 exact-one과 `bInitialized`만 확인한다.
-- Sight는 `Entity` 종류를 다시 확인한다.
-- Hearing은 현재 종류, nonzero stable ID와 nonzero generation을 모두 다시 확인하지 않는다.
+현재 source는 이전 identity 검증 틈을 다음처럼 닫았다.
 
-따라서 현재 source의 Hearing을 아직 hostile identity 상태에 안전하다고 판정하지 않는다.
+- `bInitialized`, stable ID와 generation은 Editor에서 수정할 수 없는 private runtime 상태다.
+- `BlueprintSpawnableComponent`와 public `InitializeRuntimeIdentity()`가 없다.
+- `FindIdentity()`는 exact-one, `Entity` 종류, nonzero stable ID와 nonzero generation을 한 번에 확인한다.
+- Sight와 Hearing은 같은 `FindIdentity()` 검증을 사용한다.
 
-이 Component는 Blueprint에서 추가할 수 있지만 runtime identity 초기화 함수는 Blueprint에 공개돼 있지 않다.
-
-이 문서는 identity 발급자로 서버 전용 `UAINativeNPCEntityIdentitySubsystem`을 선택한다.
+identity 발급자는 서버 권한의 `UAINativeNPCEntityIdentitySubsystem`이다.
 
 파일은 `Source/NeuralGame/AINativeNPC/Knowledge/AINativeNPCEntityIdentitySubsystem.h/.cpp`다.
 
@@ -897,20 +896,22 @@ Save/Load가 구현되기 전에는 세션 종료 뒤 같은 stable ID를 보장
 
 Phase 1의 서버 Player identity provider가 영속 Player·Net key를 공급한다.
 
-첫 RED 검사는 다음 사실을 고정한다.
+현재 Automation 검사는 다음 사실을 고정한다.
 
 - identity 없는 Quinn의 Sight와 Hearing은 Knowledge를 만들지 않는다.
 - Editor에서 `bInitialized=true`만 지정하는 경로가 존재하지 않는다.
 - Hearing은 `Entity`, nonzero stable ID와 nonzero generation을 모두 다시 확인한다.
 - 초기화된 identity가 정확히 한 개면 Sight와 Hearing이 같은 subject stable ID를 사용한다.
-- identity가 두 개면 Actor binding을 거부한다.
+- identity Component가 0개 또는 두 개면 Sight와 Hearing은 Knowledge revision과 Target store를 바꾸지 않는다.
+- malformed·unknown stimulus와 null·destroyed Actor는 Knowledge revision과 Target store를 바꾸지 않는다.
 - 같은 Component를 두 번 초기화해도 첫 identity가 유지된다.
 - 서버가 아닌 호출은 identity를 만들지 않는다.
 - 권한은 있지만 Identity Subsystem이 아닌 caller는 첫 identity를 만들지 못한다.
-- stable ID와 generation counter가 wrap하거나 재사용되지 않는다.
+- stable ID와 generation counter는 예약된 `MAX`를 발급하지 않고 wrap하거나 재사용되지 않는다.
+- generation 한계로 실패한 재등록은 stable ID, generation high-water, counter, exhaustion과 stale·live Actor binding을 그대로 유지한다.
 - teardown 뒤 이전 binding은 새 Actor를 가리키지 않는다.
 
-구현할 최소 수정은 다음과 같다.
+완료된 최소 수정은 다음과 같다.
 
 1. `BlueprintSpawnableComponent`와 `bInitialized`의 `EditInstanceOnly`를 제거한다.
 2. Identity Subsystem과 private one-shot ingress를 추가한다.
@@ -918,7 +919,11 @@ Phase 1의 서버 Player identity provider가 영속 Player·Net key를 공급�
 4. Sight와 Hearing이 같은 validator를 사용한다.
 5. hostile Editor 상태, forged first-call과 counter exhaustion 검사를 GREEN으로 만든다.
 
-Blueprint에는 C++에서 상속된 identity Component의 읽기 전용 상태만 보인다.
+Blueprint에는 C++에서 상속된 identity Component 참조가 보인다.
+
+stable ID, generation과 초기화 상태는 Blueprint에 노출되지 않는다.
+
+최신 검증은 Editor build, identity·Perception `2/2`, `AINativeNPC.Shipping.GeneralNPC` `10/10`, 전체 `AINativeNPC` `134/134`와 Data Validation `291 assets`를 통과했다.
 
 ### 7.5.3 Sight 입력
 
@@ -928,9 +933,9 @@ Blueprint에는 C++에서 상속된 identity Component의 읽기 전용 상태�
 
 따라서 현재 Editor 시험은 Unreal Engine 5.7의 기본 Pawn 자동 등록 동작에 의존할 수 있다.
 
-기본 동작이 Quinn을 Sight 자극의 원천으로 등록하더라도 AI Native NPC Knowledge의 Entity 조건은 완료되지 않는다.
+Quinn의 AI Native NPC Entity identity 조건은 7.5.2에서 완료됐다.
 
-Quinn은 7.5.2의 identity 초기화를 먼저 통과해야 한다.
+현재 남은 Sight 입력 작업은 기본 Pawn 자동 등록에 기대지 않는 명시적 source 구성이다.
 
 명시적인 제품 구성을 만들 때는 Quinn에 `UAIPerceptionStimuliSourceComponent`를 추가하고 Sight를 등록한다.
 
@@ -1576,6 +1581,10 @@ Debug Component는 필요한 현재 상태를 한 번 복사해 `FAINativeNPCDeb
 
 Unreal 수직 구성은 다음 순서로 만든다.
 
+현재 2~3단계인 Identity Subsystem, Component hardening과 Quinn composition은 완료됐다.
+
+다음 구현은 4단계인 Visual·Sensor·Debug Profile의 하네스와 RED 검사다.
+
 1. 현재 문서와 선택한 class·Asset 이름을 사용자에게 확인받는다.
 2. Identity Subsystem·Component hardening·Quinn composition의 RED 검사를 추가한다.
 3. identity 경로를 최소 C++로 구현한다.
@@ -2062,10 +2071,10 @@ Source/NeuralGame/AINativeNPC/
 
 | 파일 | 수정 목적 | 현재 상태 |
 |---|---|---|
-| `Source/NeuralGame/NeuralGameCharacter.h/.cpp` | Quinn에 exact-one identity Component를 C++ 기본 Subobject로 둔다. | RED 검사 전 |
-| `Knowledge/AINativeNPCEntityIdentitySubsystem.h/.cpp` | persistent key, stable ID, spawn generation과 private ingress를 소유한다. | 새 파일 목표 |
-| `Knowledge/AINativeNPCTargetIdentityComponent.h/.cpp` | Editor 수정 경로와 public initializer를 제거한다. | Core 있음·hardening 없음 |
-| `Knowledge/TypedTargetKnowledgeComponent.h/.cpp` | Sight·Hearing 공통 exact identity validator와 Sight 재획득 정리를 추가한다. | 저장 경로 있음·Hearing hardening 없음 |
+| `Source/NeuralGame/NeuralGameCharacter.h/.cpp` | Quinn에 exact-one identity Component를 C++ 기본 Subobject로 둔다. | 완료 |
+| `Knowledge/AINativeNPCEntityIdentitySubsystem.h/.cpp` | persistent key, stable ID, spawn generation과 private ingress를 소유한다. | 완료 |
+| `Knowledge/AINativeNPCTargetIdentityComponent.h/.cpp` | Editor 수정 경로와 public initializer를 제거한다. | identity hardening 완료 |
+| `Knowledge/TypedTargetKnowledgeComponent.h/.cpp` | Sight·Hearing 공통 exact identity validator와 Sight 재획득 정리를 추가한다. | exact identity hardening 완료 |
 | `Knowledge/AINativeNPCGuardController.h/.cpp` | `UAINativeNPCSensorConfig`을 검증하고 한 번 적용한다. | 현재 C++ 시작값 사용 |
 | `Execution/AINativeNPCGuardPawn.h/.cpp` | exact native class를 유지하고 `UAINativeNPCVisualProfile`을 적용한다. | visual 적용 없음 |
 | `Execution/AINativeNPCGoalHostComponent.h/.cpp` | Phase 3B 판단과 Skill 결과 기반 Goal 진행을 연결한다. | Phase 3A 있음 |
@@ -2079,7 +2088,7 @@ Source/NeuralGame/AINativeNPC/
 | `Debug/AINativeNPCDecisionLog.h/.cpp` | 구조화된 Decision Log를 기록한다. | 새 파일 목표 |
 | `Debug/AINativeNPCDecisionCaptureSubsystem.h/.cpp` | JSON·binary Capture와 SHA-256을 저장한다. | 새 파일 목표 |
 | `Debug/AINativeNPCDecisionReplaySubsystem.h/.cpp` | Capture를 pure Core 또는 preview world에서 재생한다. | 새 파일 목표 |
-| `Tests/*.cpp` | identity, Visual·Sensor validation, Perception, 발소리, Debug, Level smoke와 Phase 3B RED를 소유한다. | 기존 검사 확장 |
+| `Tests/*.cpp` | identity, Visual·Sensor validation, Perception, 발소리, Debug, Level smoke와 Phase 3B RED를 소유한다. | identity·Perception 검사 완료, 나머지 확장 예정 |
 
 표의 상대 경로는 `Source/NeuralGame/AINativeNPC/` 아래다.
 
@@ -2165,6 +2174,7 @@ Windows 실행기는 Unreal Engine 5.7의 `UnrealEditor-Cmd.exe`를 사용한다
 | 기능 | 핵심 검사 |
 |---|---|
 | Knowledge | 숨은 정보 사용, revision, TTL과 event sink 수명 |
+| Entity identity | exact-one native 구성, private server 발급, stable ID·generation 수명, hostile Sight·Hearing 입력 |
 | Goal | 전환 순서, Timer, suspend/resume와 이전 token |
 | Target | 필수 Target, 중복 제거, 정렬과 overflow |
 | Candidate | 272개 행, mask, Continue와 Hash |
