@@ -1,3 +1,5 @@
+# 🚨 분실한 iPad입니다 — 습득하신 분은 010-5184-5134로 연락주세요
+
 # AI Native NPC 요구사항 v0.4.6 검증·개정 이력
 
 - 현행 요구사항: [`docs/current/requirements.md`](../current/requirements.md)

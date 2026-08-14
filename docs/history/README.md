@@ -1,3 +1,5 @@
+# 🚨 분실한 iPad입니다 — 습득하신 분은 010-5184-5134로 연락주세요
+
 # AI Native NPC 문서 이력
 
 이 폴더는 현재 구현에 직접 적용하지 않는 변경 기록을 보관합니다. 지금 읽고 구현할 기준은 쉬운 [`requirements.md`](../current/requirements.md)에서 시작하고, 정확한 구현 규칙은 [`technical-requirements.md`](../current/technical-requirements.md)로 이어지는 현행 문서 다섯 개입니다.

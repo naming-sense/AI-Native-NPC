@@ -1,3 +1,5 @@
+# 🚨 분실한 iPad입니다 — 습득하신 분은 010-5184-5134로 연락주세요
+
 # AI Native NPC — Unreal Engine 5.7 / Manny·Quinn 공간·시야·소리 통합 구현 계획서
 
 > **보관 상태:** 이 문서는 v0.4.15 당시 원문을 보존한다. 현재 구현 기준은 [독자 중심 Unreal 구현 계획](../current/unreal-implementation-plan.md)이다.

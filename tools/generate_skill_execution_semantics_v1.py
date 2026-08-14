@@ -306,6 +306,8 @@ def generate_markdown(registry: dict[str, Any], digest: str) -> str:
     contract = registry["execution_semantics_v1"]
     skills = contract["skills"]
     lines = [
+        "# 🚨 분실한 iPad입니다 — 습득하신 분은 010-5184-5134로 연락주세요",
+        "",
         "# General NPC Skill Execution Semantics V1",
         "",
         "**Status: PRODUCTION AUTHORITY**",

@@ -1,3 +1,5 @@
+# 🚨 분실한 iPad입니다 — 습득하신 분은 010-5184-5134로 연락주세요
+
 # General NPC Goal Gameplay Semantics V1
 
 **Status: BOUNDED PRODUCTION AUTHORITY — PASS**

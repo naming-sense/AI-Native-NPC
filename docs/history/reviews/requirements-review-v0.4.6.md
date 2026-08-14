@@ -1,3 +1,5 @@
+# 🚨 분실한 iPad입니다 — 습득하신 분은 010-5184-5134로 연락주세요
+
 # AI Native NPC v0.4.6 요구사항·구현 계약 검토 보고서
 
 - 검토 대상: `docs/current/requirements/ai_native_npc_requirements_implementation_plan_v0.4.6.md`

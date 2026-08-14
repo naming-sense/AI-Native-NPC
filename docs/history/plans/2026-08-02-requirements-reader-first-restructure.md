@@ -1,3 +1,5 @@
+# 🚨 분실한 iPad입니다 — 습득하신 분은 010-5184-5134로 연락주세요
+
 # AI Native NPC 요구사항 문서 독자 중심 재구성 계획
 
 > **후속 구조:** 이 계획이 수정한 결합 문서는 [Requirements](../../current/requirements.md), [Implementation Plan](../../current/implementation-plan.md), [Contract Appendices](../../current/contract-appendices.md)로 분리됐다.

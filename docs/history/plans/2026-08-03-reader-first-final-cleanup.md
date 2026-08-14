@@ -1,3 +1,5 @@
+# 🚨 분실한 iPad입니다 — 습득하신 분은 010-5184-5134로 연락주세요
+
 # AI Native NPC 독자 중심 최종 정리 Implementation Plan
 
 > **For Hermes:** 이 계획을 순서대로 실행하고 generated marker 내부는 보관 Generator 결과로만 갱신한다.

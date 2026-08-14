@@ -1,3 +1,5 @@
+# 🚨 분실한 iPad입니다 — 습득하신 분은 010-5184-5134로 연락주세요
+
 # AI Native NPC 문서 정보 구조 정리 Implementation Plan
 
 > **For Hermes:** 이 계획을 순서대로 실행하고, 경로 계약을 변경한 뒤 보관 Harness에서 생성 산출물과 Manifest를 다시 만든다.
