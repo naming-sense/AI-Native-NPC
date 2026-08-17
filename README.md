@@ -8,17 +8,19 @@ AI Native NPC는 게임 속 NPC가 알고 있는 정보와 현재 목적을 보�
 
 ## 현재 상태
 
-일반 NPC가 평소 주변을 살피다가 유효한 소리를 들으면 조사 Goal을 시작하는 흐름을 실제 Unreal 경로에서 검증했습니다. 다음 작업은 현재 Goal에 맞는 행동을 고르고 실행 결과에 따라 다음 Goal 단계로 진행하는 흐름입니다.
+일반 NPC가 유효한 소리를 들으면 조사 Goal을 시작하고, 현재 Goal의 Target과 행동을 선택·Commit한 뒤 실행 결과에 따라 `Orient → Navigate → Search → Return → IdleObserve`로 진행하는 흐름을 실제 Unreal 경로에서 검증했습니다.
 
 ### 개발자용 상세 상태
 
 - 기계 계약: **Schema 2.0 RC5 + Goal Registry 1.1.0**, Python↔C++ 생성·Golden 검증 완료
 - 소리를 듣고 조사 Goal 시작(Phase 3A): **완료**. `IdleObserve/Observe`에서 유효한 소리를 받으면 `InvestigateDisturbance/Orient`로 안전하게 전환
-- 목표에 맞는 행동 선택과 진행(Phase 3B): **다음 작업**. Goal-owned Target 해결 → Candidate·Feature 생성 → Utility 선택 → Commit → Skill 실행 → 결과에 따른 Goal 단계 진행
+- 목표에 맞는 행동 선택과 진행(Phase 3B): **완료**. Goal-owned Target 해결 → Candidate·Feature 생성 → Utility 선택 → Commit → Skill 실행 → 결과에 따른 Goal 단계 진행을 production Goal Host와 실제 Recast PIE에서 검증
+- 판단 기록과 공개: **완료**. persisted Capture v2 write·readback·replay와 committed marker를 검증하고 변조·불완전 publication을 거부
 - 일반 NPC 실행 Skill: `Idle`, `TurnTo`, `Approach`, `Investigate`, `SearchArea` 구현과 자동검사 완료
 - 보스 공격 시작: 고정 테스트 입력 기반 검증 통과(PASS). Commit 뒤 StateTree start handoff focused `2/2`, broad `53/53`
 - 실제 보스 전투: production PatternSet·selector trigger·authored transition·Montage·Hitbox·Damage·Root Motion·replication·save/load 구현이 필요
-- AI 모델과 전체 Release: 학습·ONNX/NNE·OOD·품질·성능 검증이 남은 상태(NO-GO)
+- 일반 NPC 후속 제품 범위: 추가 Goal·Skill, save/load, replication, UI, 전투 효과와 Neural Policy 구현이 남음
+- 전체 제품 Release: 학습·ONNX/NNE·OOD·품질·성능과 실제 배포 검증이 남음
 
 상태 표시의 뜻은 [구현 계획의 현재 상태 표시](docs/current/implementation-plan.md#04-현재-상태-표시)에서 확인할 수 있습니다.
 

@@ -5,14 +5,17 @@ import struct
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from tools.validate_anpc_capture_v2 import (
+    COMMIT_MAGIC,
     CborReader,
     Reader,
     SAMPLE_MAGIC,
     ValidationError,
     cbor_encode,
     validate_capture,
+    validate_committed_capture,
 )
 
 
@@ -80,6 +83,51 @@ def _refresh_identity(parts: list, input_obj=None, label_obj=None, candidate_byt
 
 
 class CaptureV2ValidatorTests(unittest.TestCase):
+    def test_committed_marker_is_required_and_exactly_bound(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "capture.anpccap2"
+            capture_bytes = FIXTURE.read_bytes()
+            path.write_bytes(capture_bytes)
+            marker_path = Path(str(path) + ".committed")
+            with self.assertRaises(OSError):
+                validate_committed_capture(path)
+
+            prefix = (
+                COMMIT_MAGIC
+                + struct.pack("<I", 1)
+                + struct.pack("<Q", len(capture_bytes))
+                + hashlib.sha256(capture_bytes).digest()
+            )
+            marker_bytes = prefix + hashlib.sha256(prefix).digest()
+            marker_path.write_bytes(marker_bytes)
+            self.assertTrue(validate_committed_capture(path)["committed_marker"].endswith(".committed"))
+
+            marker_path.write_bytes(marker_bytes[:-1] + bytes((marker_bytes[-1] ^ 1,)))
+            with self.assertRaises(ValidationError):
+                validate_committed_capture(path)
+
+            marker_path.write_bytes(marker_bytes)
+            path.write_bytes(capture_bytes[:-1] + bytes((capture_bytes[-1] ^ 1,)))
+            with self.assertRaises(ValidationError):
+                validate_committed_capture(path)
+
+    def test_committed_capture_validates_the_exact_bytes_bound_by_the_marker(self) -> None:
+        capture_bytes = FIXTURE.read_bytes()
+        prefix = (
+            COMMIT_MAGIC
+            + struct.pack("<I", 1)
+            + struct.pack("<Q", len(capture_bytes))
+            + hashlib.sha256(capture_bytes).digest()
+        )
+        marker_bytes = prefix + hashlib.sha256(prefix).digest()
+        capture_path = Path("capture.anpccap2")
+
+        with patch.object(Path, "read_bytes", side_effect=(capture_bytes, marker_bytes)) as read_bytes:
+            result = validate_committed_capture(capture_path)
+
+        self.assertEqual(read_bytes.call_count, 2)
+        self.assertEqual(result["bytes"], len(capture_bytes))
+
     def _expect_semantic_rejection(self, mutation) -> None:
         parts = _parse_capture(FIXTURE.read_bytes())
         input_obj = CborReader(parts[13][0]).complete()

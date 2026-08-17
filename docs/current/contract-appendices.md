@@ -21,7 +21,7 @@ Appendix A–D와 BP의 생성 marker 내부는 구조화된 YAML과 Generator�
 - Goal Registry: `1.1.0` / SHA-256 `d9eb13898cf2d066320977073b1e82458cc0d7bdfd512ef6983ad9a2d44c8f3e`
 - `GuardPhase0` bounded semantics authority: **PASS**
 - Authority scope: 9 executable unique guards, 3 provider-unavailable unique guards, 12 executable transition bindings, 2 staged effects, 5 production executable Skills
-- Gameplay Goal FSM: **HOLD** — complete guard catalog, other Goals, full Utility/Commit/Skill-result progression, arbitration/save archive, and product release are not claimed by this bounded authority PASS.
+- Gameplay Goal FSM: **HOLD** — complete guard catalog, other Goals, arbitration/save archive, and product release are not claimed by this bounded authority PASS.
 <!-- END GOAL GAMEPLAY SEMANTICS V1 STATUS -->
 
 ---

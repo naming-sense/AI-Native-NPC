@@ -733,6 +733,50 @@ class GoalGameplayGeneratedArtifactsTests(unittest.TestCase):
                 self.assertIn(self.digest, text)
                 self.assertIn(version, text)
 
+    def test_phase3b_completion_status_is_consistent_across_current_docs(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        requirements = (ROOT / "docs/current/requirements.md").read_text(encoding="utf-8")
+        implementation = (ROOT / "docs/current/implementation-plan.md").read_text(encoding="utf-8")
+        technical = (ROOT / "docs/current/technical-requirements.md").read_text(encoding="utf-8")
+        unreal = (ROOT / "docs/current/unreal-implementation-plan.md").read_text(encoding="utf-8")
+
+        self.assertIn("목표에 맞는 행동 선택과 진행(Phase 3B): **완료**", readme)
+        self.assertNotIn("Phase 3B): **다음 작업**", readme)
+        self.assertNotIn("다음 작업은 현재 Goal에 맞는 행동을 고르고", readme)
+
+        self.assertIn("Phase 3B까지 완료됐다", requirements)
+        self.assertIn("| Phase 3B: 행동 선택→실행→Goal 단계 진행 | 완료 |", requirements)
+        self.assertNotIn("다음 Phase 3B는", requirements)
+        self.assertNotIn("| Phase 3B: 행동 선택→실행→Goal 단계 진행 | 다음 작업 |", requirements)
+
+        self.assertIn("(Phase 3B — 완료)", implementation)
+        self.assertIn("Phase 3B 연결을 완료했다", implementation)
+        self.assertNotIn("Phase 3B — 다음 작업", implementation)
+        self.assertNotIn("Goal-owned Skill Commit authority와 완료→Goal event는 HOLD", implementation)
+        self.assertNotIn("전체 Goal-owned Utility→Commit→Skill-result progression과 전체 production integration은 HOLD", implementation)
+        self.assertNotIn("Utility→actual Commit authority, Skill 완료→Goal event", implementation)
+        self.assertNotIn("전체 Goal-owned Commit/Skill-result progression HOLD", implementation)
+
+        self.assertIn("(Phase 3B — 완료)", technical)
+        self.assertIn("Goal-owned Utility→Commit→Skill-result progression까지 구현됐다", technical)
+        self.assertNotIn("(Phase 3B — 다음 작업)", technical)
+        self.assertNotIn("전체 Goal-owned Utility→Commit→Skill-result progression, 나머지 gameplay provider", technical)
+
+        self.assertIn("| Goal과 Timer Core | 완료 | Goal 상태와 Skill 결과를", unreal)
+        self.assertIn("| 5개 Skill 실행 | 완료 | Goal이 고른 Candidate에서", unreal)
+        self.assertNotIn("Phase 3B의 Skill 결과를 이 Runtime에 연결한다", unreal)
+        self.assertNotIn("Goal이 고른 Candidate에서 실행 권한을 발행하도록 연결한다", unreal)
+        self.assertNotIn("Save·Load는 Goal과 Timer의 현재 persistent Snapshot을 검증하고 복원한다", unreal)
+        self.assertIn("production save/load 연결은 후속 제품 범위", unreal)
+        self.assertIn("현재 Phase 3B Capture는", unreal)
+        self.assertNotIn("Capture는 `Saved/AINativeNPC/Captures/<session>/<capture-id>.json`", unreal)
+        self.assertNotIn("이 Play smoke의 통과 범위는 숨은 Quinn LastKnown 고정", unreal)
+        self.assertIn("자동 production PIE의 통과 범위는 숨은 Quinn LastKnown 고정", unreal)
+        self.assertNotIn("이 시나리오는 Phase 3B 구현 뒤에 통과해야 한다", unreal)
+        self.assertIn("이 시나리오는 자동 production PIE에서 통과했다", unreal)
+        self.assertIn(hashlib.sha256((ROOT / "docs/current/requirements.md").read_bytes()).hexdigest(), unreal)
+        self.assertIn(hashlib.sha256((ROOT / "docs/current/technical-requirements.md").read_bytes()).hexdigest(), unreal)
+
     def test_generated_cpp17_compiles_and_matches_python_values(self) -> None:
         compiler = shutil.which("g++") or shutil.which("clang++")
         if compiler is None:

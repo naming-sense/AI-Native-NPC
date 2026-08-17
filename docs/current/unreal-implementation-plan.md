@@ -3,9 +3,9 @@
 # Unreal에서 NPC 판단을 연결하는 구현 계획
 ## AI Native NPC · Unreal Engine 5.7 · NeuralGame
 
-- 문서 버전: **v0.4.20**
-- 개정일: **2026-08-13**
-- 현재 상태: **bounded Goal·Skill C++ slice, Quinn identity 기반, Profile C++ 3종과 exact native Guard Pawn·Controller 적용은 완료됐다. Profile Asset 3개, Debug Component, 명시적 Sight source, Quinn 발소리, 전용 Test Level과 Manny·Quinn 제품 Play 경로는 아직 구현 전이다.**
+- 문서 버전: **v0.4.44**
+- 개정일: **2026-08-17**
+- 현재 상태: **Phase 0 장면 slice의 자동 구성은 완료됐다. 실제 Profile Asset 3개, 읽기 전용 Debug 표시, Quinn의 연속 Sight 위치 갱신과 발소리 Emitter, Surface A·B, 전용 Test Level과 Manny·Quinn 자동 PIE가 연결됐다. 사람이 수정본에서 파란 Entity 스피어 연속 추적, 벽 뒤 노란 LastKnownPosition 전환, 실제 발 접촉 발소리의 빨간 스피어와 `IdleObserve/Observe → InvestigateDisturbance/Orient` Goal 전환, Walk 전환 입력, Surface A·B × Walk·Jog 네 값을 확인했다. 관측 중인 Actor가 종료되면 현재 Entity를 제거하고 마지막 관측 위치만 남긴다. 자동 PIE는 Quinn의 실제 이동과 locomotion Animation Notify를 재생해 Walk·Jog × Surface A·B 네 조합을 판정한다. Surface A는 cyan, Surface B는 orange 바닥과 2.5 m 높이의 충돌 없는 양면 표지판으로 구분한다. 실제 Play 캡처에서 양면 글자의 거울상을 찾았고, 두 TextRender가 각각 actor 바깥쪽을 향하도록 교정한 뒤 같은 카메라에서 두 색과 `SURFACE A/B`를 정상 방향으로 확인했다. 숨은 Quinn 이동 중 LastKnownPosition 고정과 실제 Recast Phase 3B 전체 행동이 자동 PIE에서 통과했다. Decision Capture는 Skill 실행 전에 파일 write·exact readback·Replay를 통과하며 변조를 거부한다. 실제 Timer callback fallback도 자동검사에서 통과했다. Windows cook과 필수 Asset 포함 검사는 통과했다. assistant가 추가로 수행한 Shipping 빌드·패키징·startup smoke는 한 번 통과했다. 이 Shipping 결과는 일회성 테스트 기록이며 Phase 3B 완료 조건, 정기 회귀 또는 제품 Release 승인을 뜻하지 않는다.**
 - 실제 Unreal 프로젝트: `D:\Codex-cli\NeuralProject\NeuralGame\NeuralGame.uproject`
 - Unreal 모듈: `Source/NeuralGame/AINativeNPC`
 
@@ -65,14 +65,14 @@
 | 기능 | 상태 | 지금 할 수 있는 일 | 다음 작업 |
 |---|---|---|---|
 | 계약과 생성 코드 | 완료 | Python과 C++이 같은 Goal·Skill 규칙을 사용한다. | 계약이 바뀔 때 생성 결과와 사용처를 함께 갱신한다. |
-| Goal과 Timer Core | 완료 | Goal 상태와 단계 시간을 결정론적으로 처리한다. | Phase 3B의 Skill 결과를 이 Runtime에 연결한다. |
-| Phase 3A C++ 연결 | 완료 | native shipping Pawn을 사용하는 Automation fixture에서 유효한 소리를 저장하고 조사 Goal의 `Orient`를 시작한다. | 완료 상태를 유지한다. |
-| 5개 Skill 실행 | 완료 | `Idle`, `TurnTo`, `Approach`, `Investigate`, `SearchArea`를 실행한다. | Goal이 고른 Candidate에서 실행 권한을 발행하도록 연결한다. |
-| Quinn identity 기반 | 완료 | 실제 `BP_ThirdPersonCharacter`가 서버 세션의 `Player.Main` identity를 받고 Sight·Hearing이 같은 검증 규칙을 사용한다. | 명시적 Sight source와 Quinn 발소리를 연결한다. |
-| Profile C++ 기반 | 완료 | Visual·Sensor·Debug Profile을 검증하고 exact native Guard Pawn·Controller에 Visual·Sensor를 한 번 적용한다. | Profile Asset 3개와 Debug Component를 만든다. |
-| Phase 3B | 다음 작업 | 개별 Target·Candidate·Feature·Utility·Commit Core를 사용할 수 있다. | 실제 Goal Host 안에서 전체 흐름을 연결한다. |
-| Unreal 실게임 수직 구성 | C++ 기반 진행 중 | Quinn identity와 Profile C++ class·native 적용 경로를 검증할 수 있다. | Profile Asset, Sight source, 발소리, 전용 Test Level, 보이는 Manny Guard와 디버그 표시를 만든다. |
-| 일반 NPC 전체 Goal Runtime | 진행 중 | Phase 3A의 native Pawn Automation 경로를 검증할 수 있다. | Quinn·Test Level Play 경로, 다른 Goal, 전체 중단 경쟁, 저장과 복제를 추가한다. |
+| Goal과 Timer Core | 완료 | Goal 상태와 Skill 결과를 결정론적으로 처리하고 다음 단계의 Timer를 설치한다. | 완료 상태를 유지한다. |
+| Phase 3A C++ 연결 | 완료 | exact native production Pawn이 유효한 소리를 저장하고 조사 Goal의 `Orient`를 시작한다. | 완료 상태를 유지한다. |
+| 5개 Skill 실행 | 완료 | Goal이 고른 Candidate에서 `Idle`, `TurnTo`, `Approach`, `Investigate`, `SearchArea`를 실행한다. | 완료 상태를 유지한다. |
+| Quinn identity 기반 | 완료 | 실제 `BP_ThirdPersonCharacter`가 `Player.Main` identity, exact-one Sight source와 발소리 Emitter를 가진다. | 완료 상태를 유지한다. |
+| Profile과 표시 기반 | 완료 | 실제 Visual·Sensor·Debug Asset을 검증하고 exact native Guard Pawn·Controller·Debug Component에 한 번 적용한다. | 완료 상태를 유지한다. |
+| Phase 3B | 완료 | 실제 Goal Host가 Target·Candidate·Feature·Utility·Commit과 Skill 결과 진행을 연결한다. | 회귀를 유지한다. |
+| Unreal 실게임 수직 구성 | Phase 3B PIE·cook 완료 | 전용 Test Level에서 전체 조사 행동과 Capture를 확인하고 Windows cook을 통과했다. Shipping 빌드와 시작은 추가 테스트로 한 번 확인했다. | Shipping을 반복하지 않고 다음 제품 기능으로 진행한다. |
+| 일반 NPC 전체 Goal Runtime | 진행 중 | Phase 3A·3B 조사 수직 경로를 exact production Pawn과 실제 장면에서 검증할 수 있다. | 다른 Goal, 전체 중단 경쟁, 저장과 복제를 추가한다. |
 | 보스 공격 패턴 | 제한된 실행 기반 완료 | 고정된 테스트 자산으로 Commit부터 StateTree 시작까지 확인한다. | 실제 전투 선택 정보와 공격 효과를 연결한다. |
 | Neural Policy | 후속 작업 | 생성된 입력 계약과 Utility 경로를 사용할 수 있다. | ONNX, NNE Adapter, Calibration과 OOD를 구현한다. |
 
@@ -115,7 +115,7 @@ Goal
 | 제품 Phase 0 | 일반 NPC가 플레이어를 보고 듣고 판단하고 행동하는 최소 게임 흐름 | 구현 중 |
 | 제품 Phase 1 | 전체 Skill, Neural, 멀티플레이와 품질 검증을 포함한 확장 범위 | 후속 작업 |
 | Runtime Phase 3A C++ slice | fixture의 소리를 Knowledge에 저장하고 조사 Goal을 시작하는 연결 작업 | 완료 |
-| Runtime Phase 3B | Goal이 행동을 고르고 Skill 결과로 다음 단계에 진행하는 연결 작업 | 다음 작업 |
+| Runtime Phase 3B | Goal이 행동을 고르고 Skill 결과로 다음 단계에 진행하는 연결 작업 | 완료 |
 
 Runtime Phase 3A와 3B는 제품 Phase 0 안의 세부 작업이다.
 
@@ -465,7 +465,7 @@ Phase 3A bounded C++ slice는 다음 검증을 순서대로 통과했다.
 |---:|---|
 | Contract | 39/39 |
 | Editor build | 성공 |
-| Shipping 일반 NPC | 10/10 |
+| `AINativeNPC.Shipping.GeneralNPC` Editor Automation | 10/10 |
 | Goal FSM | 23/23 |
 | Knowledge | 6/6 |
 | 전체 AINativeNPC Automation | 136/136 |
@@ -479,7 +479,7 @@ Phase 3A bounded C++ slice는 다음 검증을 순서대로 통과했다.
 ---
 
 <a id="phase-3b"></a>
-# 6. Goal에 맞는 행동을 고르고 다음 단계로 진행한다 (Phase 3B, 다음 작업)
+# 6. Goal에 맞는 행동을 고르고 다음 단계로 진행한다 (Phase 3B, 완료)
 
 Phase 3B의 역할은 **현재 Goal이 사용할 Target과 Skill을 고르고, Commit된 Skill 결과로 조사 Goal의 다음 단계에 진행하는 것**이다.
 
@@ -599,9 +599,9 @@ Candidate가 모두 실행 불가면 현재 Goal을 유지한다.
 14. Skill 시작 실패 뒤 Goal 보존
 15. Timer와 Skill 결과가 같은 단계에서 경쟁하는 상황
 
-Phase 3B의 실제 Guard Pawn 연결은 아직 구현 전이다.
+Phase 3B의 실제 Guard Pawn 연결은 2026-08-16에 RED→GREEN으로 구현됐다.
 
-새 실패 검사는 이 빈 연결을 확인하며 먼저 실패해야 한다.
+새 실패 검사는 빈 Decision 연결과 Capture 연결을 각각 확인하며 먼저 실패했다.
 
 기존 Core 단위 테스트 결과는 별도 증거로 유지한다.
 
@@ -648,6 +648,261 @@ Phase 3B는 다음 조건을 모두 만족하면 완료다.
 - 실제 Guard Pawn을 Editor나 실행 게임에서 한 번 끝까지 동작시키는 확인이 통과한다.
 - 최신 source에 결속된 독립 재검토에서 blocker가 0개다.
 
+## 6.10 이번 구현에서 고정한 제품 연결
+
+이번 구현은 다음 순서를 한 서버 권한 Host 안에서 연결한다.
+
+```text
+Goal
+→ Knowledge
+→ Goal-owned Target
+→ Candidate
+→ Feature
+→ Utility selection
+→ Commit
+→ StateTree Skill
+→ typed result
+→ Goal phase
+```
+
+조사 위치는 소리를 들은 순간 만든 `WorldPosition`이다.
+
+조사 위치는 `Orient`, `Navigate`, `Search`가 함께 사용한다.
+
+귀환 위치는 Guard 세션을 시작할 때 캡처한 `Waypoint`다.
+
+Goal-owned Target은 Goal instance가 끝날 때까지 같은 stable ID, generation과 world position을 유지한다.
+
+각 새 Goal revision은 그 Target의 revision만 새 Goal revision에 맞춘다.
+
+`Orient`는 `TurnTo`를 실행한다.
+
+`Navigate`는 `Investigate`를 실행한다.
+
+`Search`는 `SearchArea`를 실행한다.
+
+`Return`은 `Approach`를 실행한다.
+
+Host는 현재 Goal token, Knowledge revision, Target slot, Candidate hash, Feature hash와 선택 Candidate를 한 판단 Snapshot으로 묶는다.
+
+Commit은 같은 Snapshot을 다시 확인한 뒤에만 one-shot 실행 권한을 만든다.
+
+Skill 결과는 Goal token, Decision ID, Skill과 Target이 모두 현재 실행과 같을 때 한 번 적용한다.
+
+Skill 성공은 다음 단계로 진행한다.
+
+경로 없음은 Registry의 `PathUnavailable` 전환을 사용한다.
+
+단계가 바뀌면 이전 Timer를 취소하고 새 단계 Timer를 건다.
+
+Timer 교체가 실패하면 새 Skill을 시작하지 않고 assembly를 fail-closed 상태로 둔다.
+
+`Return` 성공은 조사 Goal을 끝낸다.
+
+Host는 새 `IdleObserve/Observe` Goal을 시작한다.
+
+Decision Capture는 Commit 직전의 immutable 판단 Snapshot을 저장한다.
+
+Replay는 Target, Candidate, Feature와 Utility 선택을 pure Core에서 다시 계산한다.
+
+Capture Reader는 저장된 `.anpccap2`를 다시 열고 exact committed Record의 canonical envelope와 바이트 전체를 비교한다.
+
+Replay는 실제 Skill을 시작하지 않는다.
+
+Goal·Timer persistent Snapshot Core의 snapshot·restore 단위 검사는 완료됐다. production save/load 연결은 후속 제품 범위다.
+
+Cook 검증은 Windows cook 결과와 필수 Map·Profile·StateTree 포함 여부를 확인한다.
+
+제품 Release는 사용자가 실제 배포 작업을 시작할 때 별도 범위와 완료 조건으로 결정한다.
+
+## 6.11 실제 Phase 3B와 Capture·Replay 결과
+
+실제 Guard Pawn은 Hearing Knowledge로 조사 Goal을 시작한다.
+
+Host는 각 단계에서 다음 Skill을 Commit한다.
+
+| Goal 단계 | 실제 Skill | Capture selected index |
+|---|---|---:|
+| `Orient` | `TurnTo` | `51` |
+| `Navigate` | `Investigate` | `136` |
+| `Search` | `SearchArea` | `153` |
+| `Return` | `Approach` | `68` |
+
+`L_AINativeNPC_MVP`의 NavMeshBoundsVolume은 `8000 × 4000 × 1000cm` brush를 가진다.
+
+`RecastNavMesh-Default`는 `Dynamic`으로 실행된다.
+
+최종 production PIE에서 Recast tile은 `360`개다.
+
+Manny는 Home에서 최대 약 `490cm` 이동했다.
+
+Manny는 Home 허용 거리 안인 약 `200cm`까지 돌아왔다.
+
+네 Skill의 Handoff와 완료는 각각 정확히 `4`회다.
+
+마지막 Goal은 새 `IdleObserve/Observe`다.
+
+숨은 Quinn은 `(4900, 200, 146)`의 LastKnownPosition을 유지했다.
+
+Quinn이 `(8400, 1550, 146)`으로 이동한 뒤에도 LastKnown handle, position과 Knowledge revision은 바뀌지 않았다.
+
+Capture writer는 Commit에 사용할 immutable Snapshot을 같은 디렉터리의 `.pending` staging 파일에 원자 저장한다.
+
+Host는 staging write와 exact readback Replay가 성공한 뒤에만 Commit Coordinator를 호출한다.
+
+Commit Coordinator는 최신 Snapshot·Goal·Target·Candidate 계약을 모두 검증한다.
+
+private atomic authority callback은 검증된 staging을 최종 `.anpccap2`로 옮긴 뒤에만 Skill을 시작한다.
+
+최종 `.anpccap2` 파일만으로는 Commit을 뜻하지 않는다.
+
+Commit Coordinator가 Skill 시작까지 성공시킨 뒤 capture bytes에 결속된 `.committed` marker를 원자 저장한다.
+
+외부 Reader와 collector는 capture envelope와 exact committed marker가 모두 유효할 때만 제품 Capture로 승인한다.
+
+write·readback이 실패하면 같은 Decision은 Commit되지 않고 Skill도 시작하지 않는다.
+
+Commit이 거절되면 staging 파일을 검증 삭제하고 최종 Capture를 공개하지 않는다.
+
+Skill 시작이 거절되면 최종 파일을 staging으로 되돌리고 호출자 cleanup이 이를 제거한다.
+
+파일 잠금이나 권한 문제로 이 cleanup이 실패해도 committed marker가 없으므로 잔존 final 파일은 제품 Capture가 아니다.
+
+production PIE는 시작 전에 Capture 폴더를 직접 비운다.
+
+한 실행은 `Decision 1..4`의 `.anpccap2` 파일을 정확히 네 개 만든다.
+
+C++ replay는 저장 파일을 다시 읽는다.
+
+C++ replay는 magic, version, 길이, payload, envelope digest, sample ID, input hash, label hash와 selected index가 exact committed Record와 모두 같은지 확인한다.
+
+payload, digest, version과 length 변조 파일은 모두 fail-closed로 거부한다.
+
+Python `validate_anpc_capture_v2.py`는 네 파일의 envelope checksum, canonical CBOR, generated contract digest, Candidate mask와 selected index를 모두 확인했다.
+
+최신 Python committed validator 결과는 `Saved/Logs/AINativeNPCShippingReleaseCaptureValidatorFinal.txt`다.
+
+hostile RED 로그는 `AINativeNPCPhase3BDecisionHostileRed.log`와 `AINativeNPCCaptureReplayHostileRed.log`다.
+
+Timer fallback hostile RED는 `AINativeNPCPhase3BTimerRecoveryHostileRedFinal.log`다.
+
+이 RED는 canonical phase expiry 뒤 terminal Goal이 fresh `IdleObserve`로 복귀하지 않는 결함을 재현했다.
+
+Timer fallback GREEN은 `AINativeNPCPhase3BTimerRecoveryActualCallbackGreen.log`다.
+
+이 GREEN은 test-only pending 주입 없이 실제 World Timer callback이 pending expiry를 만들고 production Host Tick이 이를 소비하는 경로를 실행한다.
+
+Goal Host tick은 `UGoalTimerComponent`의 pending expiry를 private authority ingress로 소비한다.
+
+terminal timeout은 old Skill을 Success 없이 정리하고 fresh `IdleObserve/Observe`를 설치한다.
+
+phase timeout은 generated fallback phase Timer를 설치하고 다음 Decision을 예약한다.
+
+최신 production PIE GREEN 로그는 `Saved/Logs/AINativeNPCShippingReleaseProductionPIEFinal.log`다.
+
+이 로그는 Recast tile `360`, Skill·Handoff·완료 각각 `4`회, 최대 Home 거리 약 `491cm`, 복귀 거리 약 `200cm`, 새 `IdleObserve/Observe`와 exact committed capture readback Decision `1..4`를 기록한다.
+
+Reader 변조 hostile GREEN은 `Saved/Logs/AINativeNPCCaptureReaderTamperGreenFinal.log`다.
+
+persisted corruption과 Commit rejection이 Skill 시작과 final publication을 막는 hostile GREEN은 `Saved/Logs/AINativeNPCCaptureAtomicPublicationHostileGreenFinal.log`다.
+
+Start 거절과 reverse-move·delete 실패가 겹쳐 raw final이 남아도 committed Reader가 거부하는 hostile GREEN은 `Saved/Logs/AINativeNPCShippingReleaseFocusedLatest.log`다.
+
+committed marker exact binding과 marker tamper rejection GREEN도 `Saved/Logs/AINativeNPCShippingReleaseFocusedLatest.log`다.
+
+최신 전체 `AINativeNPC` 회귀는 `Saved/Logs/AINativeNPCShippingReleaseFullLatest.log`다.
+
+이 로그는 `146/146`을 통과했다.
+
+최신 `GeneralNPC` 회귀는 `Saved/Logs/AINativeNPCShippingReleaseGeneralNPCLatest.log`다.
+
+이 로그는 `14/14`를 통과했다.
+
+일회성 clean Shipping build 기록은 `Saved/Logs/AINativeNPCShippingBuildCookRun.log`다.
+
+이 build는 clean action 뒤 `409`개 build action과 `UnrealEditor-NeuralGame.dll`, `NeuralGame-Win64-Shipping.exe` link를 완료했다.
+
+`UAINativeNPCSkillExecutorComponent`의 private Skill 시작은 `UAINativeNPCSkillHandoffComponent`만 만들 수 있는 passkey를 요구한다.
+
+Gameplay Commit authority는 result sink 설치와 Goal 전환 interrupt를 위해 Executor lifecycle friend 권한을 유지한다.
+
+이 lifecycle friend도 Handoff 전용 start passkey를 만들 수 없으므로 Executor 시작 함수를 직접 실행할 수 없다.
+
+따라서 production Skill 시작은 exact assembly 검증과 StateTree one-shot acquisition을 통과하는 Handoff 경로만 사용한다.
+
+Shipping guard compile-time harness는 일반 caller가 start passkey를 생성할 수 없음을 `static_assert`로 고정한다.
+
+### 6.12 Windows cook과 일회성 Shipping 테스트
+
+Windows cook은 통과했다.
+
+최신 cook 로그는 `Saved/Logs/AINativeNPCShippingBuildCookRun.log`다.
+
+이 로그는 `554` package를 cook했다.
+
+이 로그는 오류 `0`, 경고 `0`이다.
+
+`Config/DefaultGame.ini`는 `/Game/AINativeNPC`를 `DirectoriesToAlwaysCook`에 포함한다.
+
+`Config/DefaultGame.ini`는 `L_AINativeNPC_MVP`를 `MapsToCook`에 포함한다.
+
+cooked tree에는 다음 Asset이 존재한다.
+
+- `L_AINativeNPC_MVP`
+- `DA_AINativeNPCVisual_Manny`
+- `DA_AINativeNPCSensor_Guard`
+- `DA_AINativeNPCDebug_Default`
+- `ST_AINativeNPCSkillHandoff`
+- Surface A/B Physical Material
+
+`Saved/Logs/AINativeNPCCookedAssetEvidenceLatest.txt`는 위 7개 package의 `.uasset/.umap/.uexp` 14개 파일 경로, 크기와 SHA-256을 기록한다.
+
+최신 Data Validation 로그는 `Saved/Logs/AINativeNPCPhase3BDataValidationFinal.log`다.
+
+이 로그는 Asset `299`개와 연관 object `583`개를 검사했다.
+
+이 로그는 오류 `0`, 경고 `0`이다.
+
+Windows Shipping executable 제작과 staged startup smoke는 한 번 통과했다.
+
+이 Shipping 테스트는 사용자 명령이나 당시 활성 문서의 요구 없이 assistant가 추가로 시작했다.
+
+첫 시도는 MSVC toolchain 불일치로 실패했다.
+
+권장 toolchain 설치 뒤 한 번 재시도해 성공했다.
+
+이 테스트는 실행 파일의 build·link·cook·stage·archive와 시작만 확인했다.
+
+Manny·Quinn의 전체 조사 행동은 PIE에서 확인했다.
+
+Shipping 실행 파일에서는 전체 조사 행동을 다시 실행하지 않았다.
+
+Visual Studio Community `17.14.37531.7`과 MSVC `14.44.35207`이 설치됐다.
+
+`Saved/Logs/AINativeNPCShippingToolchainEvidence.txt`는 Visual Studio 설치 상태, 함께 유지된 toolset과 compiler·linker 파일 존재를 기록한다.
+
+기존 MSVC `14.33`과 `14.38` toolset은 유지됐다.
+
+`Saved/Logs/AINativeNPCShippingBuildCookRun.log`는 MSVC `14.44.35207`을 선택하고 Shipping executable link, cook, stage, archive를 완료했다.
+
+배포 폴더는 `Saved/HermesRelease/AINativeNPC_Phase3B_Win64_Shipping/Windows`다.
+
+이 폴더에는 launcher `NeuralGame.exe`, `NeuralGame-Win64-Shipping.exe`, pak·ucas·utoc과 runtime DLL이 있다.
+
+`Saved/Logs/AINativeNPCShippingStartupSmoke.txt`는 배포 폴더의 launcher와 Shipping process가 시작 후 20초 동안 살아 있었음을 기록한다.
+
+smoke 종료 뒤 테스트가 시작한 process는 모두 종료됐다.
+
+`Saved/Logs/AINativeNPCShippingArchiveEvidence.txt`는 배포 폴더 전체 파일의 경로, 크기와 SHA-256을 기록한다.
+
+이 성공 결과로 assistant가 추가한 Shipping 테스트를 마감한다.
+
+Shipping 빌드는 Phase 3B 완료 조건이나 정기 회귀 항목으로 사용하지 않는다.
+
+추가 Shipping 빌드와 제품 Release 절차는 사용자의 명시적 요청이나 활성 문서의 요구가 있을 때 별도 작업으로 시작한다.
+
+이전에 작성된 Release 승인 기록은 당시 잘못 확장된 작업 범위의 이력이며 현재 제품 Release 상태로 사용하지 않는다.
+
 ---
 
 <a id="unreal-build-guide"></a>
@@ -663,15 +918,15 @@ Phase 3B는 다음 조건을 모두 만족하면 완료다.
 
 | 항목 | 현재 상태 | 구현자가 할 일 |
 |---|---|---|
-| Quinn Player | 기본 조작 Asset과 AI identity 기반 있음 | 기존 Third Person Player를 재사용하고 명시적 Sight source와 발소리 입력을 추가한다. |
-| Manny Mesh와 이동 Animation | 기본 Asset 있음 | native Guard Pawn이 읽는 Manny Visual Profile Asset에 지정한다. |
-| 일반 NPC native Pawn과 Controller | C++와 Profile 적용 구현 있음 | C++ Class를 Test Level에 직접 배치한다. |
+| Quinn Player | 조작·identity·Sight source·발소리 완료 | 기존 Third Person Player를 그대로 사용한다. |
+| Manny Mesh와 이동 Animation | Visual Profile 적용 완료 | exact native Guard Pawn이 Manny와 `ABP_Unarmed`를 사용한다. |
+| 일반 NPC native Pawn과 Controller | Test Level 배치 완료 | exact native C++ Class를 유지한다. |
 | 일반 NPC Skill StateTree | Asset 있음 | 자동 연결 경로와 Asset 유효성을 확인한다. |
-| 전용 Test Level | 제작 전 | `L_AINativeNPC_MVP`를 만든다. |
-| Manny Visual Profile Asset | 제작 전 | 구현된 Visual Profile class로 Mesh·Animation Asset을 만든다. |
-| Quinn 발소리 발생 Component와 Notify | 제작 전 | Hearing 수직 흐름 작업에서 만든다. |
-| Goal·Knowledge 디버그 화면 | 제작 전 | 수동 Play 검증 전에 읽기 전용 표시 기능을 만든다. |
-| Phase 3B 전체 행동 연결 | 구현 전 | Target부터 Skill 결과까지 연결한다. |
+| 전용 Test Level | 완료 | `L_AINativeNPC_MVP`를 유지한다. |
+| Manny Visual Profile Asset | 완료 | Manny Mesh·Animation 참조를 유지한다. |
+| Quinn 발소리 발생 Component와 Notify | 완료 | Walk·Jog 16개 Sequence의 좌·우 Notify를 유지한다. |
+| Goal·Knowledge 디버그 화면 | 최소 C++ 표시와 Capture·Replay 완료 | 제품 Widget은 다음 단계에서 만든다. |
+| Phase 3B 전체 행동 연결 | 완료 | Target부터 Skill 결과와 Idle 복귀까지 유지한다. |
 
 Phase 3A bounded slice는 소리를 저장하고 조사 Goal을 시작하는 C++ 연결과 native Pawn Automation fixture를 소유한다.
 
@@ -679,7 +934,7 @@ Phase 3A의 Quinn·Test Level Play 경로는 identity, 소음 Emitter와 디버�
 
 Phase 3B는 Manny가 실제로 회전하고 이동하고 검색하고 복귀하는 연결을 소유한다.
 
-현재 Test Level에서 Hearing을 발생시켜도 Phase 3B가 끝나기 전에는 전체 이동 시나리오가 완성되지 않는다.
+현재 Test Level에서 Hearing을 발생시키면 전체 Phase 3B 이동 시나리오가 실행된다.
 
 ## 7.2 현재 재사용할 Asset
 
@@ -934,21 +1189,27 @@ Profile C++ 추가 뒤의 최신 전체 수치는 13.4에 따로 적는다.
 
 현재 AI Controller는 Sight를 주 감각으로 사용한다.
 
-현재 `DefaultEngine.ini`에는 Pawn의 Sight 자동 등록을 바꾸는 명시적 설정이 없다.
-
-따라서 현재 Editor 시험은 Unreal Engine 5.7의 기본 Pawn 자동 등록 동작에 의존할 수 있다.
-
 Quinn의 AI Native NPC Entity identity 조건은 7.5.2에서 완료됐다.
 
-현재 남은 Sight 입력 작업은 기본 Pawn 자동 등록에 기대지 않는 명시적 source 구성이다.
+`ANeuralGameCharacter`는 `UAIPerceptionStimuliSourceComponent`를 C++ 기본 Subobject로 정확히 한 개 소유한다.
 
-명시적인 제품 구성을 만들 때는 Quinn에 `UAIPerceptionStimuliSourceComponent`를 추가하고 Sight를 등록한다.
+이 Component는 서버 `BeginPlay`에서 exact native `UAINativeNPCSightSense`를 명시적으로 등록한다.
 
-명시적 Source 전환은 Pawn 자동 등록 설정과 패키징 결과를 함께 검증한다.
+`UAINativeNPCSightSense`는 `final`·`NotBlueprintable`이며, 계속 보이는 Quinn의 새 관측 위치도 Perception callback으로 전달한다. Unreal 기본 `UAISense_Sight`의 획득·상실 전용 알림 정책을 사용하지 않는다.
+
+자동 PIE는 Guard가 감지한 Actor, Knowledge의 Entity handle과 live Actor binding이 모두 같은 Quinn인지 확인한다. 이어 Quinn을 시야 안에서 옆으로 이동해 Entity 위치가 현재 Quinn 위치를 따라가고 Knowledge revision이 증가하는지 확인한다.
+
+Entity revision은 새 Sight 관측에 따라 전진한다. 실행 시작은 같은 stable ID와 generation의 더 최신 Entity revision을 다시 캡처하므로 이전 tick의 Entity handle만으로 장기 실행을 무효화하지 않는다.
+
+raw Knowledge에는 현재 Entity와 같은 subject의 LastKnownPosition이 TTL 동안 함께 남을 수 있다. Target Slotter는 현재 Entity가 있으면 같은 subject의 LastKnownPosition을 Candidate에서 제외한다.
+
+관측한 Actor가 파괴되거나 streaming out으로 `EndPlay`하면 Knowledge는 저장된 exact Entity binding과 마지막 관측 위치를 사용한다. 현재 Entity를 제거하고 그 위치를 LastKnownPosition으로 바꾼다.
+
+이 경로는 Unreal의 기본 Pawn 자동 등록 동작에 기대지 않는다.
 
 ### 7.5.4 Hearing 입력
 
-현재 Quinn Blueprint에는 AI 발소리를 보고하는 Component와 Animation Notify가 없다.
+현재 Quinn은 C++ 기본 구성으로 `UPlayerNoiseEmitterComponent`를 정확히 한 개 가진다. Walk 8개와 Jog 8개 Animation Sequence는 왼발·오른발 `UAnimNotify_ReportAINoise`를 각각 한 개 가진다.
 
 Hearing 구현은 다음 흐름을 만든다.
 
@@ -959,7 +1220,7 @@ Quinn 발이 바닥에 닿음
 → UAISense_Hearing::ReportNoiseEvent
 → Manny Perception
 → Knowledge의 SoundEvent
-→ 조사 Goal 시작
+→ 제품 조사 Goal 전환은 별도 Play Gate에서 확인
 ```
 
 목표 Asset과 코드는 다음과 같다.
@@ -968,7 +1229,7 @@ Quinn 발이 바닥에 닿음
 |---|---|---|
 | 소음 발생 Component | `UPlayerNoiseEmitterComponent` | 속도와 표면에 따른 위치·loudness·tag를 만든다. |
 | 발 접촉 Notify | `UAnimNotify_ReportAINoise` | 실제 발 접촉 프레임에 Component를 호출한다. |
-| Quinn 설정 | `BP_ThirdPersonCharacter`의 Component | Sight와 Hearing source를 소유한다. |
+| Quinn 설정 | `ANeuralGameCharacter`의 C++ 기본 Component | Sight source와 발소리 Emitter를 소유한다. |
 | 표면 설정 | `DA_AINativeNPCSensor_Guard`의 Curve | Surface A·B의 loudness를 정한다. |
 
 `ABP_Unarmed`는 `/Game/Characters/Mannequins/Anims/Unarmed/BS_Idle_Walk_Run`을 사용한다.
@@ -985,8 +1246,8 @@ Notify는 BlendSpace가 아니라 실제 16개 Walk·Jog Sequence의 발 접촉 
 
 ```ini
 [/Script/Engine.PhysicsSettings]
-+PhysicalSurfaces=(Type=SurfaceType1,Name="AINPC_SurfaceA")
-+PhysicalSurfaces=(Type=SurfaceType2,Name="AINPC_SurfaceB")
+SurfaceType1=AINativeNPC_SurfaceA
+SurfaceType2=AINativeNPC_SurfaceB
 ```
 
 Surface A·B의 바닥 Material은 해당 Physical Material을 사용한다.
@@ -999,8 +1260,25 @@ Sensor Config의 첫 loudness 값은 다음과 같다.
 
 | 이동 | Default | Surface A | Surface B |
 |---|---:|---:|---:|
-| Walk | `0.35` | `0.30` | `0.55` |
-| Jog | `0.70` | `0.60` | `1.00` |
+| Walk | `0.25` | `0.45` | `0.70` |
+| Jog | `0.45` | `0.70` | `1.00` |
+
+Development 수동 확인 화면은 가장 최근에 성공한 실제 발 접촉을 다음 형식으로 표시한다.
+
+```text
+foot=Left mode=Walk surface=A loudness=0.45 count=12
+```
+
+표시 값의 원본은 Quinn의 `UPlayerNoiseEmitterComponent`다.
+
+- `foot`은 성공한 `ReportFootstep()`의 왼발 또는 오른발이다.
+- `mode`는 그 접촉 시점의 수평 속도가 `JogSpeedThreshold` 미만이면 `Walk`, 이상이면 `Jog`다.
+- `surface`는 발 아래 trace가 읽은 `Default`, `A` 또는 `B`다.
+- `loudness`는 Surface Curve 선택과 `0..1` clamp 뒤 `ReportNoiseEvent()`에 전달한 값이다.
+- `count`는 중복 접촉을 제외하고 실제로 보고한 Noise Event 누적 수다.
+- 성공한 접촉이 아직 없으면 발소리 줄을 표시하지 않는다.
+
+이 표시는 읽기 전용이다. Debug Component는 발소리를 발생시키거나 속도·표면·loudness를 보정하지 않는다.
 
 최종 loudness는 `0..1`로 clamp한다.
 
@@ -1041,7 +1319,7 @@ Blueprint가 stable ID, generation, Event ID와 Goal을 직접 지정하면 안 
 
 ## 7.6 Manny NPC를 구성한다
 
-Manny는 `AAINativeNPCGuardPawn`의 실제 몸과 `AAINativeNPCGuardController`의 감지·제어를 사용하는 일반 NPC다.
+Manny는 `AAINativeNPCGuardPawn`의 실제 몸과 `AAINativeNPCGuardController`의 감지·제어를 사용하는 일반 NPC다. 두 class는 `final`·`NotBlueprintable`이며 파생 Pawn·Controller로 바꾸지 않는다.
 
 ### 7.6.1 exact native Pawn과 Manny Visual Profile을 사용한다
 
@@ -1200,13 +1478,15 @@ Hearing은 저장 성공 뒤에 `SoundHeard`, Knowledge revision, SoundEvent Han
 
 Perception callback은 Skill을 직접 시작하지 않는다.
 
+사람이 직접 한 제품 Play에서 실제 Quinn 이동 Animation Notify가 Hearing까지 이어지고, `SoundHeard`가 조사 Goal의 `Orient`로 전환되는 경로는 통과했다.
+
+실제 locomotion 자동 Gate는 exact `ABP_Unarmed`와 Notify가 전달한 Sequence 경로를 Emitter의 Notify 전용 성공 telemetry에 결속해 통과했다.
+
 다음 항목은 현재 완료로 보지 않는다.
 
 - 같은 Quinn을 다시 봤을 때 이전 `LastKnownPosition`을 자동 제거하는 제품 경로
-- Sensor Profile Asset과 surface loudness Curve
-- Quinn의 발 접촉에서 시작하는 Hearing 경로
 
-위 항목은 hostile RED 검사를 먼저 추가한 뒤 구현한다.
+이 항목은 hostile RED 검사를 먼저 추가한 뒤 구현한다.
 
 ### 7.6.5 `BP_AINativeNPC_Manny`를 만들지 않는 이유
 
@@ -1269,15 +1549,15 @@ Goal과 Utility 값은 generated Registry가 소유한다.
 
 Visual·Sensor는 transient hostile Automation에서 exact native Pawn·Controller 적용까지 검증됐다.
 
-Debug Profile은 class와 검증만 완료됐으며, `UAINativeNPCDebugComponent` 적용은 다음 단계다.
+Debug Profile은 `UAINativeNPCDebugComponent`에 적용됐다.
 
 Debug 값은 public C++ getter로만 읽고 setter를 제공하지 않는다.
 
-세 실제 Profile Asset은 아직 만들지 않았다.
+세 실제 Profile Asset은 목표 경로에 저장됐다.
 
 Visual과 Sensor Asset은 구현된 C++ 기본 soft object path에 연결한다.
 
-Debug Asset의 기본 soft object path는 다음 단계의 `UAINativeNPCDebugComponent`가 소유한다.
+Debug Asset의 기본 soft object path는 `UAINativeNPCDebugComponent`가 소유한다.
 
 Profile 참조는 Blueprint와 Level 인스턴스에서 다른 Asset로 바꾸지 않는다.
 
@@ -1380,9 +1660,9 @@ Goal·Skill ID, transition, phase Timer와 Utility 가중치는 generated Regist
 
 모든 Data Asset class는 `IsDataValid()`에서 잘못된 ID, non-finite 값, 범위 역전과 누락 참조를 거부한다.
 
-현재 세 Profile Asset은 없으므로 Project Data Validation의 `291 assets`에는 이 class 인스턴스가 포함되지 않는다.
+Visual, Sensor와 Debug Profile Asset 세 개가 목표 경로에 저장돼 있다.
 
-Automation은 transient Profile을 사용해 같은 구조 검증과 native 적용을 직접 확인한다.
+Project Data Validation은 이 세 Asset과 C++ `IsDataValid()` 규칙을 함께 검사한다. Automation은 실제 Asset 적용과 hostile transient Profile 거부를 각각 확인한다.
 
 ## 7.9 Manny와 Quinn Animation을 구성한다
 
@@ -1445,35 +1725,26 @@ Epic 기본 Animation을 직접 수정해야 하므로 변경 Asset 16개를 man
 
 `UAINativeNPCDebugComponent`는 Guard Pawn에 C++ 기본 Subobject로 정확히 한 개 존재한다.
 
-public Blueprint API는 두 개뿐이다.
+현재 public Blueprint API는 하나다.
 
 ```cpp
 UFUNCTION(BlueprintPure)
 bool GetLatestDebugSnapshot(FAINativeNPCDebugSnapshot& OutSnapshot) const;
-
-UFUNCTION(BlueprintCallable)
-bool RequestManualCapture(FName ReasonTag);
 ```
 
 `GetLatestDebugSnapshot()`은 GameThread에서 마지막으로 확정된 immutable 복사본만 반환한다.
 
-Widget은 Host, Knowledge, Candidate와 Executor 객체를 직접 참조하지 않는다.
+현재 Widget은 Host, Knowledge, Candidate와 Executor 객체를 직접 참조하지 않는다.
 
-`RequestManualCapture()`는 Development·Editor authority와 GameThread에서만 동작한다.
+Phase 3B Decision Capture는 Goal Host가 Skill 시작 전에 자동으로 만들고 검증한다.
 
-이 함수는 마지막으로 확정된 Debug Snapshot과 현재 Decision Capture 공급자를 한 번 읽어 owned `FAINativeNPCDecisionCaptureRecord`를 만든다.
-
-그 뒤 `UAINativeNPCDecisionCaptureSubsystem::WriteCapture()`를 호출한다.
-
-성공한 Capture handle은 다음 Debug Snapshot의 `LastCapture`에 기록한다.
-
-실패하면 기존 Snapshot과 Runtime 상태를 유지하고 `CaptureFailure`만 기록한다.
+수동 Capture 버튼, `RequestManualCapture()`와 `LastCapture` 표시는 후속 제품 Inspector 범위다.
 
 화면 버튼이 Goal, Knowledge, Candidate, Commit 또는 Skill 상태를 바꾸면 안 된다.
 
 ### 7.10.2 Decision Inspector의 펼침 영역
 
-Phase 3B 검증 전에 다음 영역을 추가한다.
+현재 최소 Debug Snapshot은 Goal·Skill·Knowledge와 발소리 값을 표시한다. 다음 영역은 후속 제품 Inspector에서 추가한다.
 
 | 영역 | 표시 값 |
 |---|---|
@@ -1515,9 +1786,11 @@ Ground Truth 표시 데이터는 Candidate와 Feature 입력에 들어가지 않
 
 Shipping build에서는 Ground Truth와 내부 score 표시를 제외한다.
 
-### 7.10.4 Decision Log와 이상 행동 Capture
+### 7.10.4 현재 Phase 3B Capture와 후속 Decision Archive
 
-각 판단은 최소 다음 값을 구조화된 log로 남긴다.
+현재 Phase 3B Capture는 Goal Host가 `.anpccap2` canonical envelope와 matching `.committed` marker로 저장한다. Reader는 marker가 결속한 같은 바이트를 검증한다. Replay는 pure Core에서 Target, Candidate, Feature와 Utility 선택을 다시 계산한다.
+
+아래 구조화된 Decision Log와 수동 이상 행동 Archive는 후속 제품 Debug 범위다. 각 판단은 최소 다음 값을 남기도록 설계한다.
 
 ```json
 {
@@ -1550,7 +1823,7 @@ Neural 연결 뒤에는 raw score, switch cost, adjusted score, OOD와 calibrate
 - Candidate miss와 Target miss 구분
 - schema·registry·model·policy hash
 
-Capture는 `Saved/AINativeNPC/Captures/<session>/<capture-id>.json`과 별도 binary tensor 파일에 저장한다.
+후속 수동 Archive는 `Saved/AINativeNPC/Captures/<session>/<capture-id>.json`과 별도 binary tensor 파일에 저장하도록 설계한다.
 
 JSON은 archive version, endianness, schema·Registry hashes, map package, map seed, NPC stable ID와 binary SHA-256을 가진다.
 
@@ -1558,9 +1831,9 @@ binary 파일은 canonical tensor bytes와 mask를 가진다.
 
 부분 기록, hash 불일치, unknown archive version과 non-finite 값은 Replay에서 거부한다.
 
-`UAINativeNPCDecisionCaptureSubsystem`은 Capture 저장을 소유한다.
+후속 `UAINativeNPCDecisionCaptureSubsystem`은 수동 JSON·binary Archive 저장을 소유하도록 설계한다.
 
-public C++ API는 다음과 같다.
+후속 목표 C++ API는 다음과 같다.
 
 ```cpp
 bool WriteCapture(
@@ -1569,17 +1842,17 @@ bool WriteCapture(
     EAINativeNPCCaptureFailure& OutFailure);
 ```
 
-`FAINativeNPCCaptureHandle`은 session ID, capture ID, JSON path와 binary SHA-256을 가진 immutable 값이다.
+후속 `FAINativeNPCCaptureHandle`은 session ID, capture ID, JSON path와 binary SHA-256을 가진 immutable 값으로 설계한다.
 
-`WriteCapture()`는 임시 파일 두 개를 먼저 쓴다.
+후속 `WriteCapture()`는 임시 파일 두 개를 먼저 쓰도록 설계한다.
 
 두 파일의 flush와 SHA-256 계산이 성공한 뒤 최종 경로로 원자적으로 교체한다.
 
 한 단계라도 실패하면 임시 파일을 지우고 유효한 handle을 반환하지 않는다.
 
-`UAINativeNPCDecisionReplaySubsystem`은 같은 Capture를 읽어 Target, Candidate, score와 Commit 직전 검증을 재현한다.
+후속 `UAINativeNPCDecisionReplaySubsystem`은 수동 Archive를 읽어 Target, Candidate, score와 Commit 직전 검증을 재현하도록 설계한다.
 
-public C++ API는 다음과 같다.
+후속 목표 C++ API는 다음과 같다.
 
 ```cpp
 bool LoadCapture(
@@ -1593,15 +1866,15 @@ bool RunReplay(
     EAINativeNPCReplayFailure& OutFailure) const;
 ```
 
-`LoadCapture()`는 archive version, 경로 범위, JSON·binary SHA-256, schema·Registry hashes와 모든 유한값을 확인한다.
+후속 `LoadCapture()`는 archive version, 경로 범위, JSON·binary SHA-256, schema·Registry hashes와 모든 유한값을 확인하도록 설계한다.
 
-`FAINativeNPCReplayResult`는 Target slot, Candidate mask·hash, Utility score, 선택 Candidate, Commit 직전 validation 결과와 원본 대비 일치 여부를 가진다.
+후속 `FAINativeNPCReplayResult`는 Target slot, Candidate mask·hash, Utility score, 선택 Candidate, Commit 직전 validation 결과와 원본 대비 일치 여부를 가지도록 설계한다.
 
-Decision Inspector와 Automation은 `FAINativeNPCReplayResult`의 소비자다.
+후속 Decision Inspector와 Automation은 `FAINativeNPCReplayResult`를 소비하도록 설계한다.
 
-Replay는 별도 preview world 또는 pure Core에서 실행한다.
+후속 Replay는 별도 preview world 또는 pure Core에서 실행하도록 설계한다.
 
-Replay는 실제 서버 권한 Skill을 자동 실행하지 않는다.
+현재 Phase 3B Replay와 후속 Replay는 실제 서버 권한 Skill을 자동 실행하지 않는다.
 
 사람의 후보 평가를 저장할 때는 acceptable Candidate와 annotator provenance를 함께 기록한다.
 
@@ -1615,9 +1888,56 @@ Debug Component는 필요한 현재 상태를 한 번 복사해 `FAINativeNPCDeb
 
 Unreal 수직 구성은 다음 순서로 만든다.
 
-현재 2~7단계인 identity 기반, Profile C++ 3종과 exact native Pawn·Controller 적용은 완료됐다.
+Identity 기반, Profile C++ 3종, exact native Pawn·Controller와 자동 장면 slice는 완료됐다.
 
-다음 구현은 8단계인 읽기 전용 Debug Snapshot·Capture·Replay RED 검사다.
+현재 작업은 자동 완료 범위와 제품 Play 완료 범위를 분리해 증거를 고정하는 일이다.
+
+### 7.11.1 현재 작업의 완료 조건
+
+이 자동 장면 slice는 다음 조건을 모두 만족해 완료됐다.
+
+- Visual, Sensor와 Debug Profile Asset이 목표 경로에 저장돼 있다.
+- Manny Visual Asset은 `SKM_Manny_Simple`과 `ABP_Unarmed`를 가리킨다.
+- Quinn은 C++ 기본 구성으로 Sight source와 발소리 Emitter를 정확히 한 개씩 가진다.
+- 발 접촉 Notify는 Quinn의 발소리 Emitter만 호출하고 Goal이나 Knowledge를 직접 바꾸지 않는다.
+- Surface A·B 자동 증거는 두 층이다. direct `ReportFootstep` probe는 floor trace·Physical Surface·loudness 계산·Hearing adapter 계약을 검사한다. locomotion matrix는 `DoMove`로 Quinn을 실제 이동시켜 exact `ABP_Unarmed`·Sequence Notify·Emitter·Hearing Knowledge 경로를 검사한다. Notify ingress는 성공한 report 뒤에만 Notify 전용 count와 마지막 Sequence 경로를 갱신하고, direct probe는 이 telemetry를 바꾸지 않는다.
+- Debug Component는 Guard Pawn에 정확히 한 개 있으며 Goal, Knowledge와 Skill의 읽기 전용 복사본만 표시한다.
+- `/Game/AINativeNPC/Maps/L_AINativeNPC_MVP`에 PlayerStart, Quinn 흐름, exact native Manny Guard, Surface A·B와 NavMesh Bounds가 각각 정확히 한 개 저장돼 있다.
+- 자동 PIE에서 정면 Sight Actor·Entity·live binding이 같은 Quinn인지 확인한다.
+- 자동 PIE에서 계속 보이는 Quinn을 옆으로 이동하면 같은 Entity의 위치와 Knowledge revision이 새 관측으로 갱신되는지 확인한다.
+- 자동 Knowledge 검사에서 관측 중인 Actor가 종료되면 같은 subject의 현재 Entity가 사라지고 마지막 관측 위치가 LastKnownPosition으로 남는지 확인한다.
+- direct probe는 Quinn의 Emitter를 직접 호출해 Surface A·B의 새 SoundEvent 두 개가 같은 Quinn source, 접촉 위치와 loudness를 가지는지 확인한다. 별도 locomotion matrix는 direct 호출 없이 네 조합의 자연 Notify, report count 증가, gait·surface·loudness telemetry와 새 Hearing Knowledge를 확인한다.
+- 사람이 직접 한 Play에서 파란 Entity 스피어의 연속 Sight 위치 추적은 통과했다.
+- 벽 뒤 Sight 상실 때 노란 LastKnownPosition으로 바뀌는 수동 전환은 통과했다.
+- 실제 발 접촉 Animation Notify의 빨간 SoundEvent와 `IdleObserve/Observe → InvestigateDisturbance/Orient` 제품 Goal 전환은 사용자 Play에서 통과했다.
+- Walk 전환 입력은 동작한다. 읽기 전용 표시는 마지막 성공 발 접촉의 `foot`, `mode`, `surface`, `loudness`, `count`를 보존한다. 2026-08-16 사용자 Play와 실제 locomotion Animation Notify 자동 PIE가 모두 Surface A·B × Walk·Jog 네 값 `0.45/0.70/0.70/1.00`을 확인했다. 숨은 Quinn 이동 중 노란 스피어 고정은 별도 Play에서 확인한다.
+- 실제 locomotion 자동 Gate는 Quinn을 각 Surface 위에서 이동시켜 exact `ABP_Unarmed`의 Sequence Notify가 자연 발생한 뒤 Notify 전용 성공 count와 마지막 Sequence 경로, 전체 Emitter count, gait, Physical Surface, loudness와 Hearing Knowledge가 함께 전진하는지 네 조합 모두 검사하며 통과했다. Walk case는 `MF_Unarmed_Walk_Fwd`, Jog case는 `MF_Unarmed_Jog_Fwd`에서 Notify가 왔다. `ReportFootstep` 직접 호출은 계산·Hearing adapter 검사로만 기록하며 Notify 전용 telemetry를 변경하지 않는다.
+- 현재 GameDevMCP live schema에는 `editor.pie.stop`만 있고 PIE 시작·플레이어 입력·제품 상태 판정 tool은 없다. 이번 Gate는 production PIE가 더 직접적이므로 MCP를 확장하지 않는다. PIE만으로 실제 Animation Notify를 증명할 수 없을 때만 최소 MCP 기능을 추가한다.
+- Surface A는 cyan/blue, Surface B는 orange로 표시한다. 각 발판에는 collision과 Navigation에 영향을 주지 않는 높은 기둥, 머리 위 색상 패널, 양면 `SURFACE A` 또는 `SURFACE B` 라벨을 둔다. 걸을 top mesh와 Physical Material은 그대로 유지한다.
+- 실제 Recast에서 `Orient → Navigate → Search → Return → IdleObserve` 진행을 자동 PIE로 확인했다.
+- fresh Editor process 두 번과 package SHA 비교 뒤에도 16개 Animation과 Curve 구성이 유지된다.
+
+이번 작업은 Phase 3B의 `Orient → Navigate → Search → Return → IdleObserve` 전체 진행을 완료했다.
+
+이번 작업은 Decision Capture·Replay를 완료했다. 제품용 Widget 전체는 후속 범위다.
+
+최신 자동 PIE는 exact native Manny Guard, Quinn, PlayerStart, Profile 3개, Quinn에 결속된 Sight Entity, exact Surface Type 1·2와 Physical Material, Quinn source에 결속된 새 Hearing SoundEvent 두 개, NavMesh Bounds의 exact-one 구성을 확인한다.
+
+### 7.11.2 구현 전에 실패로 고정할 검사
+
+1. Quinn의 Sight source 또는 발소리 Emitter가 없거나 두 개면 실패한다.
+2. Sight source가 Sight 이외의 감각을 자동 등록하면 실패한다.
+3. 서버가 아닌 발소리 호출이 Hearing Event를 만들면 실패한다.
+4. 같은 발 접촉을 중복 전달했을 때 Hearing Event가 두 개 생기면 실패한다.
+5. 잘못된 Sensor Profile 또는 누락 Curve가 기존 발소리 설정을 부분 변경하면 실패한다.
+6. Debug Component가 없거나 두 개면 실패한다.
+7. Debug 조회가 Goal, Knowledge 또는 Skill 상태를 변경하면 실패한다.
+8. Profile Asset 세 개 중 하나가 없거나 잘못된 참조를 가지면 실패한다.
+9. Test Level에 exact native Guard Pawn, PlayerStart 또는 NavMesh Bounds가 정확히 한 개 없으면 실패한다.
+10. 계속 보이는 Quinn을 이동했을 때 Entity 위치가 현재 Quinn 위치를 따라가지 않거나 Knowledge revision이 증가하지 않으면 실패한다.
+11. Sight·Hearing Play 확인에서 Knowledge revision과 기대 Target 종류가 바뀌지 않으면 실패한다.
+
+### 7.11.3 전체 제작 순서
 
 1. 현재 문서와 선택한 class·Asset 이름을 사용자에게 확인받는다.
 2. Identity Subsystem·Component hardening·Quinn composition의 RED 검사를 추가한다.
@@ -1654,7 +1974,7 @@ Unreal 수직 구성은 다음 순서로 만든다.
 
 ## 7.12 Play에서 직접 확인하는 시나리오
 
-각 시나리오는 입력, 화면에서 볼 결과와 현재 구현 경계를 함께 기록한다.
+각 시나리오는 입력, 화면에서 볼 결과와 현재 구현 경계를 함께 기록한다. 이 절은 제품 Play 완료 조건이며 자동 장면 slice 통과와 같지 않다. 현재 사람은 파란 Entity 스피어 연속 추적, 벽 뒤 노란 LastKnownPosition 전환, 실제 발 접촉의 빨간 SoundEvent, 같은 발소리의 `IdleObserve/Observe → InvestigateDisturbance/Orient` 전환, Walk 입력, Surface A·B × Walk·Jog 네 값 `0.45/0.70/0.70/1.00`을 확인했다. 숨은 Quinn 이동 중 노란 위치 고정은 남아 있다.
 
 ### 7.12.1 Quinn 기본 조작
 
@@ -1668,9 +1988,12 @@ Unreal 수직 구성은 다음 순서로 만든다.
 
 1. Quinn을 Manny 정면 `3000 cm` 안으로 이동한다.
 2. 디버그 화면에서 현재 Entity Knowledge가 생기는지 확인한다.
-3. Quinn을 벽 뒤로 이동한다.
-4. Entity가 LastKnownPosition으로 교체되는지 확인한다.
-5. LastKnownPosition이 벽 뒤 Quinn의 현재 위치를 따라가지 않는지 확인한다.
+3. 시야 안에서 Quinn을 좌우로 이동하고 파란 Entity 스피어가 현재 Quinn 위치를 따라가는지 확인한다.
+4. Quinn을 벽 뒤로 이동한다.
+5. Entity가 LastKnownPosition으로 교체되는지 확인한다.
+6. LastKnownPosition이 벽 뒤 Quinn의 현재 위치를 따라가지 않는지 확인한다.
+
+2026-08-14 사용자 Play에서 3번의 파란 Entity 스피어 연속 추적과 4번부터 5번까지의 Sight 상실·노란 LastKnownPosition 전환은 통과했다. 6번의 숨은 Quinn 이동 중 LastKnownPosition 고정은 별도 수동 확인으로 남아 있다.
 
 현재 Goal gameplay의 Sight 기반 전체 반응은 후속 Goal 연결 범위다.
 
@@ -1683,7 +2006,18 @@ Unreal 수직 구성은 다음 순서로 만든다.
 5. 현재 Goal이 `InvestigateDisturbance/Orient`로 바뀌는지 확인한다.
 6. Goal Target 위치가 소리 발생 위치와 같은지 확인한다.
 
-이 Play smoke의 통과 범위는 Phase 3A Goal 전환까지다.
+자동 production PIE의 통과 범위는 숨은 Quinn LastKnown 고정, 실제 Recast Phase 3B 전체 진행과 Decision Capture·Replay까지다.
+
+2026-08-14 사용자 Play에서 Manny 시야 밖의 실제 Quinn 발소리가 빨간 SoundEvent를 만들고, 같은 발소리로 화면의 `goal=1 phase=1`이 `goal=2 phase=2`로 바뀌는 것을 확인했다. Walk 전환 입력도 동작했다. 2026-08-16 사용자 Play에서 Surface A·B × Walk·Jog 네 값 `0.45/0.70/0.70/1.00`을 확인했다.
+
+Surface 수동 비교는 표시를 켠 뒤 다음 네 경우를 순서대로 확인한다.
+
+1. Surface A에서 Walk는 `mode=Walk surface=A loudness=0.45`다.
+2. Surface B에서 Walk는 `mode=Walk surface=B loudness=0.70`다.
+3. Surface A에서 Jog는 `mode=Jog surface=A loudness=0.70`다.
+4. Surface B에서 Jog는 `mode=Jog surface=B loudness=1.00`이다.
+
+각 경우에 `count`는 발 접촉마다 한 번 증가하고 빨간 SoundEvent는 같은 접촉 위치 근처에 생긴다.
 
 이 smoke는 identity hardening·Quinn 발소리·Debug Asset 구현 뒤에 실행하며 기존 bounded C++ 완료와 별도로 기록한다.
 
@@ -1696,7 +2030,7 @@ Unreal 수직 구성은 다음 순서로 만든다.
 5. Manny가 처음 배치된 Home 위치로 돌아오는지 확인한다.
 6. 현재 Goal이 `IdleObserve`로 돌아오는지 확인한다.
 
-이 시나리오는 Phase 3B 구현 뒤에 통과해야 한다.
+이 시나리오는 자동 production PIE에서 통과했다. 사람이 직접 하는 제품 Play 확인은 자동 증거와 별도로 기록한다.
 
 ### 7.12.5 경로 실패
 
@@ -1763,7 +2097,7 @@ Resource Target, 예약 Subsystem과 rollback 검사가 준비된 뒤 연결한�
 | NNE와 NNE Runtime | plugin 미활성화·Build 의존성 없음 | 제품 Phase 1 설치본과 cook 지원 확인 뒤 추가한다. |
 | Smart Objects | 미활성화 | Cover·resource Target 작업 전 확인한다. |
 
-현재 일반 NPC 모듈은 `Core`, `CoreUObject`, `Engine`, `InputCore`, `EnhancedInput`, `AIModule`, `NavigationSystem`, `StateTreeModule`, `GameplayStateTreeModule`, `GameplayTags`, `Json`, `UMG`, `Slate`를 공개 의존성으로 가진다.
+현재 일반 NPC 모듈은 `Core`, `CoreUObject`, `Engine`, `InputCore`, `EnhancedInput`, `AIModule`, `NavigationSystem`, `StateTreeModule`, `GameplayStateTreeModule`, `GameplayTags`, `PhysicsCore`, `Json`, `UMG`, `Slate`를 공개 의존성으로 가진다.
 
 NNE Runtime 이름과 header 경로는 문서 예시로 추측하지 않는다.
 
@@ -2095,6 +2429,12 @@ Source/NeuralGame/AINativeNPC/
 | Quinn Mesh | `Content/Characters/Mannequins/Meshes/SKM_Quinn_Simple.uasset` |
 | Manny Mesh | `Content/Characters/Mannequins/Meshes/SKM_Manny_Simple.uasset` |
 | 공용 이동 Animation | `Content/Characters/Mannequins/Anims/Unarmed/ABP_Unarmed.uasset` |
+| Manny Visual Profile | `Content/AINativeNPC/Characters/DA_AINativeNPCVisual_Manny.uasset` |
+| Guard Sensor Profile | `Content/AINativeNPC/Perception/DA_AINativeNPCSensor_Guard.uasset` |
+| Debug Profile | `Content/AINativeNPC/Debug/DA_AINativeNPCDebug_Default.uasset` |
+| Walk·Jog 발소리 Curve | `Content/AINativeNPC/Perception/CF_AINativeNPCFootstep_Walk.uasset`, `CF_AINativeNPCFootstep_Jog.uasset` |
+| Surface A·B | `Content/AINativeNPC/Perception/PM_AINativeNPC_SurfaceA.uasset`, `PM_AINativeNPC_SurfaceB.uasset` |
+| 전용 Test Level | `Content/AINativeNPC/Maps/L_AINativeNPC_MVP.umap` |
 | 기본 입력 | `Content/Input/IMC_Default.uasset` |
 | 일반 NPC Skill handoff | `Content/AINativeNPC/StateTree/ST_AINativeNPCSkillHandoff.uasset` |
 | 보스 실행 StateTree | `Content/AINativeNPC/BossPattern/StateTree/ST_BossPatternExecution.uasset` |
@@ -2108,21 +2448,22 @@ Source/NeuralGame/AINativeNPC/
 | `Source/NeuralGame/NeuralGameCharacter.h/.cpp` | Quinn에 exact-one identity Component를 C++ 기본 Subobject로 둔다. | 완료 |
 | `Knowledge/AINativeNPCEntityIdentitySubsystem.h/.cpp` | persistent key, stable ID, spawn generation과 private ingress를 소유한다. | 완료 |
 | `Knowledge/AINativeNPCTargetIdentityComponent.h/.cpp` | Editor 수정 경로와 public initializer를 제거한다. | identity hardening 완료 |
-| `Knowledge/TypedTargetKnowledgeComponent.h/.cpp` | Sight·Hearing 공통 exact identity validator와 Sight 재획득 정리를 추가한다. | exact identity hardening 완료 |
-| `Knowledge/AINativeNPCGuardController.h/.cpp` | `UAINativeNPCSensorConfig`을 검증하고 한 번 적용한다. | C++ 적용 완료, Sensor Asset 미제작 |
-| `Execution/AINativeNPCGuardPawn.h/.cpp` | exact native class를 유지하고 `UAINativeNPCVisualProfile`을 적용한다. | C++ 적용 완료, Visual Asset 미제작 |
-| `Execution/AINativeNPCGoalHostComponent.h/.cpp` | Phase 3B 판단과 Skill 결과 기반 Goal 진행을 연결한다. | Phase 3A 있음 |
+| `Perception/AINativeNPCSightSense.h/.cpp` | 계속 보이는 Entity의 새 위치를 Perception callback으로 전달한다. | 연속 Sight 위치 갱신 완료 |
+| `Knowledge/TypedTargetKnowledgeComponent.h/.cpp` | Sight·Hearing 공통 exact identity validator, 연속 위치 갱신과 관측 Actor 종료 정리를 소유한다. | exact identity·lifecycle hardening 완료 |
+| `Knowledge/AINativeNPCGuardController.h/.cpp` | `UAINativeNPCSensorConfig`을 검증하고 한 번 적용한다. | 실제 Sensor Asset 적용 완료 |
+| `Execution/AINativeNPCGuardPawn.h/.cpp` | exact native class를 유지하고 `UAINativeNPCVisualProfile`을 적용한다. | 실제 Visual Asset과 Debug Component 적용 완료 |
+| `Execution/AINativeNPCGoalHostComponent.h/.cpp` | Phase 3B 판단과 Skill 결과 기반 Goal 진행을 연결한다. | 완료 |
 | `Profiles/AINativeNPCVisualProfile.h/.cpp` | Manny Mesh·Anim Class·relative transform을 제공한다. | C++와 validation 완료 |
 | `Profiles/AINativeNPCSensorConfig.h/.cpp` | Sight·Hearing·TTL과 surface loudness를 제공한다. | C++와 validation 완료 |
-| `Profiles/AINativeNPCDebugProfile.h/.cpp` | Editor·Development 표시 bool·색·거리를 제공한다. | C++와 validation 완료, 적용 Component 미구현 |
-| `Player/PlayerNoiseEmitterComponent.h/.cpp` | Quinn의 속도·surface별 Hearing Event를 서버에서 만든다. | 새 파일 목표 |
-| `Player/AnimNotify_ReportAINoise.h/.cpp` | 발 접촉 프레임을 Noise Emitter에 전달한다. | 새 파일 목표 |
+| `Profiles/AINativeNPCDebugProfile.h/.cpp` | Editor·Development 표시 bool·색·거리를 제공한다. | 실제 Debug Asset과 적용 Component 완료 |
+| `Player/PlayerNoiseEmitterComponent.h/.cpp` | Quinn의 속도·surface별 Hearing Event를 서버에서 만든다. | 완료 |
+| `Player/AnimNotify_ReportAINoise.h/.cpp` | 발 접촉 프레임을 Noise Emitter에 전달한다. | 완료, Walk·Jog 16개 Sequence 적용 |
 | `Tests/AINativeNPCNoiseTestEmitter.h/.cpp` | test-only identity가 있는 Hearing 자극을 한 번 만든다. | 새 파일 목표 |
-| `Debug/AINativeNPCDebugComponent.h/.cpp` | immutable `FAINativeNPCDebugSnapshot`을 만든다. | 새 파일 목표 |
+| `Debug/AINativeNPCDebugComponent.h/.cpp` | immutable `FAINativeNPCDebugSnapshot`을 만들고 읽기 전용 표시를 그린다. | 최소 표시 완료 |
 | `Debug/AINativeNPCDecisionLog.h/.cpp` | 구조화된 Decision Log를 기록한다. | 새 파일 목표 |
-| `Debug/AINativeNPCDecisionCaptureSubsystem.h/.cpp` | JSON·binary Capture와 SHA-256을 저장한다. | 새 파일 목표 |
-| `Debug/AINativeNPCDecisionReplaySubsystem.h/.cpp` | Capture를 pure Core 또는 preview world에서 재생한다. | 새 파일 목표 |
-| `Tests/*.cpp` | identity, Visual·Sensor validation, Perception, 발소리, Debug, Level smoke와 Phase 3B RED를 소유한다. | identity·Profile·native 적용 검사 완료, 나머지 확장 예정 |
+| `Debug/AINativeNPCDecisionCaptureSubsystem.h/.cpp` | 후속 수동 JSON·binary Archive를 저장한다. | 후속 제품 파일. Phase 3B Capture는 Goal Host에 구현됨 |
+| `Debug/AINativeNPCDecisionReplaySubsystem.h/.cpp` | 후속 수동 Archive를 pure Core 또는 preview world에서 재생한다. | 후속 제품 파일. Phase 3B Replay는 Goal Host의 pure Core 경로에 구현됨 |
+| `Tests/*.cpp` | identity, Visual·Sensor validation, Perception, 발소리, Debug, Level smoke와 Phase 3B 회귀검사를 소유한다. | Phase 0 장면·PIE와 Phase 3B production 검사 완료 |
 
 표의 상대 경로는 `Source/NeuralGame/AINativeNPC/` 아래다.
 
@@ -2140,9 +2481,11 @@ Source/NeuralGame/AINativeNPC/
 | 6 | `Content/AINativeNPC/Debug/WBP_AINativeNPCDecisionInspector.uasset` | immutable Debug Snapshot과 Replay Result를 표시한다. |
 | 7 | Walk Animation Sequence 8개 | 왼발·오른발 `UAnimNotify_ReportAINoise`를 배치한다. |
 | 8 | Jog Animation Sequence 8개 | 왼발·오른발 `UAnimNotify_ReportAINoise`를 배치한다. |
-| 9 | Surface A·B Physical Material과 바닥 Material | `AINPC_SurfaceA/B`와 Sensor loudness를 연결한다. |
-| 10 | `Content/AINativeNPC/Maps/L_AINativeNPC_MVP.umap` | 위 Asset을 사용해 Manny, Quinn, NavMesh, 차폐물과 시험 구역을 배치한다. |
+| 9 | Surface A·B Physical Material과 native platform | `AINativeNPC_SurfaceA/B`와 Sensor loudness를 연결한다. |
+| 10 | `Content/AINativeNPC/Maps/L_AINativeNPC_MVP.umap` | 위 Asset을 사용해 Manny, Quinn, Surface A·B, NavMesh Bounds와 시험 구역을 배치한다. |
 | 11 | Neural Policy와 ModelData | 제품 Phase 1 NNE 검증 뒤 만든다. |
+
+현재 완료된 Asset은 1~3, 7~10이다. 4~6은 Decision Capture·Replay와 제품 Inspector 작업에서 만든다.
 
 Phase 0에서는 `BP_AINativeNPC_Manny`, Goal Profile, Utility Profile과 Guard role Profile을 만들지 않는다.
 
@@ -2190,7 +2533,7 @@ Asset은 저장 뒤 Editor를 재시작하고 GameDevMCP로 다시 읽어 영속
 | 목적 | 명령 또는 필터 |
 |---|---|
 | Editor build | `Build.bat NeuralGameEditor Win64 Development -Project="D:\Codex-cli\NeuralProject\NeuralGame\NeuralGame.uproject" -WaitMutex -NoHotReloadFromIDE` |
-| 일반 NPC shipping focused | `Automation RunTests AINativeNPC.Shipping.GeneralNPC` |
+| 일반 NPC Editor Automation (`Shipping` filter 이름) | `Automation RunTests AINativeNPC.Shipping.GeneralNPC` |
 | Goal FSM | `Automation RunTests AINativeNPC.GoalFsm` |
 | 전체 | `Automation RunTests AINativeNPC` |
 | Data Validation | `-run=DataValidation -AllAssets -ProjectOnly` |
@@ -2220,21 +2563,45 @@ Windows 실행기는 Unreal Engine 5.7의 `UnrealEditor-Cmd.exe`를 사용한다
 | Phase 3B | 전체 단계 진행, teardown과 재등록 |
 | Neural | Python·ONNX·NNE 결과 일치, cook와 fallback |
 
-## 13.4 현재 Profile C++ 검증 증거
+## 13.4 현재 Unreal 수직 구성 검증 증거
 
-Profile C++과 native 적용의 최신 검증은 다음과 같다.
+Phase 0 실제 장면 구성의 최신 검증은 다음과 같다.
 
 | 검사 | 결과 |
 |---|---:|
 | Editor build | PASS |
 | `AINativeNPC.Shipping.Profiles` | 2/2 |
-| `AINativeNPC.Shipping.GeneralNPC` | 10/10 |
-| 전체 `AINativeNPC` | 136/136 |
-| Data Validation | 291 assets, error 0, warning 0 |
+| `AINativeNPC.Shipping.ProductionVertical` | 2/2, native Pawn·Controller 파생 차단 포함 |
+| `AINativeNPC.Play.ProductionVertical` | 1/1, direct probe, exact `ABP_Unarmed` Walk·Jog Sequence provenance 네 조합, 양면 라벨 outward 방향, 실제 Recast와 Capture readback 포함 |
+| `AINativeNPC.Authoring.ProductionVertical` fresh process 2회 | PASS, 18/18 package bytes unchanged |
+| `AINativeNPC.Shipping.GeneralNPC` | 14/14 |
+| 전체 `AINativeNPC` | 146/146 |
+| 전체 검사 뒤 Data Validation | 299 assets, error 0, warning 0 |
 
-이 증거는 C++ class와 transient Profile 적용 범위만 완료한다.
+현재 Phase 3B PIE·cook 증거 파일은 다음과 같다.
 
-Profile Asset 3개, Debug Component, cook 포함, Test Level과 Play smoke는 완료하지 않는다.
+- marker·passkey focused 검사: `Saved/Logs/AINativeNPCShippingReleaseFocusedLatest.log`
+- 전체 GeneralNPC: `Saved/Logs/AINativeNPCShippingReleaseGeneralNPCLatest.log`
+- 전체 AINativeNPC: `Saved/Logs/AINativeNPCShippingReleaseFullLatest.log`
+- production PIE와 Capture 복구: `Saved/Logs/AINativeNPCShippingReleaseProductionPIEFinal.log`
+- committed Capture 외부 검증: `Saved/Logs/AINativeNPCShippingReleaseCaptureValidatorFinal.txt`
+- Data Validation: `Saved/Logs/AINativeNPCPhase3BDataValidationFinal.log`
+- 필수 cooked Asset SHA: `Saved/Logs/AINativeNPCCookedAssetEvidenceLatest.txt`
+
+추가로 한 번 수행한 Shipping 테스트 기록은 다음과 같다.
+
+- 설치된 C++ 도구: `Saved/Logs/AINativeNPCShippingToolchainEvidence.txt`
+- clean Shipping build·cook·stage·archive: `Saved/Logs/AINativeNPCShippingBuildCookRun.log`
+- 배포 폴더 전체 SHA: `Saved/Logs/AINativeNPCShippingArchiveEvidence.txt`
+- Windows 실행 파일 시작: `Saved/Logs/AINativeNPCShippingStartupSmoke.txt`
+
+파일 이름의 `ShippingRelease`는 당시 사용한 증거 이름이다. 해당 Automation과 production PIE는 Unreal Editor에서 실행됐다.
+
+위 숫자는 Controller 파생 차단, 계속 보이는 Quinn의 위치 미갱신, 관측 Actor 종료 뒤 stale Entity 잔존, 발소리 수동 확인 값 미표시, 낮은 Surface 표지판, 양면 라벨 거울상과 Animation Notify provenance 누락을 hostile RED→GREEN으로 회수한 뒤 생성한 최신 로그다. 실제 Play 캡처는 기존 front/back 회전이 서로 뒤바뀌어 접근 쪽에서 글자가 거울상으로 보이는 문제를 찾았다. hostile PIE는 Surface A·B의 front/back 방향 네 assertion만 실패했다. 두 TextRender 회전을 교환한 뒤 focused PIE와 같은 카메라 캡처에서 cyan `SURFACE A`와 orange `SURFACE B`를 정상 방향으로 확인했다. 최신 production PIE의 direct probe는 마지막 성공 접촉의 Right·Walk·Surface B·`0.70`·count `2`를 읽기 전용 snapshot에서 확인하며 Notify 전용 count와 path를 바꾸지 않는다. 별도 locomotion matrix는 exact `ABP_Unarmed`에서 Surface A Walk `0.45`·Surface B Walk `0.70`은 `MF_Unarmed_Walk_Fwd`, Surface A Jog `0.70`·Surface B Jog `1.00`은 `MF_Unarmed_Jog_Fwd` Notify provenance와 함께 확인한다.
+
+이 증거는 실제 Profile 3개, Debug Component, Quinn Sight source, 계속 보이는 Quinn의 Entity 위치 갱신, 발소리 Emitter, 발소리 `foot/mode/surface/loudness/count` 읽기 전용 표시, Walk·Jog Notify 16개 저장, Surface A·B, NavMesh Bounds와 `L_AINativeNPC_MVP`의 자동 PIE 범위를 완료한다. direct probe는 계산·Hearing adapter를 검사하고, locomotion matrix는 exact AnimClass·Sequence path·Notify 전용 성공 count를 통해 실제 Animation Notify production 경로를 검사한다. cyan/orange 바닥과 양면 높은 표지판은 collision과 Navigation 영향을 끄고 walkable top의 Physical Material을 유지한다. 각 라벨의 forward vector는 actor의 해당 바깥 방향과 일치한다. 전체 AI 검사 뒤 마지막 Data Validation을 실행했다. 맵 root와 ExternalObjects 5개는 유지됐다. ExternalActors 수는 70개를 유지하며, 그중 `RecastNavMesh-Default`와 `AINativeNPC_NavMeshBounds` 두 package만 실제 Recast Phase 3B를 위해 변경됐다.
+
+사람이 직접 한 Play에서 파란 Entity 스피어 연속 추적, 벽 뒤 노란 LastKnownPosition 전환, 실제 발 접촉 Animation Notify의 빨간 SoundEvent, 같은 발소리의 `IdleObserve/Observe → InvestigateDisturbance/Orient` 제품 Goal 전환, Walk 전환 입력과 Surface A·B × Walk·Jog 네 값 `0.45/0.70/0.70/1.00`을 확인했다. 실제 Play 화면 캡처에서는 cyan `SURFACE A`와 orange `SURFACE B`의 높이·색 대비·정상 방향 라벨을 확인했다. 숨은 Quinn 이동 중 LastKnown 고정은 사람이 직접 확인할 항목으로 남아 있다. 자동 production PIE는 해당 고정, 실제 Recast Phase 3B 전체 행동과 Decision Capture·Replay를 통과했다. Windows cook도 통과했다. Shipping 빌드·패키징·시작은 추가 테스트로 한 번 성공했다. 제품 Widget과 후속 제품 단계는 남아 있다.
 
 ## 13.5 완료 판정
 
@@ -2286,8 +2653,8 @@ Profile Asset 3개, Debug Component, cook 포함, Test Level과 Play smoke는 �
 
 | 계약 | 버전 또는 SHA-256 |
 |---|---|
-| Requirements SHA-256 | `2bb7f2b8b11554125b12739f473b1c3619913607125a38aa533df997160bc1a2` |
-| Technical Requirements SHA-256 | `7a581bbeb1b7a7b91e16006a908463a032fa28e734faa7d5c7305ba8d21121ae` |
+| Requirements SHA-256 | `2444ad635a79a74c7326f6d1bd3a05d03d56894677368988459e43dbb0be8168` |
+| Technical Requirements SHA-256 | `084f8ba9c6091878da1096d5525e34f7659621a28ffd09b6c458ed4018cb50ae` |
 | Schema YAML SHA-256 | `a7791004de0534f29198ebf5eaaff7cd764185b59b05446d419f5d0a3303f886` |
 | Boss Pattern Contract SHA-256 | `e4f828c114fcc5db1cb04b5d0a6e2b3d29dada7e45c60a3dd18c674baa78c789` |
 | Skill Registry SHA-256 | `ed0454691c17761d81ee52ac0c729f6f83adec97a954a4808107d078ba49975d` |
@@ -2309,7 +2676,7 @@ Profile Asset 3개, Debug Component, cook 포함, Test Level과 Play smoke는 �
 - Goal Registry: `1.1.0` / SHA-256 `d9eb13898cf2d066320977073b1e82458cc0d7bdfd512ef6983ad9a2d44c8f3e`
 - `GuardPhase0` bounded semantics authority: **PASS**
 - Authority scope: 9 executable unique guards, 3 provider-unavailable unique guards, 12 executable transition bindings, 2 staged effects, 5 production executable Skills
-- Gameplay Goal FSM: **HOLD** — complete guard catalog, other Goals, full Utility/Commit/Skill-result progression, arbitration/save archive, and product release are not claimed by this bounded authority PASS.
+- Gameplay Goal FSM: **HOLD** — complete guard catalog, other Goals, arbitration/save archive, and product release are not claimed by this bounded authority PASS.
 <!-- END GOAL GAMEPLAY SEMANTICS V1 STATUS -->
 
 </details>

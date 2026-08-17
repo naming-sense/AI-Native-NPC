@@ -1030,7 +1030,7 @@ def _doc_status_block(registry: dict[str, Any], digest: str) -> str:
             f"- Goal Registry: `{registry['registry']['version']}` / SHA-256 `{digest}`",
             f"- `{contract['scope']['profile_id']}` bounded semantics authority: **PASS**",
             f"- Authority scope: {claims['executable_unique_guards']} executable unique guards, {claims['unavailable_unique_guards']} provider-unavailable unique guards, {claims['executable_transition_bindings']} executable transition bindings, {claims['effects']} staged effects, {claims['production_executable_skills']} production executable Skills",
-            "- Gameplay Goal FSM: **HOLD** — complete guard catalog, other Goals, full Utility/Commit/Skill-result progression, arbitration/save archive, and product release are not claimed by this bounded authority PASS.",
+            "- Gameplay Goal FSM: **HOLD** — complete guard catalog, other Goals, arbitration/save archive, and product release are not claimed by this bounded authority PASS.",
             DOC_END,
         ]
     )

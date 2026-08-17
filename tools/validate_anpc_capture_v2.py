@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, cast
 
 MAGIC = b"ANPCCAP2"
+COMMIT_MAGIC = b"ANPCCMT2"
 SAMPLE_MAGIC = b"ANPCSAMPLE2"
 FEATURE_MAGIC = b"ANPCFEAT1"
 CANDIDATE_MAGIC = b"ANPCSET2"
@@ -219,8 +220,7 @@ def validate_float32_block(block: bytes, name: str, normalized: bool = False) ->
             require(0.0 <= value <= 1.0, f"{name} normalized value out of range")
 
 
-def validate_capture(path: Path) -> dict[str, Any]:
-    capture_bytes = path.read_bytes()
+def _validate_capture_bytes(capture_bytes: bytes, path: Path) -> dict[str, Any]:
     reader = Reader(capture_bytes)
     require(reader.take(8) == MAGIC, "capture magic mismatch")
     require(reader.u32() == 1, "unsupported capture envelope version")
@@ -412,13 +412,34 @@ def validate_capture(path: Path) -> dict[str, Any]:
     }
 
 
+def validate_capture(path: Path) -> dict[str, Any]:
+    return _validate_capture_bytes(path.read_bytes(), path)
+
+
+def validate_committed_capture(path: Path) -> dict[str, Any]:
+    capture_bytes = path.read_bytes()
+    marker_path = Path(str(path) + ".committed")
+    marker_bytes = marker_path.read_bytes()
+    marker_prefix = (
+        COMMIT_MAGIC
+        + struct.pack("<I", 1)
+        + struct.pack("<Q", len(capture_bytes))
+        + hashlib.sha256(capture_bytes).digest()
+    )
+    require(marker_bytes == marker_prefix + hashlib.sha256(marker_prefix).digest(),
+            "committed marker missing, malformed, tampered, or bound to different capture bytes")
+    result = _validate_capture_bytes(capture_bytes, path)
+    result["committed_marker"] = str(marker_path)
+    return result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("capture", type=Path)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     try:
-        result = validate_capture(args.capture)
+        result = validate_committed_capture(args.capture)
     except (OSError, ValidationError) as exc:
         print(f"FAIL: {exc}")
         return 1

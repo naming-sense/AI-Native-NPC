@@ -3,10 +3,10 @@
 # AI Native NPC 제품 요구사항
 ## 처음 보는 사람을 위한 의사결정 시스템 설명
 
-- 문서 버전: **v0.4.14**
-- 개정일: 2026-08-12
+- 문서 버전: **v0.4.15**
+- 개정일: 2026-08-17
 - 주 독자: **기획자, 사업 책임자, Gameplay Designer, 새로 합류한 개발자**
-- 한 줄 상태: **일반 NPC가 유효한 소리를 듣고 조사 Goal을 시작하는 Phase 3A는 완료됐다. 다음 Phase 3B는 Goal에 맞는 행동을 고르고 실행 결과에 따라 다음 단계로 진행하는 흐름을 연결한다.**
+- 한 줄 상태: **일반 NPC가 유효한 소리를 듣고 조사 Goal을 시작하는 Phase 3A와 Goal에 맞는 행동을 골라 조사 후 복귀하는 Phase 3B까지 완료됐다.**
 - 세부 기술 계약: [AI Native NPC 세부 기술 요구사항](technical-requirements.md)
 - 정확한 ID·크기·수치: [Contract Appendices](contract-appendices.md)
 - 구현 순서: [Implementation Plan](implementation-plan.md)
@@ -84,7 +84,7 @@ AI Native NPC는 **NPC가 알고 있는 정보와 현재 목적을 바탕으로 
 
 실제 사건 처리에서는 관측으로 얻은 Knowledge가 Goal을 활성화할 수 있다. 이 문서는 행동 선택의 기준인 Goal을 먼저 설명한 뒤, 그 판단에 쓰는 Knowledge와 Target을 설명한다.
 
-현재 Phase 3A는 위 흐름의 `발소리를 들음 → 조사 Goal 활성화`까지 실제 Unreal 경로에 연결한다. Phase 3B는 `Target 선택 → Candidate 생성 → Utility 선택 → Commit → Skill 결과 처리`를 연결한다.
+현재 Phase 3A는 위 흐름의 `발소리를 들음 → 조사 Goal 활성화`를 실제 Unreal 경로에 연결한다. Phase 3B는 `Target 선택 → Candidate 생성 → Utility 선택 → Commit → Skill 결과 처리 → 대기 복귀`를 같은 실제 경로에 연결한다.
 
 ---
 
@@ -393,7 +393,7 @@ IdleObserve/Observe
 - 최종 Round 6 독립 확인: 관련 파일 `116/116`, 문제 `0`
 
 <a id="phase-3b"></a>
-## 10.2 목표에 맞는 행동을 고르고 다음 단계로 진행한다 (Phase 3B — 다음 작업)
+## 10.2 목표에 맞는 행동을 고르고 다음 단계로 진행한다 (Phase 3B — 완료)
 
 Phase 3B는 활성 Goal이 직접 Target과 행동을 고르고 Skill 결과를 다음 Goal 단계로 연결하는 기능이다.
 
@@ -409,7 +409,7 @@ Goal
 → 다음 Goal 단계
 ```
 
-Phase 3B는 다음 순서로 구현한다.
+Phase 3B는 다음 순서로 구현됐다.
 
 1. 활성 Goal과 현재 단계가 사용할 Target을 결정한다.
 2. Knowledge와 Goal-owned Target으로 17개 Target 자리를 만든다.
@@ -430,6 +430,8 @@ Phase 3B의 안전 기준:
 - 같은 결정이나 Skill 결과는 한 번만 적용한다.
 - component 제거·재등록 뒤에는 이전 판단과 callback을 다시 사용하지 않는다.
 
+실제 Guard는 한 번의 Hearing에서 `TurnTo → Investigate → SearchArea → Approach`를 Commit했다. 실제 Recast 이동 뒤에는 새 `IdleObserve/Observe`로 돌아왔다. 네 판단의 Capture와 matching committed marker도 저장 후 다시 읽어 검증했다.
+
 이번 Phase 3B 범위에는 `InvestigateDisturbance/Resolve`, 다른 Goal 전체, Cover·SmartObject 실제 예약, Neural 모델, 전체 중단 경쟁, 저장·복원과 replication이 포함되지 않는다.
 
 정확한 작업 순서와 파일은 [구현 계획의 Phase 3B](implementation-plan.md#phase-3b)와 [Unreal 구현 계획의 Phase 3B](unreal-implementation-plan.md#phase-3b)를 따른다.
@@ -441,8 +443,8 @@ Phase 3B의 안전 기준:
 | Schema·Registry·generated binding | PASS | 정확한 타입과 표는 Python/C++에 동기화됨 |
 | Goal Dispatcher·Timer Core | PASS | Goal 전환과 Timer Runtime이 구현됨 |
 | Phase 3A: 소리 감지→조사 Goal 시작 | 완료 | 실제 Pawn·Controller·Knowledge 경로에서 검증됨 |
-| Phase 3B: 행동 선택→실행→Goal 단계 진행 | 다음 작업 | 개별 Core는 있으나 production Goal 경로 연결이 필요함 |
-| 일반 NPC Gameplay Goal FSM 전체 | 진행 중 | Phase 3B 뒤에도 다른 Goal·중단 경쟁·저장 기능이 남음 |
+| Phase 3B: 행동 선택→실행→Goal 단계 진행 | 완료 | 실제 Guard가 네 단계를 실행하고 `IdleObserve`로 복귀함 |
+| 일반 NPC Gameplay Goal FSM 전체 | 진행 중 | 다른 Goal·중단 경쟁·저장 기능이 남음 |
 | Boss Pattern 안전 Core와 Host/start 기반 | 제한된 phase PASS | fixture-backed 실행 기반은 검증됨 |
 | 실제 Boss 전투 효과 | HOLD | production selector, Montage, Hitbox, Damage 등이 없음 |
 | Neural Policy·ONNX·NNE | HOLD | 실제 모델과 adapter가 없음 |
@@ -450,13 +452,14 @@ Phase 3B의 안전 기준:
 
 ## 10.4 전체 일반 NPC Runtime 완료라고 말하려면
 
-일반 NPC Runtime 완료에는 다음이 모두 필요하다.
+Phase 3B의 Target→Candidate→Utility→Commit→Skill-result 연결은 완료됐다.
 
-1. Phase 3B의 Target→Candidate→Utility→Commit→Skill-result 연결
-2. 나머지 guard와 effect의 실제 provider
-3. 다른 Goal과 전체 중단 경쟁
-4. save/load와 replication
-5. Unreal Automation, Data Validation과 실제 gameplay smoke
+일반 NPC Runtime 전체 완료에는 다음이 더 필요하다.
+
+1. 나머지 guard와 effect의 실제 provider
+2. 다른 Goal과 전체 중단 경쟁
+3. save/load와 replication
+4. 추가한 제품 기능의 Unreal Automation, Data Validation과 실제 gameplay smoke
 
 AI 모델 Release에는 여기에 다음이 더 필요하다.
 
