@@ -13,12 +13,32 @@ from typing import Any
 import yaml
 
 
-EXECUTION_SKILL_NAMES = ("TurnTo", "Approach", "Investigate", "SearchArea")
+EXECUTION_SKILL_NAMES = ("TurnTo", "Approach", "Investigate", "SearchArea", "Greet")
 CPP_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 def _finite_number(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(float(value))
+
+
+def _cpp_string(value: str) -> str:
+    """Return a deterministic UTF-8 byte-safe C++ string literal."""
+    if not isinstance(value, str):
+        raise TypeError("C++ string value must be str")
+    escapes = {
+        0x08: r"\b", 0x09: r"\t", 0x0A: r"\n", 0x0C: r"\f", 0x0D: r"\r",
+        0x22: r'\"', 0x5C: r"\\",
+    }
+    encoded: list[str] = ['"']
+    for byte in value.encode("utf-8"):
+        if byte in escapes:
+            encoded.append(escapes[byte])
+        elif 0x20 <= byte <= 0x7E:
+            encoded.append(chr(byte))
+        else:
+            encoded.append(f"\\{byte:03o}")
+    encoded.append('"')
+    return "".join(encoded)
 
 
 def _require_keys(value: Any, keys: set[str], label: str, errors: list[str]) -> bool:
@@ -102,6 +122,11 @@ def validate_registry(registry: dict[str, Any]) -> list[str]:
     contract = registry.get("execution_semantics_v1")
     if not isinstance(contract, dict):
         return ["execution_semantics_v1 missing"]
+    header = registry.get("registry", {})
+    if not isinstance(header, dict) or header.get("version") != "1.1.0" or header.get("contract_revision") != "2.0.0-rc6":
+        errors.append("skill registry RC6 version mismatch")
+    if contract.get("version") != "1.1.0":
+        errors.append("execution semantics version mismatch")
     if contract.get("status") != "approved_production_authority":
         errors.append("execution semantics status mismatch")
     if not isinstance(contract.get("approved_on"), str):
@@ -194,6 +219,72 @@ def validate_registry(registry: dict[str, Any]) -> list[str]:
 
     if isinstance(execution_skills.get("SearchArea"), dict):
         _validate_search_offsets(execution_skills["SearchArea"], errors)
+    greet = execution_skills.get("Greet")
+    if isinstance(greet, dict):
+        expected_keys = {
+            "skill_id", "target_kind", "target_position_policy", "requires_los",
+            "active_parameter_slots", "inactive_parameter_slots", "inactive_parameter_value",
+            "duration_seconds", "intensity", "gameplay_effect", "lifecycle",
+            "duplicate_policy", "event_exclusivity",
+        }
+        if set(greet) != expected_keys:
+            errors.append("Greet execution semantics structure mismatch")
+        row = rows.get("Greet", {})
+        parameters = row.get("parameters", []) if isinstance(row, dict) else []
+        by_slot = {parameter.get("slot"): parameter for parameter in parameters if isinstance(parameter, dict)}
+        if (
+            greet.get("skill_id") != 10
+            or greet.get("target_kind") != "Entity"
+            or greet.get("target_position_policy") != "exact_current_visible_entity_actor"
+            or greet.get("requires_los") is not True
+            or greet.get("active_parameter_slots") != {"duration": 0, "intensity": 3}
+            or greet.get("inactive_parameter_slots") != [1, 2]
+            or greet.get("inactive_parameter_value") != 0.0
+            or greet.get("duration_seconds") != {"min": 1.0, "max": 5.0, "default": 2.0}
+            or greet.get("intensity") != {"min": 0.0, "max": 1.0, "default": 0.5}
+            or by_slot.get(0, {}).get("name") != "duration"
+            or by_slot.get(3, {}).get("name") != "intensity"
+        ):
+            errors.append("Greet parameter/Target contract mismatch")
+        effect = greet.get("gameplay_effect", {})
+        lifecycle = greet.get("lifecycle", {})
+        duplicate = greet.get("duplicate_policy", {})
+        exclusivity = greet.get("event_exclusivity", {})
+        expected_effect = {
+            "focus_target": "exact_entity_actor",
+            "social_signal": "server_authoritative_greet_one_shot",
+            "cue": "source_guard_world_space_visible",
+            "cue_base_visible_at_zero_intensity": True,
+            "presentation_strength": "clamp_intensity_zero_one",
+            "target_receiver_component_required": False,
+        }
+        expected_lifecycle = {
+            "start_publication": "effect_start_succeeds",
+            "success": "signal_started_once_and_authoritative_cue_duration_completed",
+            "cancel_on": [
+                "GoalChanged", "AuthorityLost", "TargetInvalidated", "LosLost",
+                "ExecutorQuarantined", "StateTreeExit",
+            ],
+            "stale_callback_policy": "reject_exact_identity_mismatch",
+        }
+        expected_duplicate = {
+            "scope": "pawn_session",
+            "decision_rule": "strictly_greater_than_highest_applied",
+            "identity_fields": ["SessionId", "DecisionId", "GoalToken", "SkillId", "TargetHandle"],
+            "session_change_policy": "close_old_authority_before_reset_high_water",
+            "guarantee": "in_process_session_lifetime_at_most_once",
+        }
+        expected_exclusivity = {
+            "target_invalid_producer_event": "TargetInvalidated",
+            "same_cause_skill_failed_forbidden": True,
+        }
+        if (
+            effect != expected_effect
+            or lifecycle != expected_lifecycle
+            or duplicate != expected_duplicate
+            or exclusivity != expected_exclusivity
+        ):
+            errors.append("Greet effect/at-most-once contract mismatch")
     return errors
 
 
@@ -249,6 +340,11 @@ def generate_cpp(registry: dict[str, Any], digest: str) -> str:
     skills = contract["skills"]
     rows = {row["name"]: row for row in registry["skills"]}
     offsets = skills["SearchArea"]["normalized_offsets"]
+    greet = skills["Greet"]
+    greet_lifecycle = greet["lifecycle"]
+    greet_duplicate = greet["duplicate_policy"]
+    greet_cancel_on = ", ".join(_cpp_string(value) for value in greet_lifecycle["cancel_on"])
+    greet_identity_fields = ", ".join(_cpp_string(value) for value in greet_duplicate["identity_fields"])
     offset_rows = ",\n".join(f"    FSearchOffset{{{_cpp_number(x)}, {_cpp_number(y)}}}" for x, y in offsets)
     cases: list[str] = []
     for name in EXECUTION_SKILL_NAMES:
@@ -265,7 +361,7 @@ def generate_cpp(registry: dict[str, Any], digest: str) -> str:
 #include "AINativeNPCContracts.generated.h"
 
 namespace AINativeNPC::SkillExecutionV1 {{
-inline constexpr const char* SkillRegistrySha256 = "{digest}";
+inline constexpr const char* SkillRegistrySha256 = {_cpp_string(digest)};
 inline constexpr double EvaluationIntervalSeconds = {_cpp_number(common["evaluation_interval_seconds"])};
 inline constexpr double IntensitySpeedBase = {_cpp_number(multiplier["base"])};
 inline constexpr double IntensitySpeedScale = {_cpp_number(multiplier["scale"])};
@@ -278,6 +374,28 @@ inline constexpr double InvestigateFacingToleranceDegrees = {_cpp_number(skills[
 inline constexpr double InvestigateSuccessStableSeconds = {_cpp_number(skills["Investigate"]["success_stable_seconds"])};
 inline constexpr double InvestigateBaseTurnSpeedDegreesPerSecond = {_cpp_number(skills["Investigate"]["base_turn_speed_degrees_per_second"])};
 inline constexpr double SearchPointAcceptanceRadiusCm = {_cpp_number(skills["SearchArea"]["point_acceptance_radius_cm"])};
+inline constexpr double GreetDurationMinSeconds = {_cpp_number(skills["Greet"]["duration_seconds"]["min"])};
+inline constexpr double GreetDurationMaxSeconds = {_cpp_number(skills["Greet"]["duration_seconds"]["max"])};
+inline constexpr double GreetDurationDefaultSeconds = {_cpp_number(skills["Greet"]["duration_seconds"]["default"])};
+inline constexpr double GreetIntensityMin = {_cpp_number(skills["Greet"]["intensity"]["min"])};
+inline constexpr double GreetIntensityMax = {_cpp_number(skills["Greet"]["intensity"]["max"])};
+inline constexpr double GreetIntensityDefault = {_cpp_number(skills["Greet"]["intensity"]["default"])};
+inline constexpr bool GreetRequiresLos = {str(skills["Greet"]["requires_los"]).lower()};
+inline constexpr std::size_t GreetDurationParameterSlot = {skills["Greet"]["active_parameter_slots"]["duration"]};
+inline constexpr std::size_t GreetIntensityParameterSlot = {skills["Greet"]["active_parameter_slots"]["intensity"]};
+inline constexpr const char* GreetSocialSignal = {_cpp_string(greet["gameplay_effect"]["social_signal"])};
+inline constexpr const char* GreetCue = {_cpp_string(greet["gameplay_effect"]["cue"])};
+inline constexpr bool GreetCueBaseVisibleAtZeroIntensity = {str(skills["Greet"]["gameplay_effect"]["cue_base_visible_at_zero_intensity"]).lower()};
+inline constexpr bool GreetTargetReceiverComponentRequired = {str(skills["Greet"]["gameplay_effect"]["target_receiver_component_required"]).lower()};
+inline constexpr const char* GreetLifecycleStartPublication = {_cpp_string(greet_lifecycle["start_publication"])};
+inline constexpr const char* GreetLifecycleSuccess = {_cpp_string(greet_lifecycle["success"])};
+inline constexpr std::array<const char*, {len(greet_lifecycle["cancel_on"])}> GreetLifecycleCancelOn{{{{{greet_cancel_on}}}}};
+inline constexpr const char* GreetStaleCallbackPolicy = {_cpp_string(greet_lifecycle["stale_callback_policy"])};
+inline constexpr const char* GreetDuplicateScope = {_cpp_string(greet_duplicate["scope"])};
+inline constexpr const char* GreetDuplicateDecisionRule = {_cpp_string(greet_duplicate["decision_rule"])};
+inline constexpr std::array<const char*, {len(greet_duplicate["identity_fields"])}> GreetDuplicateIdentityFields{{{{{greet_identity_fields}}}}};
+inline constexpr const char* GreetDuplicateSessionChangePolicy = {_cpp_string(greet_duplicate["session_change_policy"])};
+inline constexpr const char* GreetDuplicateGuarantee = {_cpp_string(greet_duplicate["guarantee"])};
 inline constexpr std::size_t SearchPointCount = {len(offsets)};
 struct FSearchOffset {{ double X; double Y; }};
 inline constexpr std::array<FSearchOffset, SearchPointCount> SearchNormalizedOffsets{{{{
@@ -334,6 +452,7 @@ def generate_markdown(registry: dict[str, Any], digest: str) -> str:
         f"| Approach | {skills['Approach']['skill_id']} | planar distance ≤ preferred_distance | 0 s | complete path only |",
         f"| Investigate | {skills['Investigate']['skill_id']} | distance and yaw error ≤ {skills['Investigate']['facing_tolerance_degrees']}° | {skills['Investigate']['success_stable_seconds']} s | base turn {skills['Investigate']['base_turn_speed_degrees_per_second']}°/s |",
         f"| SearchArea | {skills['SearchArea']['skill_id']} | all valid points, or deadline after ≥1 visit | duration budget | {len(skills['SearchArea']['normalized_offsets'])} fixed world-axis points; {skills['SearchArea']['point_acceptance_radius_cm']} cm acceptance |",
+        f"| Greet | {skills['Greet']['skill_id']} | exact one-shot signal and authoritative visible cue duration complete | duration | Entity + LOS; duration {skills['Greet']['duration_seconds']['min']}–{skills['Greet']['duration_seconds']['max']} s; intensity {skills['Greet']['intensity']['min']}–{skills['Greet']['intensity']['max']} |",
         "",
         "## Deterministic SearchArea offsets",
         "",
@@ -374,12 +493,21 @@ def sync_digest_consumers(root: Path, digest: str) -> None:
         r'SKILL_REGISTRY_SHA256 = "[0-9a-f]{64}"',
         f'SKILL_REGISTRY_SHA256 = "{digest}"',
     )
-    for relative in ["docs/current/contract-appendices.md", "docs/current/unreal-implementation-plan.md"]:
+    for relative, pattern in [
+        ("docs/current/contract-appendices.md", r"(?<=Skill Registry SHA-256: `)[0-9a-f]{64}(?=`)"),
+        ("docs/current/unreal-implementation-plan.md", r"(?<=\| Skill Registry SHA-256 \| `)[0-9a-f]{64}(?=` \|)"),
+    ]:
         replace_exact_pattern(
             root / relative,
-            r"(?<=Skill Registry SHA-256: `)[0-9a-f]{64}(?=`)",
+            pattern,
             digest,
         )
+    for relative in ["docs/current/contract-appendices.md", "docs/current/unreal-implementation-plan.md"]:
+        path = root / relative
+        text = path.read_text(encoding="utf-8")
+        text = re.sub(r'(?<="skill_registry_version": ")\d+\.\d+\.\d+(?=")', "1.1.0", text)
+        text = re.sub(r"(?<=`skill_registry_version` \| `)\d+\.\d+\.\d+(?=`)", "1.1.0", text)
+        path.write_text(text, encoding="utf-8")
 
 
 def expected_outputs(root: Path, registry: dict[str, Any]) -> dict[Path, str]:

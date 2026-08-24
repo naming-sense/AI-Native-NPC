@@ -42,6 +42,11 @@ class ApprovedExecutionSemanticsContractTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.registry = load_yaml(REGISTRY)
 
+    def test_rc6_semantics_versions_are_exact(self) -> None:
+        self.assertEqual(self.registry["registry"]["version"], "1.1.0")
+        self.assertEqual(self.registry["registry"]["contract_revision"], "2.0.0-rc6")
+        self.assertEqual(self.registry["execution_semantics_v1"]["version"], "1.1.0")
+
     def test_common_contract_is_exact(self) -> None:
         common = self.registry["execution_semantics_v1"]["common"]
         self.assertEqual(common["authority"], "server_game_thread")
@@ -154,14 +159,31 @@ class ApprovedExecutionSemanticsContractTests(unittest.TestCase):
         for x, y in offsets[5:]:
             self.assertTrue(math.isclose(math.hypot(x, y), 1.0, abs_tol=1e-12))
 
+    def test_greet_contract_is_exact(self) -> None:
+        skill = self.registry["execution_semantics_v1"]["skills"]["Greet"]
+        self.assertEqual(skill["skill_id"], 10)
+        self.assertEqual(skill["target_kind"], "Entity")
+        self.assertTrue(skill["requires_los"])
+        self.assertEqual(skill["active_parameter_slots"], {"duration": 0, "intensity": 3})
+        self.assertEqual(skill["inactive_parameter_slots"], [1, 2])
+        self.assertEqual(skill["gameplay_effect"]["social_signal"], "server_authoritative_greet_one_shot")
+        self.assertEqual(skill["gameplay_effect"]["cue"], "source_guard_world_space_visible")
+        self.assertTrue(skill["gameplay_effect"]["cue_base_visible_at_zero_intensity"])
+        self.assertFalse(skill["gameplay_effect"]["target_receiver_component_required"])
+        self.assertEqual(skill["duplicate_policy"]["scope"], "pawn_session")
+        self.assertEqual(skill["duplicate_policy"]["decision_rule"], "strictly_greater_than_highest_applied")
+        self.assertEqual(skill["duplicate_policy"]["guarantee"], "in_process_session_lifetime_at_most_once")
+        self.assertTrue(skill["event_exclusivity"]["same_cause_skill_failed_forbidden"])
+
     def test_skill_ids_and_parameter_ranges_stay_bound_to_registry_rows(self) -> None:
         by_name = {row["name"]: row for row in self.registry["skills"]}
-        expected_ids = {"TurnTo": 3, "Approach": 4, "Investigate": 8, "SearchArea": 9}
+        expected_ids = {"TurnTo": 3, "Approach": 4, "Investigate": 8, "SearchArea": 9, "Greet": 10}
         expected_ranges = {
             "TurnTo": [(0.25, 2.0, 0.75), (90.0, 720.0, 360.0), (0.0, 0.0, 0.0), (0.0, 1.0, 0.5)],
             "Approach": [(0.5, 10.0, 3.0), (150.0, 600.0, 350.0), (100.0, 500.0, 200.0), (0.0, 1.0, 0.5)],
             "Investigate": [(1.0, 12.0, 5.0), (100.0, 500.0, 280.0), (100.0, 1200.0, 400.0), (0.0, 1.0, 0.6)],
             "SearchArea": [(3.0, 20.0, 8.0), (80.0, 400.0, 220.0), (200.0, 2000.0, 700.0), (0.0, 1.0, 0.6)],
+            "Greet": [(1.0, 5.0, 2.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 1.0, 0.5)],
         }
         for name, skill_id in expected_ids.items():
             self.assertEqual(by_name[name]["id"], skill_id)
@@ -184,6 +206,43 @@ class ApprovedExecutionSemanticsContractTests(unittest.TestCase):
         bad = deepcopy(good)
         bad["execution_semantics_v1"]["skills"]["Approach"]["skill_id"] = 8
         self.assertIn("Approach skill_id mismatch", generator.validate_registry(bad))
+
+        bad = deepcopy(good)
+        bad["execution_semantics_v1"]["skills"]["Greet"]["gameplay_effect"].pop("cue")
+        self.assertIn("Greet effect/at-most-once contract mismatch", generator.validate_registry(bad))
+
+        bad = deepcopy(good)
+        bad["execution_semantics_v1"]["skills"]["Greet"]["duplicate_policy"]["decision_rule"] = "greater_or_equal"
+        self.assertIn("Greet effect/at-most-once contract mismatch", generator.validate_registry(bad))
+
+        bad = deepcopy(good)
+        bad["execution_semantics_v1"]["skills"]["Greet"]["lifecycle"]["stale_callback_policy"] = "accept_identity_mismatch"
+        self.assertIn("Greet effect/at-most-once contract mismatch", generator.validate_registry(bad))
+
+        bad = deepcopy(good)
+        bad["execution_semantics_v1"]["skills"]["Greet"]["duplicate_policy"]["identity_fields"] = []
+        self.assertIn("Greet effect/at-most-once contract mismatch", generator.validate_registry(bad))
+
+        bad = deepcopy(good)
+        bad["execution_semantics_v1"]["skills"]["Greet"]["duplicate_policy"]["session_change_policy"] = "reset_high_water_before_close_old_authority"
+        self.assertIn("Greet effect/at-most-once contract mismatch", generator.validate_registry(bad))
+
+        for field, value in (
+            ("start_publication", None),
+            ("success", "signal_started_only"),
+            ("cancel_on", []),
+        ):
+            bad = deepcopy(good)
+            lifecycle = bad["execution_semantics_v1"]["skills"]["Greet"]["lifecycle"]
+            if value is None:
+                lifecycle.pop(field)
+            else:
+                lifecycle[field] = value
+            self.assertIn("Greet effect/at-most-once contract mismatch", generator.validate_registry(bad))
+
+        bad = deepcopy(good)
+        bad["execution_semantics_v1"]["skills"]["Greet"]["duplicate_policy"]["reset_policy"] = "reset_on_goal_change"
+        self.assertIn("Greet effect/at-most-once contract mismatch", generator.validate_registry(bad))
 
     def test_generator_derives_runtime_target_policy_from_registry(self) -> None:
         generator = import_path("skill_execution_semantics_generator_target_policy_test", GENERATOR)
@@ -212,6 +271,14 @@ class ApprovedExecutionSemanticsContractTests(unittest.TestCase):
         self.assertIn("TurnFacingToleranceDegrees = 5", cpp)
         self.assertIn("InvestigateSuccessStableSeconds = 0.5", cpp)
         self.assertIn("SearchPointCount = 9", cpp)
+        self.assertIn("GreetLifecycleStartPublication", cpp)
+        self.assertIn("GreetLifecycleSuccess", cpp)
+        self.assertIn("GreetLifecycleCancelOn", cpp)
+        self.assertIn("GreetStaleCallbackPolicy", cpp)
+        self.assertIn("GreetDuplicateIdentityFields", cpp)
+        self.assertIn("GreetDuplicateDecisionRule", cpp)
+        self.assertIn("GreetDuplicateSessionChangePolicy", cpp)
+        self.assertIn("GreetDuplicateGuarantee", cpp)
         self.assertIn("PRODUCTION AUTHORITY", doc)
 
         self.assertIn(digest, MONOLITHIC_CPP.read_text(encoding="utf-8"))

@@ -1,8 +1,8 @@
 registry:
   name: ai_native_npc_skill_registry
-  version: 1.0.0
+  version: 1.1.0
   schema_version: 2.0.0
-  contract_revision: 2.0.0-rc5
+  contract_revision: 2.0.0-rc6
   parameter_slot_count: 4
 parameter_output:
   dtype: float32
@@ -52,8 +52,9 @@ target_commit_policies:
   NoTarget:
     mode: none
 execution_semantics_v1:
+  version: 1.1.0
   status: approved_production_authority
-  approved_on: '2026-08-11'
+  approved_on: '2026-08-20'
   common:
     authority: server_game_thread
     target_position_policy: recapture_at_execution_start_then_freeze
@@ -135,6 +136,37 @@ execution_semantics_v1:
       - [-0.7071067811865476, 0.7071067811865476]
       - [-0.7071067811865476, -0.7071067811865476]
       - [0.7071067811865476, -0.7071067811865476]
+    Greet:
+      skill_id: 10
+      target_kind: Entity
+      target_position_policy: exact_current_visible_entity_actor
+      requires_los: true
+      active_parameter_slots: {duration: 0, intensity: 3}
+      inactive_parameter_slots: [1, 2]
+      inactive_parameter_value: 0.0
+      duration_seconds: {min: 1.0, max: 5.0, default: 2.0}
+      intensity: {min: 0.0, max: 1.0, default: 0.5}
+      gameplay_effect:
+        focus_target: exact_entity_actor
+        social_signal: server_authoritative_greet_one_shot
+        cue: source_guard_world_space_visible
+        cue_base_visible_at_zero_intensity: true
+        presentation_strength: clamp_intensity_zero_one
+        target_receiver_component_required: false
+      lifecycle:
+        start_publication: effect_start_succeeds
+        success: signal_started_once_and_authoritative_cue_duration_completed
+        cancel_on: [GoalChanged, AuthorityLost, TargetInvalidated, LosLost, ExecutorQuarantined, StateTreeExit]
+        stale_callback_policy: reject_exact_identity_mismatch
+      duplicate_policy:
+        scope: pawn_session
+        decision_rule: strictly_greater_than_highest_applied
+        identity_fields: [SessionId, DecisionId, GoalToken, SkillId, TargetHandle]
+        session_change_policy: close_old_authority_before_reset_high_water
+        guarantee: in_process_session_lifetime_at_most_once
+      event_exclusivity:
+        target_invalid_producer_event: TargetInvalidated
+        same_cause_skill_failed_forbidden: true
 failure_taxonomy:
 - TargetInvalid
 - TargetGenerationChanged

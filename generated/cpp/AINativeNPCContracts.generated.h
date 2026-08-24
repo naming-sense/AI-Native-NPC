@@ -10,12 +10,16 @@
 
 namespace AINativeNPC::SchemaV2 {
 inline constexpr const char* SchemaVersion = "2.0.0";
-inline constexpr const char* ContractRevision = "2.0.0-rc5";
-inline constexpr const char* SchemaSourceSha256 = "a7791004de0534f29198ebf5eaaff7cd764185b59b05446d419f5d0a3303f886";
-inline constexpr const char* SkillRegistrySha256 = "ed0454691c17761d81ee52ac0c729f6f83adec97a954a4808107d078ba49975d";
-inline constexpr const char* GoalRegistrySha256 = "d9eb13898cf2d066320977073b1e82458cc0d7bdfd512ef6983ad9a2d44c8f3e";
-inline constexpr const char* GoalRegistryVersion = "1.1.0";
-inline constexpr std::array<std::uint8_t, 32> SchemaSourceSha256Bytes{{0xa7, 0x79, 0x10, 0x04, 0xde, 0x05, 0x34, 0xf2, 0x91, 0x98, 0xeb, 0xf5, 0xea, 0xaf, 0xf7, 0xcd, 0x76, 0x41, 0x85, 0xb5, 0x9b, 0x05, 0x44, 0x6d, 0x41, 0x9f, 0x5d, 0x0a, 0x33, 0x03, 0xf8, 0x86}};
+inline constexpr const char* ContractRevision = "2.0.0-rc6";
+inline constexpr const char* SchemaSourceSha256 = "e641071c61cfad3fa892324e855b87111c8a27f42037aac19b9c7f40d62b1d3f";
+inline constexpr const char* SkillRegistrySha256 = "15b47b23066c2b64f4228dadd21dd36d0cf2681a9e387c624a1111965b952467";
+inline constexpr const char* SkillRegistryVersion = "1.1.0";
+inline constexpr const char* GoalRegistrySha256 = "2fe47b0376427c3c086e6d899b934d3d59ddbbd672c3b98900cf84837d1a8dda";
+inline constexpr const char* GoalRegistryVersion = "1.2.0";
+inline constexpr const char* TestTaxonomySha256 = "2d4c668af7034ca245cee92c25d8f9fea3cee663af39bcfd4f6de2958696f917";
+inline constexpr const char* TestCaseCatalogSha256 = "651c744f468deb8b5dbd355c0fdf5a67c2db7527fc69e5dd9ffb8641c506acae";
+inline constexpr const char* ModelContractSha256 = "e93414e97013fd2145310d5546450417e3450593aeabe4206d4874db96c06bff";
+inline constexpr std::array<std::uint8_t, 32> SchemaSourceSha256Bytes{{0xe6, 0x41, 0x07, 0x1c, 0x61, 0xcf, 0xad, 0x3f, 0xa8, 0x92, 0x32, 0x4e, 0x85, 0x5b, 0x87, 0x11, 0x1c, 0x8a, 0x27, 0xf4, 0x20, 0x37, 0xaa, 0xc1, 0x9b, 0x9c, 0x7f, 0x40, 0xd6, 0x2b, 0x1d, 0x3f}};
 inline constexpr std::array<std::uint8_t, 8> CandidateHashMagic{{65, 78, 80, 67, 83, 69, 84, 50}};
 inline constexpr std::uint16_t CandidateHashSerializationVersion = 1U;
 inline constexpr std::array<std::uint8_t, 8> DecisionHashMagic{{65, 78, 80, 67, 68, 69, 67, 50}};
@@ -36,6 +40,25 @@ inline constexpr double SlotterConfidenceScale = 1000;
 inline constexpr double SlotterAgeCentisecondScale = 100;
 inline constexpr double SlotterDistanceBinCm = 10;
 inline constexpr double SlotterLoudnessScale = 1000;
+
+struct FModelTensorDescriptor { const char* Name; const char* DType; std::size_t Rank; std::array<std::int64_t, 3> Shape; };
+inline constexpr std::array<FModelTensorDescriptor, 10> ModelInputDescriptors{{
+    FModelTensorDescriptor{"global_state", "float32", 2U, std::array<std::int64_t, 3>{{1, 128, -1}}},
+    FModelTensorDescriptor{"target_features", "float32", 3U, std::array<std::int64_t, 3>{{1, 17, 48}}},
+    FModelTensorDescriptor{"target_kind_ids", "int64", 2U, std::array<std::int64_t, 3>{{1, 17, -1}}},
+    FModelTensorDescriptor{"target_mask", "bool", 2U, std::array<std::int64_t, 3>{{1, 17, -1}}},
+    FModelTensorDescriptor{"event_features", "float32", 3U, std::array<std::int64_t, 3>{{1, 12, 24}}},
+    FModelTensorDescriptor{"event_type_ids", "int64", 2U, std::array<std::int64_t, 3>{{1, 12, -1}}},
+    FModelTensorDescriptor{"event_target_slots", "int64", 2U, std::array<std::int64_t, 3>{{1, 12, -1}}},
+    FModelTensorDescriptor{"event_mask", "bool", 2U, std::array<std::int64_t, 3>{{1, 12, -1}}},
+    FModelTensorDescriptor{"candidate_pair_features", "float32", 3U, std::array<std::int64_t, 3>{{1, 272, 16}}},
+    FModelTensorDescriptor{"candidate_mask", "bool", 2U, std::array<std::int64_t, 3>{{1, 272, -1}}},
+}};
+inline constexpr std::array<FModelTensorDescriptor, 3> ModelOutputDescriptors{{
+    FModelTensorDescriptor{"candidate_raw_scores", "float32", 2U, std::array<std::int64_t, 3>{{1, 272, -1}}},
+    FModelTensorDescriptor{"candidate_parameter_proposals", "float32", 3U, std::array<std::int64_t, 3>{{1, 272, 4}}},
+    FModelTensorDescriptor{"tactical_context", "float32", 2U, std::array<std::int64_t, 3>{{1, 128, -1}}},
+}};
 
 enum class ETargetKind : std::uint8_t {
     NoTarget = 0,
@@ -120,20 +143,8 @@ enum class EGoalLifecycleState : std::uint8_t { Inactive, Active, Suspended, Suc
 enum class EGoalInterruptibility : std::uint8_t { Always, PhaseBoundary, EmergencyOnly, Never };
 enum class EGoalResumePolicy : std::uint8_t { ResumeSamePhase, RestartPhase, AbortOnPreempt };
 struct FGoalArbitrationKeyFieldSpec { const char* Field; bool Descending; const char* DType; };
-struct FGoalDefinitionSpec {
-    EGoalType Goal;
-    const char* Status;
-    std::uint8_t DefaultPriority;
-    EGoalSourcePriority SourcePriority;
-    EGoalInterruptibility Interruptibility;
-    EGoalResumePolicy ResumePolicy;
-    EGoalPhase InitialPhase;
-};
-struct FGoalPhaseSpec {
-    EGoalType Goal;
-    EGoalPhase Phase;
-    std::array<bool, SkillCount> AllowedSkills;
-};
+struct FGoalDefinitionSpec { EGoalType Goal; const char* Status; std::uint8_t DefaultPriority; EGoalSourcePriority SourcePriority; EGoalInterruptibility Interruptibility; EGoalResumePolicy ResumePolicy; EGoalPhase InitialPhase; };
+struct FGoalPhaseSpec { EGoalType Goal; EGoalPhase Phase; std::array<bool, SkillCount> AllowedSkills; };
 inline constexpr std::size_t GoalMaxActiveGoals = 1U;
 inline constexpr std::size_t GoalMaxSuspendedGoals = 8U;
 inline constexpr std::uint8_t GoalPreemptionMargin = 50U;
@@ -150,8 +161,8 @@ inline constexpr std::array<FGoalArbitrationKeyFieldSpec, 4> GoalArbitrationKeyS
 inline constexpr std::array<FGoalDefinitionSpec, 4> GoalDefinitionSpecs{{
     FGoalDefinitionSpec{EGoalType::IdleObserve, "active_v1", 10U, EGoalSourcePriority::Routine, EGoalInterruptibility::Always, EGoalResumePolicy::ResumeSamePhase, EGoalPhase::Observe},
     FGoalDefinitionSpec{EGoalType::InvestigateDisturbance, "active_v1", 120U, EGoalSourcePriority::Social, EGoalInterruptibility::PhaseBoundary, EGoalResumePolicy::ResumeSamePhase, EGoalPhase::Orient},
-    FGoalDefinitionSpec{EGoalType::EnforceBoundary, "active_v1", 160U, EGoalSourcePriority::Quest, EGoalInterruptibility::PhaseBoundary, EGoalResumePolicy::ResumeSamePhase, EGoalPhase::Observe},
-    FGoalDefinitionSpec{EGoalType::CombatEngage, "active_v1", 220U, EGoalSourcePriority::Combat, EGoalInterruptibility::EmergencyOnly, EGoalResumePolicy::RestartPhase, EGoalPhase::Orient},
+    FGoalDefinitionSpec{EGoalType::EnforceBoundary, "v1", 160U, EGoalSourcePriority::Quest, EGoalInterruptibility::PhaseBoundary, EGoalResumePolicy::ResumeSamePhase, EGoalPhase::Observe},
+    FGoalDefinitionSpec{EGoalType::CombatEngage, "v1", 220U, EGoalSourcePriority::Combat, EGoalInterruptibility::EmergencyOnly, EGoalResumePolicy::RestartPhase, EGoalPhase::Orient},
 }};
 
 inline constexpr std::array<FGoalPhaseSpec, 14> GoalPhaseSpecs{{
@@ -171,52 +182,21 @@ inline constexpr std::array<FGoalPhaseSpec, 14> GoalPhaseSpecs{{
     FGoalPhaseSpec{EGoalType::CombatEngage, EGoalPhase::Return, std::array<bool, SkillCount>{true, true, false, false, true, false, false, false, false, false, false, false, false, true, false, false}},
 }};
 
-static_assert(GoalDefinitionSpecs.size() == 4U);
-static_assert(GoalPhaseSpecs.size() == 14U);
-
 inline constexpr const char* GoalRevisionType = "uint64_monotonic_per_npc";
-inline constexpr const char* GoalTimerIdScope = "goal_phase";
-inline constexpr const char* GoalTimerClock = "server_monotonic_world_seconds";
-inline constexpr const char* GoalTimerDurationUnit = "second";
-inline constexpr const char* GoalTimerPhaseEntryArmPolicy = "full_after_seconds";
-inline constexpr const char* GoalTimerResumeSamePhaseArmPolicy = "stored_remaining_ms";
-inline constexpr const char* GoalTimerRestartPhaseArmPolicy = "full_after_seconds";
-inline constexpr const char* GoalTimerSuspendPolicy = "pause_and_store_remaining_ms";
-inline constexpr const char* GoalTimerCancelPolicy = "phase_exit_or_terminal";
-inline constexpr const char* GoalTimerExpiryPolicy = "enqueue_once_then_evaluate_in_transition_order";
-inline constexpr const char* GoalAbsoluteDeadlineWhileSuspendedPolicy = "continues";
-inline constexpr const char* GoalTimerSaveLoadPolicy = "persist_timer_id_contract_duration_remaining_ms_and_resume_policy";
-inline constexpr bool GoalTimerWallClockForbidden = true;
-inline constexpr std::size_t GoalCurrentV1EventTriggerCount = 35U;
+inline constexpr std::size_t GoalCurrentV1EventTriggerCount = 37U;
 inline constexpr std::size_t GoalCurrentV1TimerTriggerCount = 6U;
 inline constexpr std::array<const char*, 4> GoalTriggerAllowedKinds{{"event", "timer", "lifecycle", "server_control"}};
 inline constexpr std::array<const char*, 2> GoalTriggerActiveV1Kinds{{"event", "timer"}};
 inline constexpr std::array<const char*, 11> GoalRevisionIncreaseOn{{"active_goal_changed", "goal_suspended", "goal_resumed", "goal_aborted", "phase_changed", "authoritative_primary_target_changed", "allowed_skill_set_changed", "forbidden_skill_set_changed", "deadline_contract_changed", "interruptibility_changed", "resume_policy_changed"}};
 inline constexpr std::array<const char*, 4> GoalRevisionDoNotIncreaseOn{{"progress_value_changed", "per_frame_timer_changed", "belief_revision_changed_without_goal_contract_change", "event_buffer_append"}};
 inline constexpr std::array<const char*, 4> GoalActiveV1Names{{"IdleObserve", "InvestigateDisturbance", "EnforceBoundary", "CombatEngage"}};
-inline constexpr std::array<const char*, 2> GoalDeferredNames{{"Disengage", "Escort"}};
+inline constexpr std::array<const char*, 0> GoalDeferredNames{{}};
 inline constexpr std::array<const char*, 1> GoalReservedNames{{"Reserved"}};
-
 enum class EGoalTriggerKind : std::uint8_t { Event, Timer };
 enum class EGoalTransitionDestinationKind : std::uint8_t { Phase, Goal, Terminal };
 enum class EGoalTerminalState : std::uint8_t { None, Succeeded, Failed, Aborted };
-struct FGoalTransitionSpec {
-    EGoalType Goal;
-    EGoalPhase Phase;
-    std::uint8_t Order;
-    EGoalTriggerKind TriggerKind;
-    EEventType EventType;
-    const char* TimerId;
-    double AfterSeconds;
-    const char* Guard;
-    EGoalTransitionDestinationKind DestinationKind;
-    EGoalPhase ToPhase;
-    EGoalType ToGoal;
-    EGoalTerminalState Terminal;
-    const char* Effect;
-};
-
-inline constexpr std::array<FGoalTransitionSpec, 41> GoalTransitionSpecs{{
+struct FGoalTransitionSpec { EGoalType Goal; EGoalPhase Phase; std::uint8_t Order; EGoalTriggerKind TriggerKind; EEventType EventType; const char* TimerId; double AfterSeconds; const char* Guard; EGoalTransitionDestinationKind DestinationKind; EGoalPhase ToPhase; EGoalType ToGoal; EGoalTerminalState Terminal; const char* Effect; };
+inline constexpr std::array<FGoalTransitionSpec, 43> GoalTransitionSpecs{{
     FGoalTransitionSpec{EGoalType::IdleObserve, EGoalPhase::Observe, 0U, EGoalTriggerKind::Event, EEventType::SoundHeard, "", 0, "valid_disturbance_target", EGoalTransitionDestinationKind::Goal, EGoalPhase::None, EGoalType::InvestigateDisturbance, EGoalTerminalState::None, "request_new_goal"},
     FGoalTransitionSpec{EGoalType::IdleObserve, EGoalPhase::Observe, 1U, EGoalTriggerKind::Event, EEventType::SightAcquired, "", 0, "social_subject", EGoalTransitionDestinationKind::Phase, EGoalPhase::Observe, EGoalType::None, EGoalTerminalState::None, "remain_and_replan"},
     FGoalTransitionSpec{EGoalType::InvestigateDisturbance, EGoalPhase::Orient, 0U, EGoalTriggerKind::Event, EEventType::SkillSucceeded, "", 0, "orientation_complete", EGoalTransitionDestinationKind::Phase, EGoalPhase::Navigate, EGoalType::None, EGoalTerminalState::None, ""},
@@ -230,7 +210,9 @@ inline constexpr std::array<FGoalTransitionSpec, 41> GoalTransitionSpecs{{
     FGoalTransitionSpec{EGoalType::InvestigateDisturbance, EGoalPhase::Search, 1U, EGoalTriggerKind::Event, EEventType::SkillSucceeded, "", 0, "search_budget_exhausted", EGoalTransitionDestinationKind::Phase, EGoalPhase::Return, EGoalType::None, EGoalTerminalState::None, ""},
     FGoalTransitionSpec{EGoalType::InvestigateDisturbance, EGoalPhase::Search, 2U, EGoalTriggerKind::Timer, EEventType::NoneOrPadding, "phase_timeout", 8, "phase_timeout", EGoalTransitionDestinationKind::Phase, EGoalPhase::Return, EGoalType::None, EGoalTerminalState::None, ""},
     FGoalTransitionSpec{EGoalType::InvestigateDisturbance, EGoalPhase::Resolve, 0U, EGoalTriggerKind::Event, EEventType::SkillSucceeded, "", 0, "resolution_complete", EGoalTransitionDestinationKind::Phase, EGoalPhase::Return, EGoalType::None, EGoalTerminalState::None, ""},
-    FGoalTransitionSpec{EGoalType::InvestigateDisturbance, EGoalPhase::Resolve, 1U, EGoalTriggerKind::Event, EEventType::TargetInvalidated, "", 0, "no_valid_belief", EGoalTransitionDestinationKind::Phase, EGoalPhase::Search, EGoalType::None, EGoalTerminalState::None, ""},
+    FGoalTransitionSpec{EGoalType::InvestigateDisturbance, EGoalPhase::Resolve, 1U, EGoalTriggerKind::Event, EEventType::TargetInvalidated, "", 0, "identified_subject_invalid_recoverable", EGoalTransitionDestinationKind::Phase, EGoalPhase::Search, EGoalType::None, EGoalTerminalState::None, ""},
+    FGoalTransitionSpec{EGoalType::InvestigateDisturbance, EGoalPhase::Resolve, 2U, EGoalTriggerKind::Event, EEventType::TargetInvalidated, "", 0, "identified_subject_invalid_unrecoverable", EGoalTransitionDestinationKind::Terminal, EGoalPhase::None, EGoalType::None, EGoalTerminalState::Failed, ""},
+    FGoalTransitionSpec{EGoalType::InvestigateDisturbance, EGoalPhase::Resolve, 3U, EGoalTriggerKind::Event, EEventType::SkillFailed, "", 0, "resolution_failed", EGoalTransitionDestinationKind::Terminal, EGoalPhase::None, EGoalType::None, EGoalTerminalState::Failed, ""},
     FGoalTransitionSpec{EGoalType::InvestigateDisturbance, EGoalPhase::Return, 0U, EGoalTriggerKind::Event, EEventType::SkillSucceeded, "", 0, "at_return_target", EGoalTransitionDestinationKind::Terminal, EGoalPhase::None, EGoalType::None, EGoalTerminalState::Succeeded, ""},
     FGoalTransitionSpec{EGoalType::InvestigateDisturbance, EGoalPhase::Return, 1U, EGoalTriggerKind::Event, EEventType::SkillFailed, "", 0, "PathUnavailable", EGoalTransitionDestinationKind::Terminal, EGoalPhase::None, EGoalType::None, EGoalTerminalState::Failed, ""},
     FGoalTransitionSpec{EGoalType::EnforceBoundary, EGoalPhase::Observe, 0U, EGoalTriggerKind::Event, EEventType::SightAcquired, "", 0, "boundary_intruder_is_primary_social_subject", EGoalTransitionDestinationKind::Phase, EGoalPhase::Interact, EGoalType::None, EGoalTerminalState::None, ""},
@@ -260,7 +242,9 @@ inline constexpr std::array<FGoalTransitionSpec, 41> GoalTransitionSpecs{{
     FGoalTransitionSpec{EGoalType::CombatEngage, EGoalPhase::Return, 1U, EGoalTriggerKind::Event, EEventType::SkillFailed, "", 0, "PathUnavailable", EGoalTransitionDestinationKind::Terminal, EGoalPhase::None, EGoalType::None, EGoalTerminalState::Failed, ""},
 }};
 
-static_assert(GoalTransitionSpecs.size() == 41U);
+static_assert(GoalDefinitionSpecs.size() == 4U);
+static_assert(GoalPhaseSpecs.size() == 14U);
+static_assert(GoalTransitionSpecs.size() == 43U);
 
 enum class EGlobalFeature : std::uint16_t {
     self_health_norm = 0,

@@ -1,8 +1,8 @@
 registry:
   name: ai_native_npc_goal_registry
-  version: 1.1.0
+  version: 1.2.0
   schema_version: 2.0.0
-  contract_revision: 2.0.0-rc5
+  contract_revision: 2.0.0-rc6
 states:
 - Inactive
 - Active
@@ -88,9 +88,9 @@ revision_contract:
   - belief_revision_changed_without_goal_contract_change
   - event_buffer_append
 goal_gameplay_semantics_v1:
-  version: 1.0.0
+  version: 1.2.0
   status: approved_production_authority
-  approved_on: '2026-08-11'
+  approved_on: '2026-08-20'
   scope:
     profile_id: GuardPhase0
     supported_goals:
@@ -102,15 +102,47 @@ goal_gameplay_semantics_v1:
     - Navigate
     - Search
     - Return
+    - Resolve
     - IdleResume
     claims:
-      executable_unique_guards: 9
-      unavailable_unique_guards: 3
-      executable_transition_bindings: 12
-      unavailable_transition_bindings: 4
+      executable_unique_guards: 14
+      unavailable_unique_guards: 0
+      executable_transition_bindings: 18
+      unavailable_transition_bindings: 0
       effects: 2
-      production_executable_skills: 5
-      full_guard_catalog_pass: false
+      production_executable_skills: 6
+      full_guard_catalog_pass: true
+  runtime_supported_requirements:
+  - ExactCurrentGoalToken
+  - NonzeroTargetIdentity
+  - ExactCurrentKnowledgeRevision
+  - ExactCurrentAvailableSoundCapture
+  - FiniteStimulusLocation
+  - DisturbancePositionPrepareSucceeds
+  - ExactCurrentVisibleEntityBinding
+  - ExactPrimarySocialSubject
+  - ExactCurrentDecisionId
+  - ExactTargetIdentityAndRevision
+  - ExecutionStatusSucceeded
+  - ExactCurrentPrimaryTarget
+  - GoalOwnedResolverCannotResolve
+  - SourceSoundExpiryAloneForbidden
+  - ExactTransitionTimerId
+  - NonzeroTimerRuntimeEpoch
+  - CurrentOneShotTimerEpoch
+  - WallClockForbidden
+  - ExecutionStatusFailed
+  - ExactFailureReason
+  - FiniteSubjectAndDisturbancePositions
+  - SameWorldSubjectAndDisturbance
+  - WithinSubjectIdentificationPlanarRadiusInclusive
+  - ResolvePolicyReady
+  - AtLeastOneSearchPointVisitedWhenDeadlineSucceeded
+  - CurrentIdentifiedSubjectBindingSatisfiesEntityRevisionRule
+  - CurrentIdentifiedSubjectVisibleSameWorldAndLos
+  - GoalOwnedIdentifiedSubjectResolverCannotResolve
+  - GoalOwnedDisturbancePositionResolvable
+  - GoalOwnedDisturbancePositionCannotResolve
   initial_profiles:
   - profile_id: GuardPhase0
     initial_goal: IdleObserve
@@ -165,6 +197,20 @@ goal_gameplay_semantics_v1:
     capture_source: ExactSoundEventStimulusLocation
     actor_transform_lookup: false
     source_ttl_expiry_policy: preserve_immutable_position
+  - id: IdentifiedSubject
+    target_kind: Entity
+    owner: GameplayGoalAuthority
+    lifetime: InvestigateGoalInstance
+    stable_id_policy: exact_sight_event_entity_stable_id
+    generation: 0
+    initial_revision: 0
+    mutable: true
+    stored_in_knowledge: true
+    provenance_only: false
+    candidate_usable: true
+    capture_source: ExactCurrentVisibleEntityBindingFromAcceptedSightAcquired
+    actor_transform_lookup: true
+    source_ttl_expiry_policy: fail_closed_when_current_visible_identity_cannot_resolve
   phase_target_policies:
   - goal: IdleObserve
     phase: Observe
@@ -200,12 +246,12 @@ goal_gameplay_semantics_v1:
     entry_target_change: none
   - goal: InvestigateDisturbance
     phase: Resolve
-    policy: UnavailableInGuardPhase0
-    target_authority: ''
-    required_target_kind: NoTarget
-    exact_identity_and_revision: false
-    continue_policy: unavailable
-    entry_target_change: none
+    policy: ActiveGoalPrimaryTargetOnly
+    target_authority: IdentifiedSubject
+    required_target_kind: Entity
+    exact_identity_and_revision: true
+    continue_policy: current_visible_same_identity_recapture_before_decision_commit_then_frozen_after_commit
+    entry_target_change: install_identified_subject_with_phase_change_and_increment_goal_revision_once
   - goal: InvestigateDisturbance
     phase: Return
     policy: ActiveGoalPrimaryTargetOnly
@@ -221,8 +267,58 @@ goal_gameplay_semantics_v1:
     - Approach
     - Investigate
     - SearchArea
+    - Greet
     control: ContinueCurrentAction
+    resolve_action: Greet
+    resolve_control_policy: exact_current_running_greet_only
     all_others_policy: hard_mask_false_even_if_precondition_true
+  subject_identification_policy:
+    policy_id: InvestigateVisibleSubjectV1
+    owner: GameplayGoalAuthority
+    source_event: SightAcquired
+    applicable_goal: InvestigateDisturbance
+    applicable_phases: [Navigate, Search]
+    disturbance_target_authority: DisturbancePosition
+    subject_target_authority: IdentifiedSubject
+    target_kind: Entity
+    distance_metric: planar_xy_center_to_center_cm
+    maximum_distance_cm: 700.0
+    boundary: inclusive
+    require_exact_current_knowledge_revision: true
+    require_exact_current_visible_entity_binding: true
+    require_same_world: true
+    nonfinite_policy: reject
+    target_install_policy: exact_event_entity_identity_then_current_visible_revision_recapture
+    transition_transaction: phase_and_primary_target_single_authority_transaction
+    committed_target_policy: frozen_after_commit
+  general_policy_orchestration:
+    policy_id: NeuralFirstUtilityFallbackV1
+    owner: GameplayGoalAuthority
+    snapshot_authority: FFinalizedDecisionSnapshot
+    primary: NeuralPolicy
+    fallback: GeneratedUtilityProfile
+    fallback_profile_id: GuardPhase0UtilityV1
+    production_neural_rollout_scope:
+      profile_id: GuardPhase0
+      goal: InvestigateDisturbance
+      phase: Resolve
+      out_of_scope_primary: GeneratedUtilityProfile
+    evaluator_statuses: [Selected, Unavailable, Failed, Abstained, Invalid]
+    neural_budget_ms: 20
+    total_decision_deadline_ms: 40
+    fallback_on: [Unavailable, Failed, Abstained, Invalid]
+    neural_success_utility_calls: 0
+    fallback_utility_calls: 1
+    fallback_within_deadline_utility_calls: 1
+    fallback_after_deadline_utility_calls: 0
+    single_valid_calibration:
+      second_adjusted_score: selected_adjusted_score
+      adjusted_gap: positive_zero
+      normalized_entropy: zero
+    zero_valid_policy: no_policy_or_commit_or_skill_start
+    snapshot_reuse_policy: exact_same_immutable_snapshot
+    phase_skill_override: forbidden
+    production_neural_evaluator_status: available_only_when_resolve_policy_ready
   utility_profile:
     profile_id: GuardPhase0UtilityV1
     deterministic: true
@@ -458,28 +554,28 @@ goal_gameplay_semantics_v1:
       accepted_failure_reasons: [PathUnavailable]
       requirements: [ExactCurrentGoalToken, ExactCurrentDecisionId, ExactTargetIdentityAndRevision, ExecutionStatusFailed, ExactFailureReason]
   - guard: subject_identified
-    availability: provider_unavailable
+    availability: executable
     bindings:
     - goal: InvestigateDisturbance
       phase: Navigate
       order: 2
       trigger: {kind: event, event_type: SightAcquired}
-      fact_source: Unavailable
+      fact_source: Knowledge
       accepted_skills: []
-      accepted_target_kinds: []
-      target_authorities: []
+      accepted_target_kinds: [Entity]
+      target_authorities: [IdentifiedSubject]
       accepted_failure_reasons: []
-      requirements: [ProviderUnavailableFailClosed]
+      requirements: [NonzeroTargetIdentity, ExactCurrentKnowledgeRevision, ExactCurrentVisibleEntityBinding, ExactPrimarySocialSubject, FiniteSubjectAndDisturbancePositions, SameWorldSubjectAndDisturbance, WithinSubjectIdentificationPlanarRadiusInclusive, ResolvePolicyReady]
     - goal: InvestigateDisturbance
       phase: Search
       order: 0
       trigger: {kind: event, event_type: SightAcquired}
-      fact_source: Unavailable
+      fact_source: Knowledge
       accepted_skills: []
-      accepted_target_kinds: []
-      target_authorities: []
+      accepted_target_kinds: [Entity]
+      target_authorities: [IdentifiedSubject]
       accepted_failure_reasons: []
-      requirements: [ProviderUnavailableFailClosed]
+      requirements: [NonzeroTargetIdentity, ExactCurrentKnowledgeRevision, ExactCurrentVisibleEntityBinding, ExactPrimarySocialSubject, FiniteSubjectAndDisturbancePositions, SameWorldSubjectAndDisturbance, WithinSubjectIdentificationPlanarRadiusInclusive, ResolvePolicyReady]
   - guard: search_budget_exhausted
     availability: executable
     bindings:
@@ -494,31 +590,57 @@ goal_gameplay_semantics_v1:
       accepted_failure_reasons: []
       requirements: [ExactCurrentGoalToken, ExactCurrentDecisionId, ExactTargetIdentityAndRevision, ExecutionStatusSucceeded, AtLeastOneSearchPointVisitedWhenDeadlineSucceeded]
   - guard: resolution_complete
-    availability: provider_unavailable
+    availability: executable
     bindings:
     - goal: InvestigateDisturbance
       phase: Resolve
       order: 0
       trigger: {kind: event, event_type: SkillSucceeded}
-      fact_source: Unavailable
-      accepted_skills: []
-      accepted_target_kinds: []
-      target_authorities: []
+      fact_source: SkillExecutor
+      accepted_skills: [Greet]
+      accepted_target_kinds: [Entity]
+      target_authorities: [IdentifiedSubject]
       accepted_failure_reasons: []
-      requirements: [ProviderUnavailableFailClosed]
-  - guard: no_valid_belief
-    availability: provider_unavailable
+      requirements: [ExactCurrentGoalToken, ExactCurrentDecisionId, ExactTargetIdentityAndRevision, CurrentIdentifiedSubjectBindingSatisfiesEntityRevisionRule, CurrentIdentifiedSubjectVisibleSameWorldAndLos, ExecutionStatusSucceeded]
+  - guard: identified_subject_invalid_recoverable
+    availability: executable
     bindings:
     - goal: InvestigateDisturbance
       phase: Resolve
       order: 1
       trigger: {kind: event, event_type: TargetInvalidated}
-      fact_source: Unavailable
+      fact_source: GoalAuthority
       accepted_skills: []
-      accepted_target_kinds: []
-      target_authorities: []
+      accepted_target_kinds: [Entity]
+      target_authorities: [IdentifiedSubject]
       accepted_failure_reasons: []
-      requirements: [ProviderUnavailableFailClosed]
+      requirements: [ExactCurrentGoalToken, ExactCurrentPrimaryTarget, GoalOwnedIdentifiedSubjectResolverCannotResolve, GoalOwnedDisturbancePositionResolvable]
+  - guard: identified_subject_invalid_unrecoverable
+    availability: executable
+    bindings:
+    - goal: InvestigateDisturbance
+      phase: Resolve
+      order: 2
+      trigger: {kind: event, event_type: TargetInvalidated}
+      fact_source: GoalAuthority
+      accepted_skills: []
+      accepted_target_kinds: [Entity]
+      target_authorities: [IdentifiedSubject]
+      accepted_failure_reasons: []
+      requirements: [ExactCurrentGoalToken, ExactCurrentPrimaryTarget, GoalOwnedIdentifiedSubjectResolverCannotResolve, GoalOwnedDisturbancePositionCannotResolve]
+  - guard: resolution_failed
+    availability: executable
+    bindings:
+    - goal: InvestigateDisturbance
+      phase: Resolve
+      order: 3
+      trigger: {kind: event, event_type: SkillFailed}
+      fact_source: SkillExecutor
+      accepted_skills: [Greet]
+      accepted_target_kinds: [Entity]
+      target_authorities: [IdentifiedSubject]
+      accepted_failure_reasons: [TimedOut, AuthorityLost, AssemblyInvalidated]
+      requirements: [ExactCurrentGoalToken, ExactCurrentDecisionId, ExactTargetIdentityAndRevision, CurrentIdentifiedSubjectBindingSatisfiesEntityRevisionRule, CurrentIdentifiedSubjectVisibleSameWorldAndLos, ExecutionStatusFailed, ExactFailureReason]
   - guard: at_return_target
     availability: executable
     bindings:
@@ -576,6 +698,13 @@ goal_gameplay_semantics_v1:
     max_pending_decisions_per_npc: 1
     supersede_previous_pending: terminal_superseded
     commit_deadline_policy: captured_ms_plus_40
+    total_decision_deadline_ms: 40
+    stale_result_reuse_policy: forbidden
+    fresh_snapshot_retry:
+      schedule: next_tick
+      max_attempts_per_goal_revision: 1
+      second_stale_policy: wait_for_authoritative_goal_or_knowledge_change
+      primary_entity_invalid_policy: generated_target_invalidated_not_stale_retry
     request_edges:
     - initial_goal_activation
     - committed_phase_change
@@ -769,8 +898,20 @@ goals:
         trigger:
           kind: event
           event_type: TargetInvalidated
-        guard: no_valid_belief
+        guard: identified_subject_invalid_recoverable
         to_phase: Search
+      - order: 2
+        trigger:
+          kind: event
+          event_type: TargetInvalidated
+        guard: identified_subject_invalid_unrecoverable
+        terminal: Failed
+      - order: 3
+        trigger:
+          kind: event
+          event_type: SkillFailed
+        guard: resolution_failed
+        terminal: Failed
     Return:
       allowed_skills:
       - ContinueCurrentAction

@@ -1,0 +1,64 @@
+{
+  "boss_pattern_contract_sha256": "e4f828c114fcc5db1cb04b5d0a6e2b3d29dada7e45c60a3dd18c674baa78c789",
+  "derived_contracts": {
+    "goal_gameplay_semantics_v1": {
+      "generated_file": "AINativeNPCGoalGameplaySemantics.generated.h",
+      "generated_sha256": "ddd2cde904f153b805a407b4e8bdb1546e9dfa3ef45286510032bd7dc86e9304",
+      "generated_symbol": "GoalRegistrySha256",
+      "semantics_version": "1.2.0",
+      "source_contract": "contracts/current/goal_registry_v1.yaml",
+      "source_sha256": "2fe47b0376427c3c086e6d899b934d3d59ddbbd672c3b98900cf84837d1a8dda"
+    },
+    "skill_execution_semantics_v1": {
+      "generated_file": "AINativeNPCSkillExecutionSemantics.generated.h",
+      "generated_sha256": "bfed004ce68cf3be159d28627ad1567b2c9a13800cecf66ec1cd501cadb3da4d",
+      "generated_symbol": "SkillRegistrySha256",
+      "semantics_version": "1.1.0",
+      "source_contract": "contracts/current/skill_registry_v1.yaml",
+      "source_sha256": "15b47b23066c2b64f4228dadd21dd36d0cf2681a9e387c624a1111965b952467"
+    }
+  },
+  "format_version": 4,
+  "generated_files": {
+    "AINativeNPCBossPatternContracts.generated.h": "ba2aad4af720c1a4662bde9fc0c4644e8d11cc14d7bbeffa135a84267c17cdfa",
+    "AINativeNPCContracts.generated.h": "2d1edf2054c522a1cb15e797cd4a5a83e2585ba10b9270995a751f6cf68e07dd",
+    "AINativeNPCGoalGameplaySemantics.generated.h": "ddd2cde904f153b805a407b4e8bdb1546e9dfa3ef45286510032bd7dc86e9304",
+    "AINativeNPCSkillExecutionSemantics.generated.h": "bfed004ce68cf3be159d28627ad1567b2c9a13800cecf66ec1cd501cadb3da4d"
+  },
+  "release_provenance_status": "hold_until_contract_worktree_is_committed",
+  "source_commit": null,
+  "source_contracts": {
+    "contracts/current/ai_native_npc_schema_v2_0.yaml": {
+      "generated_file": "AINativeNPCContracts.generated.h",
+      "generated_symbol": "SchemaSourceSha256",
+      "sha256": "e641071c61cfad3fa892324e855b87111c8a27f42037aac19b9c7f40d62b1d3f"
+    },
+    "contracts/current/boss_pattern_contract_v1.yaml": {
+      "generated_file": "AINativeNPCBossPatternContracts.generated.h",
+      "generated_symbol": "BossPatternContractSha256",
+      "sha256": "e4f828c114fcc5db1cb04b5d0a6e2b3d29dada7e45c60a3dd18c674baa78c789"
+    },
+    "contracts/current/goal_registry_v1.yaml": {
+      "generated_file": "AINativeNPCContracts.generated.h",
+      "generated_symbol": "GoalRegistrySha256",
+      "sha256": "2fe47b0376427c3c086e6d899b934d3d59ddbbd672c3b98900cf84837d1a8dda"
+    },
+    "contracts/current/skill_registry_v1.yaml": {
+      "generated_file": "AINativeNPCContracts.generated.h",
+      "generated_symbol": "SkillRegistrySha256",
+      "sha256": "15b47b23066c2b64f4228dadd21dd36d0cf2681a9e387c624a1111965b952467"
+    },
+    "contracts/current/test_case_catalog_v1.yaml": {
+      "generated_file": "AINativeNPCContracts.generated.h",
+      "generated_symbol": "TestCaseCatalogSha256",
+      "sha256": "651c744f468deb8b5dbd355c0fdf5a67c2db7527fc69e5dd9ffb8641c506acae"
+    },
+    "contracts/current/test_taxonomy_v1.yaml": {
+      "generated_file": "AINativeNPCContracts.generated.h",
+      "generated_symbol": "TestTaxonomySha256",
+      "sha256": "2d4c668af7034ca245cee92c25d8f9fea3cee663af39bcfd4f6de2958696f917"
+    }
+  },
+  "source_tree_state": "uncommitted_user_approved_contract_migration",
+  "source_worktree_head": null
+}

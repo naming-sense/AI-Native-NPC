@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import json
 import math
 import shutil
 import subprocess
@@ -93,26 +94,26 @@ class GoalGameplayAuthorityTests(unittest.TestCase):
         return self.goal_registry["goal_gameplay_semantics_v1"]
 
     def test_registry_adds_versioned_bounded_authority_without_breaking_schema_dependency(self) -> None:
-        self.assertEqual(self.goal_registry["registry"]["version"], "1.1.0")
-        self.assertEqual(self.contract["version"], "1.0.0")
+        self.assertEqual(self.goal_registry["registry"]["version"], "1.2.0")
+        self.assertEqual(self.contract["version"], "1.2.0")
         self.assertEqual(self.contract["status"], "approved_production_authority")
-        self.assertEqual(self.contract["approved_on"], "2026-08-11")
+        self.assertEqual(self.contract["approved_on"], "2026-08-20")
         self.assertEqual(self.contract["scope"]["profile_id"], "GuardPhase0")
         self.assertEqual(
             self.contract["scope"]["supported_goals"],
             ["IdleObserve", "InvestigateDisturbance"],
         )
-        self.assertFalse(self.contract["scope"]["claims"]["full_guard_catalog_pass"])
+        self.assertTrue(self.contract["scope"]["claims"]["full_guard_catalog_pass"])
         self.assertEqual(
             self.contract["scope"]["claims"],
             {
-                "executable_unique_guards": 9,
-                "unavailable_unique_guards": 3,
-                "executable_transition_bindings": 12,
-                "unavailable_transition_bindings": 4,
+                "executable_unique_guards": 14,
+                "unavailable_unique_guards": 0,
+                "executable_transition_bindings": 18,
+                "unavailable_transition_bindings": 0,
                 "effects": 2,
-                "production_executable_skills": 5,
-                "full_guard_catalog_pass": False,
+                "production_executable_skills": 6,
+                "full_guard_catalog_pass": True,
             },
         )
 
@@ -167,6 +168,14 @@ class GoalGameplayAuthorityTests(unittest.TestCase):
         self.assertEqual(targets["DisturbancePosition"]["lifetime"], "InvestigateGoalInstance")
         self.assertEqual(targets["DisturbancePosition"]["source_ttl_expiry_policy"], "preserve_immutable_position")
         self.assertFalse(targets["DisturbancePosition"]["actor_transform_lookup"])
+        self.assertEqual(targets["IdentifiedSubject"]["target_kind"], "Entity")
+        self.assertEqual(targets["IdentifiedSubject"]["owner"], "GameplayGoalAuthority")
+        self.assertEqual(targets["IdentifiedSubject"]["lifetime"], "InvestigateGoalInstance")
+        self.assertEqual(targets["IdentifiedSubject"]["stable_id_policy"], "exact_sight_event_entity_stable_id")
+        self.assertTrue(targets["IdentifiedSubject"]["mutable"])
+        self.assertTrue(targets["IdentifiedSubject"]["stored_in_knowledge"])
+        self.assertTrue(targets["IdentifiedSubject"]["candidate_usable"])
+        self.assertTrue(targets["IdentifiedSubject"]["actor_transform_lookup"])
 
         policies = {
             (row["goal"], row["phase"]): row
@@ -183,15 +192,25 @@ class GoalGameplayAuthorityTests(unittest.TestCase):
         )
         self.assertEqual(
             policies[("InvestigateDisturbance", "Resolve")]["policy"],
-            "UnavailableInGuardPhase0",
+            "ActiveGoalPrimaryTargetOnly",
+        )
+        self.assertEqual(
+            policies[("InvestigateDisturbance", "Resolve")]["target_authority"],
+            "IdentifiedSubject",
+        )
+        self.assertEqual(
+            policies[("InvestigateDisturbance", "Resolve")]["required_target_kind"],
+            "Entity",
         )
 
     def test_production_skill_mask_and_guard_utility_are_exact(self) -> None:
         self.assertEqual(
             self.contract["production_skills"],
             {
-                "executable": ["Idle", "TurnTo", "Approach", "Investigate", "SearchArea"],
+                "executable": ["Idle", "TurnTo", "Approach", "Investigate", "SearchArea", "Greet"],
                 "control": "ContinueCurrentAction",
+                "resolve_action": "Greet",
+                "resolve_control_policy": "exact_current_running_greet_only",
                 "all_others_policy": "hard_mask_false_even_if_precondition_true",
             },
         )
@@ -252,7 +271,7 @@ class GoalGameplayAuthorityTests(unittest.TestCase):
     def test_guard_authority_counts_and_exact_registry_rows_match(self) -> None:
         contract = self.contract
         authorities = contract["guard_authorities"]
-        self.assertEqual(len(authorities), 12)
+        self.assertEqual(len(authorities), 14)
         self.assertEqual(
             {row["guard"] for row in authorities if row["availability"] == "executable"},
             {
@@ -265,21 +284,26 @@ class GoalGameplayAuthorityTests(unittest.TestCase):
                 "PathUnavailable",
                 "search_budget_exhausted",
                 "at_return_target",
+                "subject_identified",
+                "resolution_complete",
+                "identified_subject_invalid_recoverable",
+                "identified_subject_invalid_unrecoverable",
+                "resolution_failed",
             },
         )
         self.assertEqual(
             {row["guard"] for row in authorities if row["availability"] == "provider_unavailable"},
-            {"subject_identified", "resolution_complete", "no_valid_belief"},
+            set(),
         )
         bindings = [binding for row in authorities for binding in row["bindings"]]
-        self.assertEqual(len(bindings), 16)
+        self.assertEqual(len(bindings), 18)
         executable = [
             binding
             for row in authorities
             if row["availability"] == "executable"
             for binding in row["bindings"]
         ]
-        self.assertEqual(len(executable), 12)
+        self.assertEqual(len(executable), 18)
 
         registry_rows = {}
         for goal in self.goal_registry["goals"]:
@@ -332,6 +356,73 @@ class GoalGameplayAuthorityTests(unittest.TestCase):
         self.assertEqual(return_path["accepted_skills"], ["Approach"])
         self.assertEqual(return_path["target_authorities"], ["HomeWaypoint"])
 
+        subject = find_binding(
+            find_guard(contract, "subject_identified"),
+            "InvestigateDisturbance",
+            "Navigate",
+            2,
+        )
+        self.assertEqual(subject["fact_source"], "Knowledge")
+        self.assertEqual(subject["accepted_target_kinds"], ["Entity"])
+        self.assertEqual(subject["target_authorities"], ["IdentifiedSubject"])
+        self.assertEqual(
+            subject["requirements"],
+            [
+                "NonzeroTargetIdentity",
+                "ExactCurrentKnowledgeRevision",
+                "ExactCurrentVisibleEntityBinding",
+                "ExactPrimarySocialSubject",
+                "FiniteSubjectAndDisturbancePositions",
+                "SameWorldSubjectAndDisturbance",
+                "WithinSubjectIdentificationPlanarRadiusInclusive",
+                "ResolvePolicyReady",
+            ],
+        )
+
+    def test_subject_identification_and_neural_fallback_policies_are_exact(self) -> None:
+        policy = self.contract["subject_identification_policy"]
+        self.assertEqual(policy["policy_id"], "InvestigateVisibleSubjectV1")
+        self.assertEqual(policy["source_event"], "SightAcquired")
+        self.assertEqual(policy["applicable_phases"], ["Navigate", "Search"])
+        self.assertEqual(policy["disturbance_target_authority"], "DisturbancePosition")
+        self.assertEqual(policy["subject_target_authority"], "IdentifiedSubject")
+        self.assertEqual(policy["distance_metric"], "planar_xy_center_to_center_cm")
+        self.assertEqual(policy["maximum_distance_cm"], 700.0)
+        self.assertEqual(policy["boundary"], "inclusive")
+        self.assertTrue(policy["require_exact_current_knowledge_revision"])
+        self.assertTrue(policy["require_exact_current_visible_entity_binding"])
+        self.assertTrue(policy["require_same_world"])
+        self.assertEqual(policy["nonfinite_policy"], "reject")
+        self.assertEqual(policy["committed_target_policy"], "frozen_after_commit")
+
+        orchestration = self.contract["general_policy_orchestration"]
+        self.assertEqual(orchestration["policy_id"], "NeuralFirstUtilityFallbackV1")
+        self.assertEqual(orchestration["snapshot_authority"], "FFinalizedDecisionSnapshot")
+        self.assertEqual(orchestration["primary"], "NeuralPolicy")
+        self.assertEqual(orchestration["fallback"], "GeneratedUtilityProfile")
+        self.assertEqual(orchestration["fallback_profile_id"], "GuardPhase0UtilityV1")
+        self.assertEqual(orchestration["evaluator_statuses"], ["Selected", "Unavailable", "Failed", "Abstained", "Invalid"])
+        self.assertEqual(orchestration["fallback_on"], ["Unavailable", "Failed", "Abstained", "Invalid"])
+        self.assertEqual(orchestration["production_neural_rollout_scope"], {
+            "profile_id": "GuardPhase0",
+            "goal": "InvestigateDisturbance",
+            "phase": "Resolve",
+            "out_of_scope_primary": "GeneratedUtilityProfile",
+        })
+        self.assertEqual(orchestration["neural_budget_ms"], 20)
+        self.assertEqual(orchestration["total_decision_deadline_ms"], 40)
+        self.assertEqual(orchestration["neural_success_utility_calls"], 0)
+        self.assertEqual(orchestration["fallback_utility_calls"], 1)
+        self.assertEqual(orchestration["fallback_within_deadline_utility_calls"], 1)
+        self.assertEqual(orchestration["fallback_after_deadline_utility_calls"], 0)
+        self.assertEqual(orchestration["single_valid_calibration"], {
+            "second_adjusted_score": "selected_adjusted_score",
+            "adjusted_gap": "positive_zero",
+            "normalized_entropy": "zero",
+        })
+        self.assertEqual(orchestration["snapshot_reuse_policy"], "exact_same_immutable_snapshot")
+        self.assertEqual(orchestration["phase_skill_override"], "forbidden")
+
     def test_staged_effects_preserve_the_approved_failure_boundaries(self) -> None:
         effects = {row["name"]: row for row in self.contract["effects"]}
         request = effects["request_new_goal"]
@@ -381,8 +472,14 @@ class GoalGameplayAuthorityTests(unittest.TestCase):
             guard = find_guard(registry["goal_gameplay_semantics_v1"], "orientation_complete")
             find_binding(guard, "InvestigateDisturbance", "Orient", 0)["accepted_skills"] = []
 
-        def executable_resolve(registry: dict) -> None:
-            find_guard(registry["goal_gameplay_semantics_v1"], "resolution_complete")["availability"] = "executable"
+        def unavailable_resolve(registry: dict) -> None:
+            find_guard(registry["goal_gameplay_semantics_v1"], "resolution_complete")["availability"] = "provider_unavailable"
+
+        def fallback_after_deadline(registry: dict) -> None:
+            registry["goal_gameplay_semantics_v1"]["general_policy_orchestration"]["fallback_after_deadline_utility_calls"] = 1
+
+        def wider_neural_rollout(registry: dict) -> None:
+            registry["goal_gameplay_semantics_v1"]["general_policy_orchestration"]["production_neural_rollout_scope"]["phase"] = "Search"
 
         def request_without_rollback(registry: dict) -> None:
             effect = next(row for row in registry["goal_gameplay_semantics_v1"]["effects"] if row["name"] == "request_new_goal")
@@ -410,6 +507,54 @@ class GoalGameplayAuthorityTests(unittest.TestCase):
             guard = find_guard(registry["goal_gameplay_semantics_v1"], "orientation_complete")
             find_binding(guard, "InvestigateDisturbance", "Orient", 0)["trigger"]["event_type"] = "SkillFailed"
 
+        def unknown_requirement(registry: dict) -> None:
+            guard = find_guard(registry["goal_gameplay_semantics_v1"], "subject_identified")
+            find_binding(guard, "InvestigateDisturbance", "Navigate", 2)["requirements"].append(
+                "ForgedRequirement"
+            )
+
+        def non_atomic_subject_transition(registry: dict) -> None:
+            registry["goal_gameplay_semantics_v1"]["subject_identification_policy"]["transition_transaction"] = "phase_then_target_non_atomic"
+
+        def mutable_committed_subject(registry: dict) -> None:
+            registry["goal_gameplay_semantics_v1"]["subject_identification_policy"]["committed_target_policy"] = "mutable_after_commit"
+
+        def unsafe_identified_subject_expiry(registry: dict) -> None:
+            target = next(
+                row
+                for row in registry["goal_gameplay_semantics_v1"]["target_authorities"]
+                if row["id"] == "IdentifiedSubject"
+            )
+            target["source_ttl_expiry_policy"] = "continue_using_stale_binding"
+
+        def injected_evaluator_status(registry: dict) -> None:
+            registry["goal_gameplay_semantics_v1"]["general_policy_orchestration"]["production_neural_evaluator_status"] = 'ready";\n#define FORGED 1\n//'
+
+        def forged_resolve_primary_target(registry: dict) -> None:
+            row = next(
+                item for item in registry["goal_gameplay_semantics_v1"]["phase_target_policies"]
+                if item["goal"] == "InvestigateDisturbance" and item["phase"] == "Resolve"
+            )
+            row["target_authority"] = "DisturbancePosition"
+            row["required_target_kind"] = "WorldPosition"
+
+        def nonexact_resolve_target(registry: dict) -> None:
+            row = next(
+                item for item in registry["goal_gameplay_semantics_v1"]["phase_target_policies"]
+                if item["goal"] == "InvestigateDisturbance" and item["phase"] == "Resolve"
+            )
+            row["exact_identity_and_revision"] = False
+
+        def forged_identified_subject_authority(registry: dict) -> None:
+            row = next(
+                item for item in registry["goal_gameplay_semantics_v1"]["target_authorities"]
+                if item["id"] == "IdentifiedSubject"
+            )
+            row.update(owner="Knowledge", lifetime="SourceKnowledgeFact", mutable=False, stored_in_knowledge=False)
+
+        def forged_subject_policy_owner(registry: dict) -> None:
+            registry["goal_gameplay_semantics_v1"]["subject_identification_policy"]["owner"] = "Knowledge"
+
         cases.extend(
             [
                 ("wrong semantics version", wrong_semantics_version, "goal gameplay semantics version"),
@@ -418,14 +563,25 @@ class GoalGameplayAuthorityTests(unittest.TestCase):
                 ("unknown effect", unknown_effect, "effect authority"),
                 ("duplicate guard authority", duplicate_guard, "duplicate guard authority"),
                 ("incomplete Skill event payload", incomplete_skill_payload, "Skill event binding"),
-                ("executable Resolve guard", executable_resolve, "unavailable phase"),
+                ("provider-unavailable Resolve guard", unavailable_resolve, "executable unique guard count mismatch"),
+                ("fallback after deadline", fallback_after_deadline, "general policy orchestration"),
+                ("wider Neural rollout", wider_neural_rollout, "production Neural rollout scope"),
                 ("request_new_goal rollback missing", request_without_rollback, "request_new_goal effect"),
                 ("SoundEvent used directly by SearchArea", raw_sound_search_target, "candidate-usable target authority"),
                 ("home Waypoint missing", missing_home, "target authority"),
-                ("production skill set wider than five", wider_production_skills, "production executable skill count"),
+                ("production skill set wider than six", wider_production_skills, "production executable skill count"),
                 ("nondeterministic Utility", nondeterministic_utility, "utility determinism"),
                 ("non-finite Utility weight", nonfinite_utility, "utility numeric"),
                 ("transition trigger mismatch", mismatched_transition, "transition binding"),
+                ("unknown Runtime requirement", unknown_requirement, "unsupported transition binding requirement"),
+                ("non-atomic subject transition", non_atomic_subject_transition, "subject identification fail-closed policy"),
+                ("mutable committed subject", mutable_committed_subject, "subject identification fail-closed policy"),
+                ("stale IdentifiedSubject after source expiry", unsafe_identified_subject_expiry, "IdentifiedSubject expiry policy"),
+                ("injected evaluator status", injected_evaluator_status, "general policy orchestration"),
+                ("forged Resolve primary target", forged_resolve_primary_target, "phase target authority fingerprint"),
+                ("nonexact Resolve target", nonexact_resolve_target, "phase target authority fingerprint"),
+                ("forged IdentifiedSubject authority", forged_identified_subject_authority, "target authority fingerprint"),
+                ("forged subject policy owner", forged_subject_policy_owner, "subject identification policy fingerprint"),
             ]
         )
         for label, mutate, expected in cases:
@@ -464,6 +620,37 @@ class GoalGameplayAuthorityTests(unittest.TestCase):
             self.schema,
             "0" * 64,
         )
+        escaped = deepcopy(self.goal_registry)
+        hostile_status = 'ready"\\\n#define FORGED 1\n//'
+        escaped["goal_gameplay_semantics_v1"]["general_policy_orchestration"][
+            "production_neural_evaluator_status"
+        ] = hostile_status
+        escaped_cpp = generator.generate_cpp(
+            escaped,
+            self.skill_registry,
+            self.schema,
+            "0" * 64,
+        )
+        self.assertIn(
+            f"PolicyProductionNeuralEvaluatorStatus = {json.dumps(hostile_status)};",
+            escaped_cpp,
+        )
+
+        hostile_owner = 'GameplayGoalAuthority";\n#define FORGED_OWNER 1\n//'
+        escaped["goal_gameplay_semantics_v1"]["target_authorities"][3]["owner"] = hostile_owner
+        escaped_cpp = generator.generate_cpp(
+            escaped,
+            self.skill_registry,
+            self.schema,
+            "0" * 64,
+        )
+        self.assertIn(json.dumps(hostile_owner), escaped_cpp)
+        self.assertNotIn('\n#define FORGED_OWNER 1\n', escaped_cpp)
+
+        non_bmp = generator._cpp_string("bad😀value")
+        self.assertEqual(non_bmp, '"bad\\360\\237\\230\\200value"')
+        self.assertNotIn("\\ud83d", non_bmp)
+
         target_mutated = deepcopy(self.goal_registry)
         target_mutated["goal_gameplay_semantics_v1"]["target_authorities"][2]["generation"] = 2
         target_cpp = generator.generate_cpp(
@@ -568,8 +755,8 @@ class GoalGameplayGeneratedArtifactsTests(unittest.TestCase):
     def test_python_binding_exposes_consumer_helpers_and_equivalent_values(self) -> None:
         generated = self.generated
         self.assertEqual(generated.GOAL_REGISTRY_SHA256, self.digest)
-        self.assertEqual(generated.GOAL_REGISTRY_VERSION, "1.1.0")
-        self.assertEqual(generated.GAMEPLAY_SEMANTICS_VERSION, "1.0.0")
+        self.assertEqual(generated.GOAL_REGISTRY_VERSION, "1.2.0")
+        self.assertEqual(generated.GAMEPLAY_SEMANTICS_VERSION, "1.2.0")
         profile = generated.find_initial_profile("GuardPhase0")
         self.assertIsNotNone(profile)
         self.assertEqual(profile.goal, generated.GoalType.IdleObserve)
@@ -577,8 +764,8 @@ class GoalGameplayGeneratedArtifactsTests(unittest.TestCase):
         self.assertEqual(profile.initial_goal_revision, 1)
         self.assertEqual(profile.initial_phase_generation, 1)
 
-        self.assertEqual(len(generated.TRANSITION_BINDINGS), 16)
-        self.assertEqual(generated.EXECUTABLE_TRANSITION_BINDING_COUNT, 12)
+        self.assertEqual(len(generated.TRANSITION_BINDINGS), 18)
+        self.assertEqual(generated.EXECUTABLE_TRANSITION_BINDING_COUNT, 18)
         binding = generated.find_transition_binding(
             generated.GoalType.InvestigateDisturbance,
             generated.GoalPhase.Navigate,
@@ -593,6 +780,7 @@ class GoalGameplayGeneratedArtifactsTests(unittest.TestCase):
 
         self.assertTrue(generated.is_production_executable_skill(generated.SkillId.Idle))
         self.assertTrue(generated.is_production_executable_skill(generated.SkillId.SearchArea))
+        self.assertTrue(generated.is_production_executable_skill(generated.SkillId.Greet))
         self.assertFalse(generated.is_production_executable_skill(generated.SkillId.LookAt))
         self.assertEqual(generated.CONTROL_SKILL, generated.SkillId.ContinueCurrentAction)
         self.assertEqual(generated.utility_bias(generated.SkillId.SearchArea), 1.5)
@@ -618,15 +806,31 @@ class GoalGameplayGeneratedArtifactsTests(unittest.TestCase):
             generated.GoalType.InvestigateDisturbance,
             generated.GoalPhase.Resolve,
         )
-        self.assertEqual(resolve_policy.policy, generated.TargetPolicy.UnavailableInGuardPhase0)
+        self.assertEqual(resolve_policy.policy, generated.TargetPolicy.ActiveGoalPrimaryTargetOnly)
+        self.assertEqual(resolve_policy.target_authority, generated.TargetAuthorityId.IdentifiedSubject)
+        self.assertEqual(generated.SUBJECT_IDENTIFICATION_MAXIMUM_DISTANCE_CM, 700.0)
+        self.assertEqual(generated.SUBJECT_IDENTIFICATION_APPLICABLE_PHASES, (generated.GoalPhase.Navigate, generated.GoalPhase.Search))
+        self.assertEqual(generated.POLICY_FALLBACK_REASONS, ("Unavailable", "Failed", "Abstained", "Invalid"))
+        self.assertEqual(generated.POLICY_EVALUATOR_STATUSES, ("Selected", "Unavailable", "Failed", "Abstained", "Invalid"))
+        self.assertEqual(generated.POLICY_NEURAL_BUDGET_MS, 20)
+        self.assertEqual(generated.POLICY_TOTAL_DECISION_DEADLINE_MS, 40)
+        self.assertEqual(generated.POLICY_FALLBACK_AFTER_DEADLINE_UTILITY_CALLS, 0)
+        self.assertEqual(generated.POLICY_NEURAL_SUCCESS_UTILITY_CALLS, 0)
+        self.assertEqual(generated.POLICY_FALLBACK_UTILITY_CALLS, 1)
 
-    def test_markdown_and_cpp_publish_equivalent_scope_without_full_guard_claim(self) -> None:
+    def test_markdown_and_cpp_publish_equivalent_bounded_full_guard_scope(self) -> None:
         cpp = GENERATED_CPP.read_text(encoding="utf-8")
         doc = GENERATED_DOC.read_text(encoding="utf-8")
         self.assertNotIn("\x00", cpp)
         self.assertIn("*A != '\\0'", cpp)
         for text in (cpp, doc):
             self.assertIn(self.digest, text)
+        self.assertIn("ResolveActionSkill = SchemaV2::ESkillId::Greet", cpp)
+        self.assertIn('ResolveControlPolicy = "exact_current_running_greet_only"', cpp)
+        self.assertIn('ResolveAllOthersPolicy = "hard_mask_false_even_if_precondition_true"', cpp)
+        self.assertIn("IsResolveProductionCandidateAllowed", cpp)
+        self.assertIn("Skill == ResolveActionSkill", cpp)
+        self.assertIn("Skill == ControlSkill && bExactCurrentRunningGreet", cpp)
         self.assertIn("TransitionBindings", cpp)
         self.assertIn("RequirementMask", cpp)
         self.assertIn("ERequirementId", cpp)
@@ -642,9 +846,11 @@ class GoalGameplayGeneratedArtifactsTests(unittest.TestCase):
         self.assertIn("FindTargetAuthority", cpp)
         self.assertIn("FindEffectAuthority", cpp)
         self.assertIn("GetUtilityBias", cpp)
-        self.assertIn("9 executable unique guards", doc)
-        self.assertIn("3 provider-unavailable unique guards", doc)
-        self.assertIn("12 executable transition bindings", doc)
+        self.assertIn("14 executable unique guards", doc)
+        self.assertIn("0 provider-unavailable unique guards", doc)
+        self.assertIn("18 executable transition bindings", doc)
+        self.assertIn("700.0", doc)
+        self.assertIn("NeuralFirstUtilityFallbackV1", doc)
         self.assertIn("Gameplay Goal FSM: **HOLD**", doc)
         self.assertNotIn("all 29 guards PASS", doc)
         expected_target_rows = [
@@ -790,10 +996,10 @@ using namespace AINativeNPC::GoalGameplayV1;
 static_assert(InitialProfiles.size() == 1U);
 static_assert(InitialProfiles[0].Goal == SchemaV2::EGoalType::IdleObserve);
 static_assert(InitialProfiles[0].Phase == SchemaV2::EGoalPhase::Observe);
-static_assert(ExecutableUniqueGuardCount == 9U);
-static_assert(UnavailableUniqueGuardCount == 3U);
-static_assert(ExecutableTransitionBindingCount == 12U);
-static_assert(TargetAuthorities.size() == 3U);
+static_assert(ExecutableUniqueGuardCount == 14U);
+static_assert(UnavailableUniqueGuardCount == 0U);
+static_assert(ExecutableTransitionBindingCount == 18U);
+static_assert(TargetAuthorities.size() == 4U);
 static_assert(EffectAuthorities.size() == 2U);
 static_assert(TargetAuthorities[0].OwnedByGameplayGoalAuthority);
 static_assert(TargetAuthorities[0].AuthoritySessionLifetime);
@@ -809,11 +1015,23 @@ static_assert(TargetAuthorities[2].OwnedByGameplayGoalAuthority);
 static_assert(TargetAuthorities[2].InvestigateGoalInstanceLifetime);
 static_assert(TargetAuthorities[2].SessionMonotonicGoalTargetAllocator);
 static_assert(TargetAuthorities[2].ExactSoundEventStimulusLocationCapture);
+static_assert(TargetAuthorities[3].OwnedByGameplayGoalAuthority);
+static_assert(TargetAuthorities[3].InvestigateGoalInstanceLifetime);
+static_assert(TargetAuthorities[3].StoredInKnowledge);
+static_assert(TargetAuthorities[3].Mutable);
+static_assert(TargetAuthorities[3].ActorTransformLookup);
+static_assert(SubjectIdentificationMaximumDistanceCm == 700.0);
+static_assert(PolicyNeuralSuccessUtilityCalls == 0U);
+static_assert(PolicyFallbackUtilityCalls == 1U);
+static_assert(PolicyNeuralBudgetMs == 20U);
+static_assert(PolicyTotalDecisionDeadlineMs == 40U);
+static_assert(PolicyFallbackAfterDeadlineUtilityCalls == 0U);
 static_assert(EffectAuthorities[0].StageIntentOnly);
 static_assert(EffectAuthorities[0].RequestsGoal);
 static_assert(EffectAuthorities[0].OwnerBoundedPrepareInterruptCommit);
 static_assert(IsProductionExecutableSkill(SchemaV2::ESkillId::Idle));
 static_assert(IsProductionExecutableSkill(SchemaV2::ESkillId::SearchArea));
+static_assert(IsProductionExecutableSkill(SchemaV2::ESkillId::Greet));
 static_assert(!IsProductionExecutableSkill(SchemaV2::ESkillId::LookAt));
 static_assert(GetUtilityBias(SchemaV2::ESkillId::SearchArea) == 1.5);
 static_assert(GetUtilityBias(SchemaV2::ESkillId::Attack) == -2.5);

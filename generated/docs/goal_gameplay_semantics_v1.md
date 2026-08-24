@@ -4,16 +4,16 @@
 
 **Status: BOUNDED PRODUCTION AUTHORITY — PASS**
 
-- Approved: `2026-08-11`
+- Approved: `2026-08-20`
 - Profile: `GuardPhase0`
-- Goal Registry: `1.1.0`
-- Gameplay semantics: `1.0.0`
-- Goal Registry SHA-256: `d9eb13898cf2d066320977073b1e82458cc0d7bdfd512ef6983ad9a2d44c8f3e`
-- 9 executable unique guards
-- 3 provider-unavailable unique guards
-- 12 executable transition bindings
-- 4 unavailable transition bindings
-- 5 production executable Skills
+- Goal Registry: `1.2.0`
+- Gameplay semantics: `1.2.0`
+- Goal Registry SHA-256: `2fe47b0376427c3c086e6d899b934d3d59ddbbd672c3b98900cf84837d1a8dda`
+- 14 executable unique guards
+- 0 provider-unavailable unique guards
+- 18 executable transition bindings
+- 0 unavailable transition bindings
+- 6 production executable Skills
 - Gameplay Goal FSM: **HOLD**
 
 This authority is bounded to the listed profile and supported Goals. The complete guard catalog, other Goals, full arbitration/save archive, and whole Gameplay Goal FSM remain HOLD.
@@ -31,6 +31,24 @@ This authority is bounded to the listed profile and supported Goals. The complet
 | `HomeWaypoint` | `Waypoint` | `GameplayGoalAuthority` | `AuthoritySession` | `session_monotonic_nonzero_goal_target_allocator` | `FirstExactAssemblyPawnFiniteWorldPosition` | 1 | 1 | `false` | `false` | `false` | `true` | `false` | `not_applicable` |
 | `SourceSoundHandle` | `SoundEvent` | `Knowledge` | `SourceKnowledgeFact` | `exact_source_handle` | `ExactCurrentSoundEventHandleAtRequest` | 0 | 0 | `false` | `true` | `true` | `false` | `false` | `may_expire_after_goal_activation` |
 | `DisturbancePosition` | `WorldPosition` | `GameplayGoalAuthority` | `InvestigateGoalInstance` | `session_monotonic_nonzero_goal_target_allocator` | `ExactSoundEventStimulusLocation` | 1 | 1 | `false` | `false` | `false` | `true` | `false` | `preserve_immutable_position` |
+| `IdentifiedSubject` | `Entity` | `GameplayGoalAuthority` | `InvestigateGoalInstance` | `exact_sight_event_entity_stable_id` | `ExactCurrentVisibleEntityBindingFromAcceptedSightAcquired` | 0 | 0 | `true` | `true` | `false` | `true` | `true` | `fail_closed_when_current_visible_identity_cannot_resolve` |
+
+## Subject identification
+
+- Policy: `InvestigateVisibleSubjectV1`
+- Applicable: `InvestigateDisturbance` / `Navigate, Search`
+- Distance: `planar_xy_center_to_center_cm <= 700.0`
+- Subject authority: `IdentifiedSubject`
+- Committed Target: `frozen_after_commit`
+
+## General policy orchestration
+
+- Policy: `NeuralFirstUtilityFallbackV1`
+- Primary: `NeuralPolicy`
+- Fallback: `GeneratedUtilityProfile` / `GuardPhase0UtilityV1`
+- Fallback on: `Unavailable, Failed, Abstained, Invalid`
+- Snapshot: `exact_same_immutable_snapshot`
+- Production Neural evaluator: `available_only_when_resolve_policy_ready`
 
 ## Production Skills
 
@@ -39,6 +57,7 @@ This authority is bounded to the listed profile and supported Goals. The complet
 - `Approach`
 - `Investigate`
 - `SearchArea`
+- `Greet`
 
 Control candidate: `ContinueCurrentAction`
 
@@ -50,7 +69,7 @@ Control candidate: `ContinueCurrentAction`
 | `InvestigateDisturbance` | `Orient` | `ActiveGoalPrimaryTargetOnly` | `DisturbancePosition` |
 | `InvestigateDisturbance` | `Navigate` | `ActiveGoalPrimaryTargetOnly` | `DisturbancePosition` |
 | `InvestigateDisturbance` | `Search` | `ActiveGoalPrimaryTargetOnly` | `DisturbancePosition` |
-| `InvestigateDisturbance` | `Resolve` | `UnavailableInGuardPhase0` | `none` |
+| `InvestigateDisturbance` | `Resolve` | `ActiveGoalPrimaryTargetOnly` | `IdentifiedSubject` |
 | `InvestigateDisturbance` | `Return` | `ActiveGoalPrimaryTargetOnly` | `HomeWaypoint` |
 
 ## Guard authorities
@@ -64,10 +83,12 @@ Control candidate: `ContinueCurrentAction`
 | `phase_timeout` | `executable` | 3 |
 | `arrived_at_snapshot` | `executable` | 1 |
 | `PathUnavailable` | `executable` | 2 |
-| `subject_identified` | `provider_unavailable` | 2 |
+| `subject_identified` | `executable` | 2 |
 | `search_budget_exhausted` | `executable` | 1 |
-| `resolution_complete` | `provider_unavailable` | 1 |
-| `no_valid_belief` | `provider_unavailable` | 1 |
+| `resolution_complete` | `executable` | 1 |
+| `identified_subject_invalid_recoverable` | `executable` | 1 |
+| `identified_subject_invalid_unrecoverable` | `executable` | 1 |
+| `resolution_failed` | `executable` | 1 |
 | `at_return_target` | `executable` | 1 |
 
 ## Utility

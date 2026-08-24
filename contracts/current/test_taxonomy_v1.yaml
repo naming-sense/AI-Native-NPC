@@ -2,7 +2,7 @@ registry:
   name: ai_native_npc_test_taxonomy
   version: 1.0.0
   schema_version: 2.0.0
-  contract_revision: 2.0.0-rc5
+  contract_revision: 2.0.0-rc6
 critical_suite:
   required_family_count: 9
   minimum_cases_per_family: 64
@@ -54,6 +54,26 @@ ood_suite:
   - id: 8
     name: boss_pattern_phase_composition_shift
   contract_id: ood_suite_v1
+
+resolve_policy_v1:
+  version: 1.0.0
+  release_scope_id: GuardPhase0/InvestigateDisturbance/Resolve
+  production_action: Greet(Entity)
+  label_fields:
+    - selected_candidate_index
+    - greet_duration_normalized
+    - greet_intensity_normalized
+    - selected_is_acceptable
+  required_case_groups:
+    - greet_selected
+    - masked_or_nonfinite_output
+    - wrong_descriptor_or_artifact_identity
+    - neural_failure_or_deadline
+    - target_loss_recoverable
+    - target_loss_unrecoverable
+    - duplicate_or_stale_effect
+  minimum_cases_per_group: 64
+  split_isolation_key: scenario_seed
 documentation_contract:
   requirements:
     path: docs/current/contract-appendices.md

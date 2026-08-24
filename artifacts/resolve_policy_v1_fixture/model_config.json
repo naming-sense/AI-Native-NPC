@@ -1,0 +1,7 @@
+{
+  "action": "Greet(Entity)",
+  "architecture": "masked_linear_resolve_v1",
+  "opset": 17,
+  "production_scope": "GuardPhase0/InvestigateDisturbance/Resolve",
+  "runtime_batch": 1
+}

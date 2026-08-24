@@ -16,6 +16,9 @@ import yaml
 CPP_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 DOC_BEGIN = "<!-- BEGIN GOAL GAMEPLAY SEMANTICS V1 STATUS -->"
 DOC_END = "<!-- END GOAL GAMEPLAY SEMANTICS V1 STATUS -->"
+TARGET_AUTHORITY_FINGERPRINT = "893537573d8497cf6766649d2b746169fd80ed48750d6cd88f2e9a55f2ad36f1"
+PHASE_TARGET_POLICY_FINGERPRINT = "b194637f3aff6aacbaf0a6fa1d7a180d822d0a2e3cb1908b41a8c5a1a534bfc3"
+SUBJECT_IDENTIFICATION_POLICY_FINGERPRINT = "fbb9aab0189077539204cc766a57d58f4fc65c2f14381822532e767cd01c7a8d"
 
 
 def _finite_number(value: Any) -> bool:
@@ -24,6 +27,31 @@ def _finite_number(value: Any) -> bool:
 
 def _identifier(value: Any) -> bool:
     return isinstance(value, str) and CPP_IDENTIFIER.fullmatch(value) is not None
+
+
+def _cpp_string(value: str) -> str:
+    """Return a deterministic UTF-8 byte-safe C++ string literal."""
+    if not isinstance(value, str):
+        raise TypeError("C++ string value must be str")
+    escapes = {
+        0x08: r"\b", 0x09: r"\t", 0x0A: r"\n", 0x0C: r"\f", 0x0D: r"\r",
+        0x22: r'\"', 0x5C: r"\\",
+    }
+    encoded: list[str] = ['"']
+    for byte in value.encode("utf-8"):
+        if byte in escapes:
+            encoded.append(escapes[byte])
+        elif 0x20 <= byte <= 0x7E:
+            encoded.append(chr(byte))
+        else:
+            encoded.append(f"\\{byte:03o}")
+    encoded.append('"')
+    return "".join(encoded)
+
+
+def _semantic_fingerprint(value: Any) -> str:
+    raw = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
 
 
 def _unique_strings(value: Any, *, allow_empty: bool = True) -> bool:
@@ -92,9 +120,14 @@ def validate_registry(
 
     header = registry.get("registry", {})
     schema_goal_version = schema.get("constants", {}).get("goal_registry_version")
-    if not isinstance(header, dict) or header.get("version") != schema_goal_version:
+    if (
+        not isinstance(header, dict)
+        or header.get("version") != schema_goal_version
+        or header.get("contract_revision") != schema.get("schema", {}).get("contract_revision")
+        or skill_registry.get("registry", {}).get("contract_revision") != schema.get("schema", {}).get("contract_revision")
+    ):
         errors.append("goal registry version mismatch")
-    if contract.get("version") != "1.0.0":
+    if contract.get("version") != "1.2.0":
         errors.append("goal gameplay semantics version mismatch")
     if contract.get("status") != "approved_production_authority" or not isinstance(contract.get("approved_on"), str):
         errors.append("goal gameplay authority status mismatch")
@@ -117,9 +150,19 @@ def validate_registry(
         "production_executable_skills",
         "full_guard_catalog_pass",
     }
-    if not isinstance(claims, dict) or set(claims) != claim_keys or claims.get("full_guard_catalog_pass") is not False:
+    if not isinstance(claims, dict) or set(claims) != claim_keys or claims.get("full_guard_catalog_pass") is not True:
         errors.append("bounded scope claims mismatch")
         claims = {}
+
+    runtime_requirements = contract.get("runtime_supported_requirements")
+    if (
+        not _unique_strings(runtime_requirements, allow_empty=False)
+        or not isinstance(runtime_requirements, list)
+        or len(runtime_requirements) > 64
+    ):
+        errors.append("runtime supported requirement catalog mismatch")
+        runtime_requirements = []
+    runtime_requirement_set = set(runtime_requirements)
 
     schema_enums = schema.get("enums", {}) if isinstance(schema.get("enums"), dict) else {}
     goal_ids = _enum_map(registry.get("goal_types"))
@@ -167,6 +210,8 @@ def validate_registry(
         target_by_id[target_id] = row
         if row.get("target_kind") not in target_kind_ids or not isinstance(row.get("candidate_usable"), bool):
             errors.append(f"target authority {target_id} mismatch")
+    if _semantic_fingerprint(targets) != TARGET_AUTHORITY_FINGERPRINT:
+        errors.append("target authority fingerprint mismatch")
     for profile in profiles:
         if profile.get("activation_precondition_target") not in target_by_id:
             errors.append("initial profile target authority missing")
@@ -196,6 +241,8 @@ def validate_registry(
                 errors.append("phase target kind/authority mismatch")
         if row.get("continue_policy") == "unavailable":
             unavailable_pairs.add(key)
+    if _semantic_fingerprint(policies) != PHASE_TARGET_POLICY_FINGERPRINT:
+        errors.append("phase target authority fingerprint mismatch")
 
     skill_rows = _rows_by_name(skill_registry.get("skills"))
     production = contract.get("production_skills")
@@ -215,6 +262,12 @@ def validate_registry(
     control = production.get("control")
     if control not in skill_rows or skill_rows[control].get("control_candidate") is not True:
         errors.append("production control skill mismatch")
+    if (
+        production.get("resolve_action") != "Greet"
+        or production.get("resolve_control_policy") != "exact_current_running_greet_only"
+        or set(production) != {"executable", "control", "resolve_action", "resolve_control_policy", "all_others_policy"}
+    ):
+        errors.append("production Resolve skill authority mismatch")
 
     utility = contract.get("utility_profile")
     if not isinstance(utility, dict):
@@ -238,6 +291,96 @@ def validate_registry(
     numeric_values.extend(weights)
     if not all(_finite_number(value) for value in numeric_values):
         errors.append("utility numeric value must be finite")
+
+    subject_policy = contract.get("subject_identification_policy")
+    subject_policy_keys = {
+        "policy_id", "owner", "source_event", "applicable_goal", "applicable_phases",
+        "disturbance_target_authority", "subject_target_authority", "target_kind",
+        "distance_metric", "maximum_distance_cm", "boundary",
+        "require_exact_current_knowledge_revision",
+        "require_exact_current_visible_entity_binding", "require_same_world",
+        "nonfinite_policy", "target_install_policy", "transition_transaction",
+        "committed_target_policy",
+    }
+    if not isinstance(subject_policy, dict) or set(subject_policy) != subject_policy_keys:
+        errors.append("subject identification policy mismatch")
+    else:
+        disturbance_id = subject_policy.get("disturbance_target_authority")
+        subject_id = subject_policy.get("subject_target_authority")
+        phases = subject_policy.get("applicable_phases")
+        if (
+            not _identifier(subject_policy.get("policy_id"))
+            or subject_policy.get("source_event") not in event_ids
+            or subject_policy.get("applicable_goal") not in supported
+            or not _unique_strings(phases, allow_empty=False)
+            or not set(phases).issubset(phase_ids)
+            or disturbance_id not in target_by_id
+            or subject_id not in target_by_id
+            or disturbance_id == subject_id
+            or target_by_id.get(subject_id, {}).get("target_kind") != subject_policy.get("target_kind")
+        ):
+            errors.append("subject identification target authority mismatch")
+        if not _finite_number(subject_policy.get("maximum_distance_cm")) or subject_policy.get("maximum_distance_cm", 0.0) <= 0.0:
+            errors.append("subject identification distance mismatch")
+        if (
+            subject_policy.get("boundary") != "inclusive"
+            or subject_policy.get("nonfinite_policy") != "reject"
+            or subject_policy.get("require_exact_current_knowledge_revision") is not True
+            or subject_policy.get("require_exact_current_visible_entity_binding") is not True
+            or subject_policy.get("require_same_world") is not True
+            or subject_policy.get("target_install_policy") != "exact_event_entity_identity_then_current_visible_revision_recapture"
+            or subject_policy.get("transition_transaction") != "phase_and_primary_target_single_authority_transaction"
+            or subject_policy.get("committed_target_policy") != "frozen_after_commit"
+        ):
+            errors.append("subject identification fail-closed policy mismatch")
+        subject_target = target_by_id.get(subject_id, {}) if isinstance(subject_id, str) else {}
+        if subject_target.get("source_ttl_expiry_policy") != "fail_closed_when_current_visible_identity_cannot_resolve":
+            errors.append("IdentifiedSubject expiry policy mismatch")
+    if _semantic_fingerprint(subject_policy) != SUBJECT_IDENTIFICATION_POLICY_FINGERPRINT:
+        errors.append("subject identification policy fingerprint mismatch")
+
+    orchestration = contract.get("general_policy_orchestration")
+    orchestration_keys = {
+        "policy_id", "owner", "snapshot_authority", "primary", "fallback",
+        "fallback_profile_id", "fallback_on", "neural_success_utility_calls",
+        "fallback_utility_calls", "zero_valid_policy", "snapshot_reuse_policy",
+        "phase_skill_override", "production_neural_evaluator_status",
+        "production_neural_rollout_scope", "evaluator_statuses", "neural_budget_ms",
+        "total_decision_deadline_ms", "fallback_within_deadline_utility_calls",
+        "fallback_after_deadline_utility_calls", "single_valid_calibration",
+    }
+    if not isinstance(orchestration, dict) or set(orchestration) != orchestration_keys:
+        errors.append("general policy orchestration mismatch")
+    elif (
+        not _identifier(orchestration.get("policy_id"))
+        or orchestration.get("evaluator_statuses") != ["Selected", "Unavailable", "Failed", "Abstained", "Invalid"]
+        or orchestration.get("fallback_on") != ["Unavailable", "Failed", "Abstained", "Invalid"]
+        or orchestration.get("fallback_profile_id") != utility.get("profile_id")
+        or orchestration.get("neural_success_utility_calls") != 0
+        or orchestration.get("fallback_utility_calls") != 1
+        or orchestration.get("fallback_within_deadline_utility_calls") != 1
+        or orchestration.get("fallback_after_deadline_utility_calls") != 0
+        or orchestration.get("neural_budget_ms") != 20
+        or orchestration.get("total_decision_deadline_ms") != 40
+        or orchestration.get("snapshot_reuse_policy") != "exact_same_immutable_snapshot"
+        or orchestration.get("phase_skill_override") != "forbidden"
+        or orchestration.get("production_neural_evaluator_status") != "available_only_when_resolve_policy_ready"
+    ):
+        errors.append("general policy orchestration mismatch")
+    else:
+        if orchestration.get("production_neural_rollout_scope") != {
+            "profile_id": "GuardPhase0",
+            "goal": "InvestigateDisturbance",
+            "phase": "Resolve",
+            "out_of_scope_primary": "GeneratedUtilityProfile",
+        }:
+            errors.append("production Neural rollout scope mismatch")
+        if orchestration.get("single_valid_calibration") != {
+            "second_adjusted_score": "selected_adjusted_score",
+            "adjusted_gap": "positive_zero",
+            "normalized_entropy": "zero",
+        }:
+            errors.append("single-valid Calibration contract mismatch")
 
     fields = _field_map(contract)
     expected_fields = (
@@ -302,8 +445,11 @@ def validate_registry(
     unavailable_bindings = 0
     executable_guards = 0
     unavailable_guards = 0
-    failure_names = set(skill_registry.get("failure_taxonomy", []))
+    failure_names = set(skill_registry.get("failure_taxonomy", [])) | set(
+        skill_registry.get("execution_semantics_v1", {}).get("local_failure_reasons", [])
+    )
     skill_sources = set(skill_field.get("required_for_sources", [])) if isinstance(skill_field, dict) else set()
+    bound_requirement_set: set[str] = set()
     for authority in authorities:
         if not isinstance(authority, dict):
             continue
@@ -348,6 +494,10 @@ def validate_registry(
             errors.append("transition binding target authority mismatch")
         if not _unique_strings(requirements, allow_empty=False):
             errors.append("transition binding requirement mismatch")
+        elif isinstance(requirements, list):
+            bound_requirement_set.update(requirements)
+            if not set(requirements).issubset(runtime_requirement_set):
+                errors.append("unsupported transition binding requirement")
         if fact_source in skill_sources and not accepted_skills:
             errors.append("Skill event binding requires accepted Skill payload")
         if availability == "provider_unavailable" and fact_source != "Unavailable":
@@ -355,6 +505,8 @@ def validate_registry(
 
     if keys_seen != set(transitions):
         errors.append("transition binding coverage mismatch")
+    if bound_requirement_set != runtime_requirement_set:
+        errors.append("runtime supported requirement catalog coverage mismatch")
     if executable_guards != claims.get("executable_unique_guards"):
         errors.append("executable unique guard count mismatch")
     if unavailable_guards != claims.get("unavailable_unique_guards"):
@@ -396,7 +548,19 @@ def validate_registry(
     if not isinstance(terminal, dict) or terminal.get("resume_goal") not in supported:
         errors.append("terminal resume authority mismatch")
     scheduling = contract.get("decision_scheduling")
-    if not isinstance(scheduling, dict) or scheduling.get("component_tick") is not False or scheduling.get("max_pending_decisions_per_npc") != 1:
+    if (
+        not isinstance(scheduling, dict)
+        or scheduling.get("component_tick") is not False
+        or scheduling.get("max_pending_decisions_per_npc") != 1
+        or scheduling.get("total_decision_deadline_ms") != 40
+        or scheduling.get("stale_result_reuse_policy") != "forbidden"
+        or scheduling.get("fresh_snapshot_retry") != {
+            "schedule": "next_tick",
+            "max_attempts_per_goal_revision": 1,
+            "second_stale_policy": "wait_for_authoritative_goal_or_knowledge_change",
+            "primary_entity_invalid_policy": "generated_target_invalidated_not_stale_retry",
+        }
+    ):
         errors.append("decision scheduling authority mismatch")
     return errors
 
@@ -452,7 +616,10 @@ def _contract_maps(registry: dict[str, Any], skill_registry: dict[str, Any], sch
     target_authorities = ["None"] + [row["id"] for row in contract["target_authorities"]]
     target_policies = _ordered_unique(row["policy"] for row in contract["phase_target_policies"])
     availability = _ordered_unique(row["availability"] for row in contract["guard_authorities"])
-    failure_reasons = ["None"] + list(skill_registry["failure_taxonomy"])
+    failure_reasons = ["None"] + _ordered_unique(
+        list(skill_registry["failure_taxonomy"])
+        + list(skill_registry.get("execution_semantics_v1", {}).get("local_failure_reasons", []))
+    )
     return {
         "contract": contract,
         "goal_ids": _enum_map(registry["goal_types"]),
@@ -536,6 +703,10 @@ def generate_python(
         maps["skill_ids"][name]: float(value)
         for name, value in contract["utility_profile"]["skill_biases"].items()
     }
+    subject_phases = ", ".join(
+        f"GoalPhase.{_py_name(phase)}"
+        for phase in contract["subject_identification_policy"]["applicable_phases"]
+    )
     text = f'''"""AUTO-GENERATED. DO NOT EDIT. Bounded Goal gameplay semantics V1."""
 from __future__ import annotations
 from dataclasses import dataclass
@@ -546,6 +717,9 @@ GOAL_REGISTRY_VERSION = {registry['registry']['version']!r}
 GAMEPLAY_SEMANTICS_VERSION = {contract['version']!r}
 PROFILE_ID = {contract['scope']['profile_id']!r}
 UTILITY_PROFILE_ID = {contract['utility_profile']['profile_id']!r}
+SUBJECT_IDENTIFICATION_POLICY_ID = {contract['subject_identification_policy']['policy_id']!r}
+SUBJECT_IDENTIFICATION_MAXIMUM_DISTANCE_CM = {_cpp_number(contract['subject_identification_policy']['maximum_distance_cm'])}
+POLICY_ORCHESTRATION_ID = {contract['general_policy_orchestration']['policy_id']!r}
 
 {chr(10).join(enum_blocks)}
 @dataclass(frozen=True)
@@ -605,6 +779,18 @@ CONTROL_SKILL = SkillId.{_py_name(contract['production_skills']['control'])}
 ALL_OTHER_SKILL_BIAS = {_cpp_number(contract['utility_profile']['all_other_skill_bias'])}
 UTILITY_SKILL_BIASES = {utility_biases!r}
 CANDIDATE_PAIR_FEATURE_WEIGHTS = {tuple(float(value) for value in contract['utility_profile']['candidate_pair_feature_weights'])!r}
+SUBJECT_IDENTIFICATION_APPLICABLE_PHASES = ({subject_phases},)
+POLICY_FALLBACK_REASONS = {tuple(contract['general_policy_orchestration']['fallback_on'])!r}
+POLICY_EVALUATOR_STATUSES = {tuple(contract['general_policy_orchestration']['evaluator_statuses'])!r}
+POLICY_PRODUCTION_NEURAL_ROLLOUT_SCOPE = {contract['general_policy_orchestration']['production_neural_rollout_scope']!r}
+POLICY_NEURAL_BUDGET_MS = {contract['general_policy_orchestration']['neural_budget_ms']}
+POLICY_TOTAL_DECISION_DEADLINE_MS = {contract['general_policy_orchestration']['total_decision_deadline_ms']}
+POLICY_NEURAL_SUCCESS_UTILITY_CALLS = {contract['general_policy_orchestration']['neural_success_utility_calls']}
+POLICY_FALLBACK_UTILITY_CALLS = {contract['general_policy_orchestration']['fallback_utility_calls']}
+POLICY_FALLBACK_WITHIN_DEADLINE_UTILITY_CALLS = {contract['general_policy_orchestration']['fallback_within_deadline_utility_calls']}
+POLICY_FALLBACK_AFTER_DEADLINE_UTILITY_CALLS = {contract['general_policy_orchestration']['fallback_after_deadline_utility_calls']}
+POLICY_SINGLE_VALID_CALIBRATION = {contract['general_policy_orchestration']['single_valid_calibration']!r}
+POLICY_PRODUCTION_NEURAL_EVALUATOR_STATUS = {contract['general_policy_orchestration']['production_neural_evaluator_status']!r}
 TYPED_EVENT_FIELDS = {tuple(contract['typed_event_fact']['fields'])!r}
 TARGET_AUTHORITIES = {tuple(contract['target_authorities'])!r}
 EFFECT_AUTHORITIES = {tuple(contract['effects'])!r}
@@ -647,14 +833,16 @@ def generate_cpp(
 ) -> str:
     maps = _contract_maps(registry, skill_registry, schema)
     contract = maps["contract"]
+    production = contract["production_skills"]
     profiles = []
     for row in contract["initial_profiles"]:
         profiles.append(
             "    FInitialProfile{"
-            f'"{row["profile_id"]}", SchemaV2::EGoalType::{_cpp_name(row["initial_goal"])}, '
+            f'{_cpp_string(row["profile_id"])}, SchemaV2::EGoalType::{_cpp_name(row["initial_goal"])}, '
             f'SchemaV2::EGoalPhase::{_cpp_name(row["initial_phase"])}, {row["initial_goal_revision"]}ULL, '
-            f'{row["initial_phase_generation"]}ULL, "{row["goal_instance_id_policy"]}", '
-            f'"{row["lifecycle"]}", "{row["activation_precondition_target"]}", "{row["failure_policy"]}"}},'
+            f'{row["initial_phase_generation"]}ULL, {_cpp_string(row["goal_instance_id_policy"])}, '
+            f'{_cpp_string(row["lifecycle"])}, {_cpp_string(row["activation_precondition_target"])}, '
+            f'{_cpp_string(row["failure_policy"])}' + "},",
         )
     policies = []
     for row in contract["phase_target_policies"]:
@@ -664,14 +852,16 @@ def generate_cpp(
             f"SchemaV2::EGoalType::{_cpp_name(row['goal'])}, SchemaV2::EGoalPhase::{_cpp_name(row['phase'])}, "
             f"ETargetPolicy::{_cpp_name(row['policy'])}, ETargetAuthorityId::{_cpp_name(authority_name)}, "
             f"SchemaV2::ETargetKind::{_cpp_name(row['required_target_kind'])}, "
-            f"{'true' if row['exact_identity_and_revision'] else 'false'}, \"{row['continue_policy']}\", \"{row['entry_target_change']}\"}},"
+            f"{'true' if row['exact_identity_and_revision'] else 'false'}, "
+            f"{_cpp_string(row['continue_policy'])}, {_cpp_string(row['entry_target_change'])}" + "},"
         )
     target_authorities = []
     for row in contract["target_authorities"]:
         target_authorities.append(
             "    FTargetAuthority{"
             f"ETargetAuthorityId::{_cpp_name(row['id'])}, SchemaV2::ETargetKind::{_cpp_name(row['target_kind'])}, "
-            f'"{row["owner"]}", "{row["lifetime"]}", "{row["stable_id_policy"]}", '
+            f'{_cpp_string(row["owner"])}, {_cpp_string(row["lifetime"])}, '
+            f'{_cpp_string(row["stable_id_policy"])}, '
             f"{'true' if row['owner'] == 'GameplayGoalAuthority' else 'false'}, "
             f"{'true' if row['owner'] == 'Knowledge' else 'false'}, "
             f"{'true' if row['lifetime'] == 'AuthoritySession' else 'false'}, "
@@ -682,26 +872,29 @@ def generate_cpp(
             f"{int(row['generation'])}ULL, {int(row['initial_revision'])}ULL, "
             f"{'true' if row['mutable'] else 'false'}, {'true' if row['stored_in_knowledge'] else 'false'}, "
             f"{'true' if row['provenance_only'] else 'false'}, {'true' if row['candidate_usable'] else 'false'}, "
-            f'"{row["capture_source"]}", '
+            f'{_cpp_string(row["capture_source"])}, '
             f"{'true' if row['capture_source'] == 'FirstExactAssemblyPawnFiniteWorldPosition' else 'false'}, "
             f"{'true' if row['capture_source'] == 'ExactCurrentSoundEventHandleAtRequest' else 'false'}, "
             f"{'true' if row['capture_source'] == 'ExactSoundEventStimulusLocation' else 'false'}, "
             f'{"true" if row["actor_transform_lookup"] else "false"}, '
-            f'"{row["source_ttl_expiry_policy"]}"}},'
+            f'{_cpp_string(row["source_ttl_expiry_policy"])}' + "},",
         )
     effect_authorities = []
     for row in contract["effects"]:
         effect_authorities.append(
             "    FEffectAuthority{"
-            f'"{row["name"]}", "{row["apply_effect_policy"]}", "{row["pump_result"]}", '
+            f'{_cpp_string(row["name"])}, {_cpp_string(row["apply_effect_policy"])}, '
+            f'{_cpp_string(row["pump_result"])}, '
             f"{'true' if row['apply_effect_policy'] == 'stage_intent_only_no_external_mutation' else 'false'}, "
             f"{'true' if row['pump_result'] == 'GoalRequested' else 'false'}, "
             f"{'true' if row['transaction_policy'] == 'owner_bounded_prepare_interrupt_commit' else 'false'}, "
-            f'"{row["transaction_policy"]}", "{row["failure_before_interrupt"]}", '
-            f'"{row["interrupt_failure"]}", "{row["failure_after_interrupt"]}", '
-            f'"{row["post_commit_skill_start_failure"]}", '
-            f'"{"|".join(row["callback_free_atomic_steps"])}", "{"|".join(row["preserve"])}", '
-            f'"{row["revision_without_target_change"]}", "{row["revision_with_target_change"]}"}},'
+            f'{_cpp_string(row["transaction_policy"])}, {_cpp_string(row["failure_before_interrupt"])}, '
+            f'{_cpp_string(row["interrupt_failure"])}, {_cpp_string(row["failure_after_interrupt"])}, '
+            f'{_cpp_string(row["post_commit_skill_start_failure"])}, '
+            f'{_cpp_string("|".join(row["callback_free_atomic_steps"]))}, '
+            f'{_cpp_string("|".join(row["preserve"]))}, '
+            f'{_cpp_string(row["revision_without_target_change"])}, '
+            f'{_cpp_string(row["revision_with_target_change"])}' + "},",
         )
     bindings = []
     for authority in contract["guard_authorities"]:
@@ -713,7 +906,7 @@ def generate_cpp(
                 f"SchemaV2::EGoalType::{_cpp_name(row['goal'])}, SchemaV2::EGoalPhase::{_cpp_name(row['phase'])}, {row['order']}U, "
                 f"EGuardId::{_cpp_name(authority['guard'])}, EGuardAvailability::{_cpp_name(authority['availability'])}, "
                 f"ETriggerKind::{_cpp_name(trigger['kind'].title())}, SchemaV2::EEventType::{_cpp_name(event_name)}, "
-                f'"{trigger.get("timer_id", "")}", EFactSource::{_cpp_name(row["fact_source"])}, '
+                f'{_cpp_string(trigger.get("timer_id", ""))}, EFactSource::{_cpp_name(row["fact_source"])}, '
                 f"{_mask(row['accepted_skills'], maps['skill_ids'])}ULL, {_mask(row['accepted_target_kinds'], maps['target_kind_ids'])}ULL, "
                 f"{_mask(row['target_authorities'], maps['target_authority_ids'])}ULL, "
                 f"{_mask(row['accepted_failure_reasons'], maps['failure_ids'])}ULL, "
@@ -745,11 +938,27 @@ def generate_cpp(
 #include "AINativeNPCContracts.generated.h"
 
 namespace AINativeNPC::GoalGameplayV1 {{
-inline constexpr const char* GoalRegistrySha256 = "{digest}";
-inline constexpr const char* GoalRegistryVersion = "{registry['registry']['version']}";
-inline constexpr const char* GameplaySemanticsVersion = "{contract['version']}";
-inline constexpr const char* ProfileId = "{contract['scope']['profile_id']}";
-inline constexpr const char* UtilityProfileId = "{contract['utility_profile']['profile_id']}";
+inline constexpr const char* GoalRegistrySha256 = {_cpp_string(digest)};
+inline constexpr const char* GoalRegistryVersion = {_cpp_string(registry['registry']['version'])};
+inline constexpr const char* GameplaySemanticsVersion = {_cpp_string(contract['version'])};
+inline constexpr const char* ProfileId = {_cpp_string(contract['scope']['profile_id'])};
+inline constexpr const char* UtilityProfileId = {_cpp_string(contract['utility_profile']['profile_id'])};
+inline constexpr const char* SubjectIdentificationPolicyId = {_cpp_string(contract['subject_identification_policy']['policy_id'])};
+inline constexpr double SubjectIdentificationMaximumDistanceCm = {_cpp_number(contract['subject_identification_policy']['maximum_distance_cm'])};
+inline constexpr const char* PolicyOrchestrationId = {_cpp_string(contract['general_policy_orchestration']['policy_id'])};
+inline constexpr const char* PolicyRolloutProfileId = {_cpp_string(contract['general_policy_orchestration']['production_neural_rollout_scope']['profile_id'])};
+inline constexpr SchemaV2::EGoalType PolicyRolloutGoal = SchemaV2::EGoalType::{_cpp_name(contract['general_policy_orchestration']['production_neural_rollout_scope']['goal'])};
+inline constexpr SchemaV2::EGoalPhase PolicyRolloutPhase = SchemaV2::EGoalPhase::{_cpp_name(contract['general_policy_orchestration']['production_neural_rollout_scope']['phase'])};
+inline constexpr std::uint32_t PolicyNeuralBudgetMs = {contract['general_policy_orchestration']['neural_budget_ms']}U;
+inline constexpr std::uint32_t PolicyTotalDecisionDeadlineMs = {contract['general_policy_orchestration']['total_decision_deadline_ms']}U;
+inline constexpr std::uint8_t PolicyNeuralSuccessUtilityCalls = {contract['general_policy_orchestration']['neural_success_utility_calls']}U;
+inline constexpr std::uint8_t PolicyFallbackUtilityCalls = {contract['general_policy_orchestration']['fallback_utility_calls']}U;
+inline constexpr std::uint8_t PolicyFallbackWithinDeadlineUtilityCalls = {contract['general_policy_orchestration']['fallback_within_deadline_utility_calls']}U;
+inline constexpr std::uint8_t PolicyFallbackAfterDeadlineUtilityCalls = {contract['general_policy_orchestration']['fallback_after_deadline_utility_calls']}U;
+inline constexpr bool PolicySingleValidSecondEqualsSelected = true;
+inline constexpr double PolicySingleValidAdjustedGap = 0.0;
+inline constexpr double PolicySingleValidNormalizedEntropy = 0.0;
+inline constexpr const char* PolicyProductionNeuralEvaluatorStatus = {_cpp_string(contract['general_policy_orchestration']['production_neural_evaluator_status'])};
 
 {enum_blocks}
 
@@ -853,9 +1062,13 @@ inline constexpr std::size_t ExecutableUniqueGuardCount = {contract['scope']['cl
 inline constexpr std::size_t UnavailableUniqueGuardCount = {contract['scope']['claims']['unavailable_unique_guards']}U;
 inline constexpr std::size_t ExecutableTransitionBindingCount = {contract['scope']['claims']['executable_transition_bindings']}U;
 inline constexpr std::uint64_t ProductionSkillMask = {executable_mask}ULL;
-inline constexpr SchemaV2::ESkillId ControlSkill = SchemaV2::ESkillId::{_cpp_name(contract['production_skills']['control'])};
+inline constexpr SchemaV2::ESkillId ControlSkill = SchemaV2::ESkillId::{_cpp_name(production['control'])};
+inline constexpr SchemaV2::ESkillId ResolveActionSkill = SchemaV2::ESkillId::{_cpp_name(production['resolve_action'])};
+inline constexpr const char* ResolveControlPolicy = {_cpp_string(production['resolve_control_policy'])};
+inline constexpr const char* ResolveAllOthersPolicy = {_cpp_string(production['all_others_policy'])};
 inline constexpr std::uint8_t SkillCountSentinel = static_cast<std::uint8_t>(SchemaV2::SkillCount);
 inline constexpr std::array<double, {len(contract['utility_profile']['candidate_pair_feature_weights'])}> CandidatePairFeatureWeights{{{{{weights}}}}};
+inline constexpr std::array<SchemaV2::EGoalPhase, {len(contract['subject_identification_policy']['applicable_phases'])}> SubjectIdentificationApplicablePhases{{{{{", ".join("SchemaV2::EGoalPhase::" + _cpp_name(phase) for phase in contract['subject_identification_policy']['applicable_phases'])}}}}};
 
 inline constexpr const FInitialProfile* FindInitialProfile(const char* Profile) {{
     for (const auto& Row : InitialProfiles) {{
@@ -902,6 +1115,12 @@ inline constexpr const FEffectAuthority* FindEffectAuthority(const char* Name) {
 inline constexpr bool IsProductionExecutableSkill(const SchemaV2::ESkillId Skill) {{
     const auto Index = static_cast<unsigned>(Skill);
     return Index < SchemaV2::SkillCount && (ProductionSkillMask & (1ULL << Index)) != 0ULL;
+}}
+inline constexpr bool IsResolveProductionCandidateAllowed(
+    const SchemaV2::ESkillId Skill,
+    const bool bExactCurrentRunningGreet) {{
+    return Skill == ResolveActionSkill
+        || (Skill == ControlSkill && bExactCurrentRunningGreet);
 }}
 inline constexpr bool HasRequirement(const FTransitionBinding& Binding, const ERequirementId Requirement) {{
     const auto Index = static_cast<unsigned>(Requirement);
@@ -975,6 +1194,23 @@ def generate_markdown(
             f"`{str(row['candidate_usable']).lower()}` | `{str(row['actor_transform_lookup']).lower()}` | "
             f"`{row['source_ttl_expiry_policy']}` |"
         )
+    subject = contract["subject_identification_policy"]
+    orchestration = contract["general_policy_orchestration"]
+    lines.extend([
+        "", "## Subject identification", "",
+        f"- Policy: `{subject['policy_id']}`",
+        f"- Applicable: `{subject['applicable_goal']}` / `{', '.join(subject['applicable_phases'])}`",
+        f"- Distance: `{subject['distance_metric']} <= {_cpp_number(subject['maximum_distance_cm'])}`",
+        f"- Subject authority: `{subject['subject_target_authority']}`",
+        f"- Committed Target: `{subject['committed_target_policy']}`",
+        "", "## General policy orchestration", "",
+        f"- Policy: `{orchestration['policy_id']}`",
+        f"- Primary: `{orchestration['primary']}`",
+        f"- Fallback: `{orchestration['fallback']}` / `{orchestration['fallback_profile_id']}`",
+        f"- Fallback on: `{', '.join(orchestration['fallback_on'])}`",
+        f"- Snapshot: `{orchestration['snapshot_reuse_policy']}`",
+        f"- Production Neural evaluator: `{orchestration['production_neural_evaluator_status']}`",
+    ])
     lines.extend(["", "## Production Skills", ""])
     lines.extend(f"- `{name}`" for name in contract["production_skills"]["executable"])
     lines.extend(["", f"Control candidate: `{contract['production_skills']['control']}`", "", "## Phase Target Policies", ""])

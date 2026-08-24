@@ -3,24 +3,33 @@
 # AI Native NPC를 만드는 순서
 ## 데이터 준비부터 모델 학습·Unreal 검증까지 설명하는 구현 계획
 
-- 문서 버전: **v0.4.17**
-- 개정일: 2026-08-17
-- 현재 상태: **일반 NPC는 소리를 듣고 조사 Goal을 시작하는 Phase 3A와 Target·Candidate·Feature·Utility·Commit·Skill Core를 실제 Goal 경로에 연결하는 Phase 3B까지 완료했다.**
+- 문서 버전: **v0.4.19**
+- 개정일: 2026-08-23
+- 현재 상태: **Phase 3A·3B와 Production Resolve v1 핵심 코드를 구현했다. Greet 중심 `production_candidate`와 Teacher Silver 후보 검증도 완료했으며, 승인된 모델·Gold·Unreal rollout 증거가 없어 `ResolvePolicyReady=false`와 dormant 경로를 유지한다.**
 - 주 독자: **기획자, 사업 책임자, 새로 합류한 개발자, ML·Data·Gameplay AI·Server·Unreal NNE·QA·Release 담당자**
 - 설명 범위: **구현 순서, 담당 팀, 모델 구조, 학습 데이터 생성, 학습 설정, Unreal 검증과 최종 승인 절차**
 - 제품 요구사항: [AI Native NPC 제품 요구사항](requirements.md)
 - 세부 기술 요구사항: [AI Native NPC 세부 기술 요구사항](technical-requirements.md)
 - 계약 부록: [AI Native NPC Contract Appendices](contract-appendices.md)
+- Production Resolve v1: [Neural evaluator와 Greet 구현 계획](production-resolve-v1-implementation-plan.md)
+- ML Dataset v1: [Procedural Generator와 Teacher Pipeline 구현 계획](ml-data-pipeline-v1-implementation-plan.md)
 
 세부 기술 요구사항은 게임 실행 중 동작과 안전 규칙을 정한다. 계약 부록은 정확한 ID·모델 입출력 크기·승인 기준을 정한다. 이 문서는 구현 순서와 담당 팀, 산출물, 검증 방법을 정한다.
+
+## 2026-08-23 진행 요약
+
+- **계약:** Schema `2.0.0-rc6`, Skill Registry `1.1.0`, Goal Registry `1.2.0`, 정확히 10개 입력 Tensor·272개 Candidate·3개 모델 출력을 generated Python/C++ binding과 Golden에 동기화했다.
+- **Runtime:** Neural-first 평가, same-Snapshot Utility fallback, `Greet(Entity)` Social Action, Target-loss recovery와 fail-closed promotion authority를 구현했다. Unreal Automation 166개, Data Validation 301 assets, Development Editor·non-editor build가 통과했다.
+- **ML Dataset 후보:** 7개 `production_candidate` Snapshot을 생성하고 Teacher command provider를 Snapshot마다 5회, 총 35회 호출했다. 6개는 Teacher Silver로 채택하고 low-identity weak-consensus 1개는 Gold review로 분리했다.
+- **Production 경계:** Procedural 7-row shard와 Teacher Silver 6-row shard는 모두 `--require-production`에서 거부된다. Production Profile·Provider·Dataset 승인, Gold qualification, Unreal synthetic-real parity와 실제 rollout은 아직 완료되지 않았다.
 
 
 <!-- BEGIN GOAL GAMEPLAY SEMANTICS V1 STATUS -->
 ### Bounded Goal gameplay authority status
 
-- Goal Registry: `1.1.0` / SHA-256 `d9eb13898cf2d066320977073b1e82458cc0d7bdfd512ef6983ad9a2d44c8f3e`
+- Goal Registry: `1.2.0` / SHA-256 `2fe47b0376427c3c086e6d899b934d3d59ddbbd672c3b98900cf84837d1a8dda`
 - `GuardPhase0` bounded semantics authority: **PASS**
-- Authority scope: 9 executable unique guards, 3 provider-unavailable unique guards, 12 executable transition bindings, 2 staged effects, 5 production executable Skills
+- Authority scope: 14 executable unique guards, 0 provider-unavailable unique guards, 18 executable transition bindings, 2 staged effects, 6 production executable Skills
 - Gameplay Goal FSM: **HOLD** — complete guard catalog, other Goals, arbitration/save archive, and product release are not claimed by this bounded authority PASS.
 <!-- END GOAL GAMEPLAY SEMANTICS V1 STATUS -->
 
@@ -113,15 +122,16 @@
 | 기능 | 현재 상태 |
 |---|---|
 | 일반 NPC의 전체 판단 흐름 | Phase 3A와 Goal-owned Target→Candidate→Utility→Commit→Skill-result Phase 3B 완료. 다른 Goal·전체 경쟁·저장·복제는 후속 작업 |
-| Goal 규칙 데이터와 Unreal 전달 | 완료(PASS). Goal Registry `1.1.0`과 consumer sync 검증 |
+| Goal 규칙 데이터와 Unreal 전달 | 완료(PASS). Goal Registry `1.2.0`과 consumer sync 검증 |
 | Goal 전환과 Timer 실행 코드 | pure Contract Dispatcher·Timer Core·Unreal Timer Core, exact Pawn/Controller Goal host, generated initial `IdleObserve/Observe`, production Hearing→조사→귀환 progression과 실제 Timer callback fallback 구현. 나머지 Goal의 guard/effect provider는 HOLD |
 | 일반 NPC Knowledge와 Target Actor binding | production Perception Knowledge, exact Handle/Revision/Actor binding, exact-one identity와 sight-loss invalidation 구현. Knowledge `6/6` PASS |
 | 일반 NPC StateTree 시작 경계 | private one-shot committed capability, authored handoff StateTree와 task-entry exact-once consume 구현. exact-one Executor는 5개 V1 Skill을 실행한다. Goal-owned Commit authority와 완료→Goal event를 연결했고 GeneralNPC `14/14`, broad `146/146`, production PIE와 Data Validation을 통과했다. |
+| Production Resolve v1 | Neural-first evaluator, same-Snapshot Utility fallback, `Greet(Entity)` 실행과 fail-closed promotion authority Core 구현. 승인된 production assets와 rollout evidence가 없어 `ResolvePolicyReady=false` 유지 |
 | 보스 패턴 검사·규칙 기반 선택·Commit | C++ 안전 Core 구현. 테스트 `31/31` PASS |
 | 보스 StateTree·Pawn·AIController 연결 | 구현과 저장 에셋 검증 PASS |
 | Commit 뒤 보스 StateTree 시작 | fixture 기반 `2/2`, 관련 보스 테스트 `53/53` PASS |
 | 실제 보스 패턴 목록·선택 시작 조건·전투 효과 | 구현 전 |
-| 학습 Dataset·AI 모델·ONNX·OOD·Calibration | Decision Record v2 capture/replay와 C++↔Python Golden validator는 Core PASS. 실제 대량 Dataset·Teacher·학습 모델·ONNX·OOD·Calibration은 구현 전 |
+| 학습 Dataset·AI 모델·ONNX·OOD·Calibration | Decision Record v2와 Procedural·Teacher·Parquet candidate Pipeline Core 완료. 7개 Snapshot, Provider 35회, Teacher Silver 6개와 Gold review 1개를 검증했다. production Dataset·학습 모델·승인된 ONNX·Calibration/OOD는 후속 작업 |
 
 ### 2.1.1 1단계: 작은 NPC 판단 흐름을 연결한다 (`Phase 0`)
 
@@ -227,7 +237,34 @@ Phase 3B의 완료 조건:
 
 현재 실제 Guard는 `Orient → Navigate → Search → Return → IdleObserve`를 진행한다. 네 단계는 실제 Recast 경로를 사용한다. 각 Decision은 persisted Capture readback과 Replay를 통과한 뒤 Commit된다.
 
-이번 범위는 `InvestigateDisturbance/Resolve`, 다른 V1 Goal, Cover·SmartObject production 예약, Neural 모델, 전체 arbitration, save/load와 replication을 구현하지 않는다.
+`InvestigateDisturbance/Resolve`의 Target transaction, Neural-first orchestration, NNE fixture adapter와 production-executable `Greet(Entity)` core까지 구현됐다. 다른 V1 Goal, Cover·SmartObject production 예약, 승인된 production Neural 모델, 전체 arbitration, save/load와 replication은 아직 구현하지 않았다.
+
+#### 2.1.1.3 Production Resolve v1 core를 구현했다 (rollout 대기)
+
+`subject_identified` guard와 transaction, `IdentifiedSubject` Target 설치, NNE fixture adapter, same-Snapshot fallback, Greet Social Action·StateTree·Skill Executor를 구현·검증했다. 승인된 production ModelData·Calibration/OOD bundle과 Gold·Unreal rollout 증거가 없으므로 `ResolvePolicyReady=false`와 dormant 경로를 유지한다.
+
+```text
+SightAcquired
+→ 소리 위치에서 700cm 안의 current visible Entity 확인
+→ exact Entity를 Resolve Target으로 설치
+→ valid Candidate 구성
+→ Neural-first 선택
+→ 모델 unavailable·실패·abstain이면 같은 Snapshot Utility fallback
+→ Commit
+→ Greet gameplay effect
+```
+
+다음 구현 authority는 [Production Resolve v1 구현 계획](production-resolve-v1-implementation-plan.md)이다. 이 계획은 다음 결정을 고정한다.
+
+1. 첫 production Resolve Skill은 비적대적 `Greet(Entity)` 하나다.
+2. V1 production Neural rollout은 exact `GuardPhase0/InvestigateDisturbance/Resolve`에만 적용하고 다른 Goal·phase는 기존 generated Utility를 유지한다.
+3. Neural evaluator는 finalized 10 Tensor에서 fixed Candidate 272개의 순위와 parameter proposal만 계산한다.
+4. Neural unavailable·failed·abstained·invalid이고 total deadline이 남으면 같은 immutable Snapshot의 Utility fallback을 정확히 한 번 호출한다. Deadline이 이미 지났으면 Utility와 실행은 0건이다.
+5. stale output은 새 Snapshot에 재사용하지 않고 bounded fresh retry 정책을 따른다.
+6. `Warn`, `CallForHelp`, `Attack`은 별도 authoritative `ResolveDispositionPolicy` 전에는 production executable set에 넣지 않는다.
+7. machine-readable contract와 hostile harness를 먼저 RED→GREEN한 뒤 Runtime과 Asset을 구현한다.
+
+Fixture Neural은 adapter 검사에만 사용한다. 승인된 production ModelData·Calibration/OOD, Gold qualification, synthetic-real parity와 production Resolve PIE·packaged rollout 검증을 모두 마칠 때까지 `ResolvePolicyReady`를 열지 않는다.
 
 ### 2.1.2 2단계: 학습 모델과 전체 기능을 붙인다 (`Phase 1`)
 
@@ -482,17 +519,19 @@ Boss Pattern Dataset은 공통 272 Candidate Dataset과 별도 record type으로
 <a id="ml-pipeline"></a>
 # 4. 학습 데이터를 만들고 모델을 준비하는 순서
 
-이 장은 앞으로 만들 학습 Pipeline의 파일과 실행 순서를 정한다. 현재 실제 `ML/` 코드, 학습 Dataset, Teacher Profile과 학습 모델은 없다.
+이 장은 학습 Pipeline의 파일과 실행 순서를 정한다. 현재 `ML/`에는 Procedural Generator, Teacher consensus, Dataset Record v2 Parquet mapper·validator, integration Profile과 Greet `production_candidate` Profile이 구현돼 있다. 승인된 Production Profile·Dataset·학습 모델은 아직 없다.
 
 학습 코드는 Unreal 프로젝트 `NeuralGame`의 루트에 만든다. 현재 기준 작업 공간은 `/mnt/d/Codex-cli/NeuralProject/NeuralGame`이다.
 
 이 문서의 `ML/...` 경로와 `python -m anpc_ml...` 명령은 `NeuralGame` 루트를 기준으로 한다. 기계 계약 입력은 source SHA로 고정한 generated contract와 consumer provenance lock을 사용한다. Registry, generator, generated 산출물과 회귀 검사는 같은 `main` 변경으로 게시한다.
 
+Procedural Generator, Teacher request·consensus와 Dataset mapper의 실행 계약은 [Procedural Generator와 Teacher Pipeline v1 구현 계획](ml-data-pipeline-v1-implementation-plan.md)이 소유한다.
+
 ## 4.1 게임 상황을 학습 Record로 만든다
 
 Unreal Capture는 실제 플레이 상황을 저장한다. Procedural Generator는 계약에 맞는 가상 상황을 만든다. 두 경로는 한 번의 NPC 판단 상황을 변경 불가능한 Dataset shard로 저장한다.
 
-절차 생성기의 scenario family, 값 추출 범위, heuristic label 계산식과 실행 CLI는 후속 상세 설계 항목이다.
+절차 생성기의 공통 Profile·Snapshot shard·실행 CLI는 위 v1 구현 계획을 따른다. Greet `production_candidate`는 사용자 승인 권장 기본값과 parameter label 공식을 실행하지만 heuristic Silver에 한정한다. Production scenario family는 Gold와 Unreal Capture 분포 비교 전까지 열지 않는다.
 
 학습 설정의 기술명은 `policy_train_v1.0.0`이다. 학습 코드는 별도 Unreal 구현 저장소의 `ML/`에 둔다. 학습 코드는 이 저장소의 YAML과 `generated/python/ai_native_npc_contracts_generated.py`를 고정 commit으로 가져와 사용한다.
 
@@ -523,18 +562,19 @@ Teacher LLM은 저장된 게임 상황과 Candidate 목록을 읽고 적절한 �
 
 Teacher LLM은 개발 중 Silver 학습 데이터를 만드는 도구다. 정확한 입력·출력·합의 규칙은 [세부 기술 요구사항 §9.1.1](technical-requirements.md#911-teacher-llm-silver-label-생성)이 정한다. 이 절은 구현 순서와 실행 위치를 정한다.
 
-별도 Unreal 구현 저장소의 `ML/` 디렉터리에 다음 파일을 만든다.
+별도 Unreal 구현 저장소의 `ML/` 디렉터리에는 현재 다음 Core 파일이 있다.
 
 ```text
-ML/config/teacher_profile_v1.yaml
-ML/config/teacher_gold_validation_manifest.json
+ML/config/teacher_profile_integration_v1.yaml
 ML/teacher/schemas/teacher_request_v1.schema.json
 ML/teacher/schemas/teacher_response_v1.schema.json
-ML/teacher/
-ML/tests/test_teacher_pipeline.py
+ML/anpc_ml/teacher.py
+ML/anpc_ml/dataset.py
+ML/tests/test_teacher.py
+ML/tests/test_dataset.py
 ```
 
-`ML/teacher/` 파이프라인은 다음 순서로 구현한다.
+Teacher Core는 다음 순서로 실행한다.
 
 ```text
 Profile·Schema hash 검증
@@ -543,22 +583,23 @@ Profile·Schema hash 검증
 → strict parser와 consensus aggregator
 → annotation shard·Gold review queue 작성
 → Dataset Record v2 mapper·manifest 작성
-→ Role×Goal Gold comparison report
 ```
 
-`ML/tests/test_teacher_pipeline.py`는 다음 계약을 fixture로 검증한다.
+`ML/tests/test_teacher.py`와 `ML/tests/test_dataset.py`는 다음 계약을 fixture로 검증한다.
 
 - Request·Profile: hash Golden, Tensor→view parity, hidden-information filtering
 - Response·Consensus: strict Schema, abstain invariant, mask 위반, 합의·confidence
 - Provenance·Join: source Snapshot join, `candidate_set_canonical_bytes` 재검증, annotation join
-- Dataset mapping·Split: parameter positive-zero/mask, `selected_is_acceptable=null`, `source_type=silver`, split Gate
+- Dataset mapping·scope: parameter positive-zero/mask, `selected_is_acceptable=null`, `source_type=silver`, production scope Gate
 
 ```bash
-python -m ML.teacher.generate --profile ML/config/teacher_profile_v1.yaml --input <decision_snapshot_shard> --output <annotation_shard> --review-queue <gold_review_queue>
-python -m ML.teacher.validate --profile ML/config/teacher_profile_v1.yaml --input <annotation_shard>
-python -m ML.teacher.map --snapshots <decision_snapshot_shard> --annotations <annotation_shard> --output <dataset_record_v2_shard> --manifest <dataset_manifest>
-python -m ML.teacher.report --profile ML/config/teacher_profile_v1.yaml --input <annotation_shard> --gold-manifest ML/config/teacher_gold_validation_manifest.json --output <report_dir>
+cd ML
+uv run python -m anpc_ml teacher generate --profile config/teacher_profile_integration_v1.yaml --snapshots <decision_snapshot_shard> --snapshot-manifest <snapshot_manifest> --output <annotation_shard> --review-queue <gold_review_queue>
+uv run python -m anpc_ml teacher map --profile config/teacher_profile_integration_v1.yaml --snapshots <decision_snapshot_shard> --snapshot-manifest <snapshot_manifest> --annotations <annotation_shard> --output <dataset_record_v2_parquet> --manifest <dataset_manifest>
+uv run python -m anpc_ml dataset validate --input <dataset_record_v2_parquet> --manifest <dataset_manifest>
 ```
+
+실제 command adapter candidate smoke와 review routing은 확인했다. Production Teacher Profile, Gold validation manifest와 Role×Goal comparison report는 아직 남아 있다.
 
 
 ---
@@ -627,12 +668,20 @@ Release Export는 best weights와 architecture/config만 포함한다. Optimizer
 <a id="implementation-cli"></a>
 # 6. 구현 명령을 어떤 순서로 실행하는가
 
-아래 명령은 `NeuralGame/ML` 코드를 구현한 뒤 제공할 실행 인터페이스다. 현재 `NeuralGame`에는 `ML/` 디렉터리와 이 명령을 실행할 학습 코드가 없다.
+현재 `NeuralGame/ML`에는 Dataset 생성·Teacher annotation·Parquet mapping·validation Core가 있다. 모델 학습·Calibration·ONNX export·parity·evaluation 명령은 아직 없다.
 
 구현 CLI는 `NeuralGame` 프로젝트 루트에서 Dataset 검사부터 모델 평가까지 한 방향으로 실행한다.
 
+현재 구현된 Dataset 검증 명령:
+
 ```bash
-python -m anpc_ml.dataset.validate --manifest <dataset_manifest.json>
+cd ML
+uv run python -m anpc_ml dataset validate --input <dataset_record_v2_parquet> --manifest <dataset_manifest.json>
+```
+
+아래 명령은 아직 남은 목표 인터페이스다.
+
+```bash
 python -m anpc_ml.train --config <train_config.json>
 python -m anpc_ml.fit_calibration --checkpoint <best_checkpoint>
 python -m anpc_ml.export_onnx --checkpoint <best_checkpoint>
@@ -756,7 +805,7 @@ Schema semantic validation
 
 ### 남은 V1 Release 조건
 
-- **미완료:** `tactical_context [B,128]` output을 Schema·ONNX·ORT·NNE descriptor에 연결하고 3-output parity 통과
+- **미완료:** RC6의 3-output descriptor에 맞는 승인된 production ModelData를 만들고 ORT↔NNE parity를 통과
 - **미완료:** Adjusted Score→OOD→Calibration 순서와 Runtime threshold 0.80 parity
 - **미완료:** Calibration global/group accepted count·coverage·one-sided risk CI Gate
 - **미완료:** Model Bundle manifest self-exclusion과 `model_sha256=SHA256(policy.onnx)` 검증
@@ -770,9 +819,9 @@ Schema semantic validation
 
 **Gate 3 승인 산출물:** versioned Dataset manifest, Model Bundle, Calibration/OOD asset, ORT↔NNE parity report, 성능·품질·플레이테스트 report, Lock·Checksum과 deterministic Release ZIP.
 
-현재 Runtime 계약은 RC5 YAML의 field index·enum·shape다.
+현재 Runtime 계약은 RC6 YAML의 field index·enum·shape다.
 
-[세부 기술 요구사항 §10.6](technical-requirements.md#106-rc5-구조화-계약-remediation-상태)의 항목은 새 patch 발급 후 활성화한다.
+[세부 기술 요구사항 §10.6](technical-requirements.md#106-rc6-구조화-계약-상태)는 현재 RC6 반영 항목과 다음 구조화 patch 대상을 구분한다.
 
 새 patch는 YAML·generated artifacts·Golden·Decision Contract Hash를 포함한다.
 
@@ -793,9 +842,9 @@ Schema semantic validation
 
 ### Goal 계약과 Phase 3B 이후의 Runtime 범위
 
-- Goal Registry `1.1.0`: transition `41 = 35 event + 6 timer`, production timeout `2/15/8/4/6/5초`
-- focused Goal contract `23/23`, full Python harness `67/67`, generator/schema/golden, C++17 parity: PASS
-- Goal Registry SHA `d9eb13898cf2d066320977073b1e82458cc0d7bdfd512ef6983ad9a2d44c8f3e`; consumer byte parity·lock sync와 `--check`: PASS. Registry·generator·generated 산출물·회귀 검사는 같은 `main` 변경으로 게시
+- Goal Registry `1.2.0`: transition `41 = 35 event + 6 timer`, production timeout `2/15/8/4/6/5초`
+- focused Goal contract `23/23`, full Python harness와 generator/schema/golden, C++17 parity: PASS
+- Goal Registry SHA `2fe47b0376427c3c086e6d899b934d3d59ddbbd672c3b98900cf84837d1a8dda`; consumer byte parity·lock sync와 `--check`: PASS. Registry·generator·generated 산출물·회귀 검사는 같은 `main` 변경으로 게시
 - `GoalFsmRuntime.h/.cpp`와 server Timer Runtime Component: 구현, `AINativeNPC.GoalFsm` `23/23` PASS
 - exact Pawn/Controller·Perception Knowledge·execution Target snapshot·committed capability→StateTree handoff·5개 bounded Skill: 구현
 - generated initial Goal과 production Hearing→`InvestigateDisturbance/Orient` 전환: 구현

@@ -1,0 +1,46 @@
+registry:
+  name: ai_native_npc_test_case_catalog
+  version: 1.0.0
+  schema_version: 2.0.0
+  contract_revision: 2.0.0-rc6
+
+resolve_policy_v1:
+  release_scope_id: GuardPhase0/InvestigateDisturbance/Resolve
+  production_action: Greet(Entity)
+  groups:
+    - id: greet_selected
+      expected_status: Selected
+      expected_goal_result: Return
+      minimum_cases: 64
+    - id: masked_or_nonfinite_output
+      expected_status: Invalid
+      expected_goal_result: no_commit
+      minimum_cases: 64
+    - id: wrong_descriptor_or_artifact_identity
+      expected_status: Invalid
+      expected_goal_result: no_commit
+      minimum_cases: 64
+    - id: neural_failure_or_deadline
+      expected_status: Failed
+      expected_goal_result: bounded_fallback_or_discard
+      minimum_cases: 64
+    - id: target_loss_recoverable
+      expected_status: TargetInvalidated
+      expected_goal_result: Search
+      minimum_cases: 64
+    - id: target_loss_unrecoverable
+      expected_status: TargetInvalidated
+      expected_goal_result: Failed
+      minimum_cases: 64
+    - id: duplicate_or_stale_effect
+      expected_status: rejected
+      expected_goal_result: unchanged
+      minimum_cases: 64
+
+split_contract:
+  train: 0.70
+  calibration: 0.15
+  general_test: 0.10
+  ood_test: 0.05
+  isolation_key: scenario_seed
+  overlap_policy: forbidden

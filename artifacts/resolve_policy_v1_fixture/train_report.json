@@ -1,0 +1,7 @@
+{
+  "calibration_samples": 1024,
+  "production_eligible": false,
+  "reason": "contract-generated fixture is not a frozen gameplay Decision Capture dataset",
+  "selected_threshold": 0.75,
+  "status": "passed_fixture_training"
+}

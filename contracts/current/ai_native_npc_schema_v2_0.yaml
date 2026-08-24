@@ -1,9 +1,9 @@
 schema:
   name: ai_native_npc_policy
   version: 2.0.0
-  contract_revision: 2.0.0-rc5
-  release_stage: rc5
-  bundle_version: 0.4.6
+  contract_revision: 2.0.0-rc6
+  release_stage: rc6
+  bundle_version: 0.4.7
   source_format_version: 1
   endianness: little
   float_format: IEEE-754 binary32
@@ -13,9 +13,10 @@ dependencies:
   skill_registry: skill_registry_v1.yaml
   goal_registry: goal_registry_v1.yaml
   test_taxonomy: test_taxonomy_v1.yaml
+  test_case_catalog: test_case_catalog_v1.yaml
 constants:
   schema_version: 2.0.0
-  skill_registry_version: 1.0.0
+  skill_registry_version: 1.1.0
   target_slotter_version: 1.0.0
   postprocess_version: 1.0.0
   normalization_version: 2.0.0
@@ -42,8 +43,8 @@ constants:
   goal_phase_time_max_s: 30.0
   goal_deadline_max_s: 120.0
   count_max: 8.0
-  schema_contract_revision: 2.0.0-rc5
-  goal_registry_version: 1.1.0
+  schema_contract_revision: 2.0.0-rc6
+  goal_registry_version: 1.2.0
   goal_priority_max: 255.0
   long_duration_max_s: 30.0
   slotter_confidence_scale: 1000
@@ -3265,6 +3266,15 @@ outputs:
     interpretation: skill_registry_parameter_contract
     inactive_slot_policy: ignore_and_use_registry_default
     commit_policy: decode_then_clamp_to_registry_min_max_on_server_game_thread
+  tactical_context:
+    shape:
+    - B
+    - 128
+    dtype: float32
+    valid_range:
+    - -1.0
+    - 1.0
+    meaning: calibration and OOD context, never an action authority
 target_payload_features:
   NoTarget:
   - payload_index: 0
@@ -5213,8 +5223,10 @@ code_generation:
   - generated/cpp/AINativeNPCContracts.generated.h
   - generated/docs/schema_reference.md
   - generated/contract_manifest.json
+  - generated/contract-lock.json
   - generated/docs/requirements_kpi_appendix.md
   - generated/docs/unreal_kpi_section.md
+  - generated/model/resolve_policy_model_descriptor_v1.json
   generated_files_edit_policy: do_not_edit
 normalizer_semantic_contract:
   numeric_values_must_be_finite: true

@@ -3,14 +3,16 @@
 # AI Native NPC 제품 요구사항
 ## 처음 보는 사람을 위한 의사결정 시스템 설명
 
-- 문서 버전: **v0.4.15**
-- 개정일: 2026-08-17
+- 문서 버전: **v0.4.17**
+- 개정일: 2026-08-23
 - 주 독자: **기획자, 사업 책임자, Gameplay Designer, 새로 합류한 개발자**
-- 한 줄 상태: **일반 NPC가 유효한 소리를 듣고 조사 Goal을 시작하는 Phase 3A와 Goal에 맞는 행동을 골라 조사 후 복귀하는 Phase 3B까지 완료됐다.**
+- 한 줄 상태: **일반 NPC Phase 3A와 Phase 3B까지 완료됐다. Production Resolve v1 핵심 코드와 Greet 중심 Dataset·Teacher 후보도 검증했으며, Production Profile·Provider·Dataset 승인과 실제 rollout은 아직 닫혀 있다.**
 - 세부 기술 계약: [AI Native NPC 세부 기술 요구사항](technical-requirements.md)
 - 정확한 ID·크기·수치: [Contract Appendices](contract-appendices.md)
 - 구현 순서: [Implementation Plan](implementation-plan.md)
 - Unreal 작업 기준: [Unreal Implementation Plan](unreal-implementation-plan.md)
+- Production Resolve v1: [Neural evaluator와 Greet 구현 계획](production-resolve-v1-implementation-plan.md)
+- ML Dataset v1: [Procedural Generator와 Teacher Pipeline 구현 계획](ml-data-pipeline-v1-implementation-plan.md)
 - 변경 이력: [Requirements History](../history/README.md)
 
 이 문서는 “무엇을 만들고, 왜 만들며, 누가 무엇을 결정하는가”를 설명한다. 구현에 필요한 정확한 자료형, 계산식, timer, hash, 저장 규칙은 [세부 기술 요구사항](technical-requirements.md)이 소유한다.
@@ -253,7 +255,7 @@ Neural Policy가 timeout, 오류, OOD 또는 낮은 신뢰도로 거부되면 �
 4. 결정론적 Utility Baseline이 valid Candidate를 고른다.
 5. Utility도 실패하면 Goal Registry의 fallback을 사용한다.
 
-현재 AI 모델과 Unreal NNE adapter는 아직 없다. 따라서 지금 검증된 것은 generated 입출력 계약과 일부 안전 Core이며, Neural 행동 품질이 아니다.
+승인된 production AI 모델은 아직 없다. Unreal NNE adapter는 fixture ModelData로 3개 출력과 fail-closed 검사를 검증했다. Runtime 선택 경계는 Neural을 먼저 호출하고, 모델이 없거나 실패·거부하면 같은 판단 Snapshot의 Utility Baseline을 사용한다. Neural 행동 품질은 production 모델·Gold·OOD·Calibration 증거가 생기기 전까지 HOLD다.
 
 정확한 score, Switch Cost, OOD와 Calibration 규칙은 [세부 기술 요구사항 §6](technical-requirements.md#6-neural-policy와-post-process)를 따른다.
 
@@ -349,7 +351,7 @@ Teacher LLM은 개발용 Silver label만 만든다. Runtime에서 NPC를 조종�
 - 안전 위반이 0건인가
 - Utility Baseline보다 품질과 성능이 나빠지지 않는가
 
-현재 대량 Dataset, 학습 모델, ONNX/NNE adapter, OOD·Calibration과 최종 품질 증거는 준비되지 않았다.
+현재 Procedural·Teacher candidate Dataset과 fixture ONNX/NNE adapter는 준비됐다. production Dataset, 학습 모델, 승인된 OOD·Calibration과 최종 품질 증거는 준비되지 않았다.
 
 정확한 Dataset, Teacher, loss, export와 평가 규칙은 [세부 기술 요구사항 §9](technical-requirements.md#9-데이터학습baseline)과 [Appendix E](contract-appendices.md#appendix-e-품질안전성능-승인-기준)를 따른다.
 
@@ -432,9 +434,32 @@ Phase 3B의 안전 기준:
 
 실제 Guard는 한 번의 Hearing에서 `TurnTo → Investigate → SearchArea → Approach`를 Commit했다. 실제 Recast 이동 뒤에는 새 `IdleObserve/Observe`로 돌아왔다. 네 판단의 Capture와 matching committed marker도 저장 후 다시 읽어 검증했다.
 
-이번 Phase 3B 범위에는 `InvestigateDisturbance/Resolve`, 다른 Goal 전체, Cover·SmartObject 실제 예약, Neural 모델, 전체 중단 경쟁, 저장·복원과 replication이 포함되지 않는다.
+원래 Phase 3B 범위에는 `InvestigateDisturbance/Resolve`가 포함되지 않았다. 후속 작업에서 `subject_identified` 판정, Resolve Target transaction, Neural-first evaluator와 `Greet(Entity)` 실행 Core까지 구현했다. 다른 Goal 전체, Cover·SmartObject 실제 예약, 승인된 production Neural 모델과 rollout assets, 전체 중단 경쟁, 저장·복원과 replication은 아직 포함되지 않는다.
 
-정확한 작업 순서와 파일은 [구현 계획의 Phase 3B](implementation-plan.md#phase-3b)와 [Unreal 구현 계획의 Phase 3B](unreal-implementation-plan.md#phase-3b)를 따른다.
+## 10.2.1 Production Resolve v1: 보이는 사람에게 Greet한다
+
+`SightAcquired → subject_identified → InvestigateDisturbance/Resolve` Target transaction, production Neural evaluator와 `Greet(Entity)` gameplay effect Core는 구현·검증됐다. 실제 production 수직 경로를 여는 작업은 승인된 ModelData·Calibration/OOD·Freeze evidence와 Greet Asset을 설치하고 PIE·packaged smoke를 통과하는 일이다.
+
+`subject_identified`는 사람의 성격이나 적대성을 판정하지 않는다. 이 guard는 조사하던 소리 위치 가까이에 현재 보이는 사람이 있는지만 판정한다.
+
+판정은 다음 조건을 모두 만족해야 한다.
+
+- 현재 Goal은 `InvestigateDisturbance`다.
+- 현재 단계는 `Navigate` 또는 `Search`다.
+- 사건은 현재 Knowledge revision의 `SightAcquired`다.
+- 사건 Target은 현재도 보이는 같은 Entity다.
+- 조사 Goal이 소유한 `DisturbancePosition`과 Entity의 현재 위치는 같은 World의 유한한 좌표다.
+- 두 위치의 XY 평면거리는 `700cm` 이하다.
+
+성공하면 사건의 Entity identity를 `Resolve`의 Primary Target으로 확정한다. 이 판정 자체는 공격, 경고 또는 인사의 선택이 아니다.
+
+Production Resolve v1의 첫 실제 행동은 비적대적 `Greet(Entity)` 하나다. `Greet`는 generated Registry와 production execution semantics가 Candidate를 허용할 때만 선택된다. Goal Host와 Utility가 별도 고정 Skill 표를 만들지는 않는다.
+
+Neural Policy는 valid Candidate의 순위와 parameter proposal만 계산한다. 모델이 없거나 실패·거부하고 total deadline이 남아 있으면 같은 immutable Snapshot의 generated Utility가 정확히 한 번 fallback으로 선택한다. Neural 반환 시 deadline이 이미 지났으면 Utility와 실행은 0건이다. V1 production Neural은 `GuardPhase0/InvestigateDisturbance/Resolve`에서만 활성화하고, 다른 Goal·phase는 기존 generated Utility를 유지한다.
+
+`subject_identified`는 적대성을 판정하지 않는다. `Warn`, `CallForHelp`, `Attack`은 별도의 authoritative `ResolveDispositionPolicy`가 생기기 전에는 production 행동으로 열지 않는다.
+
+NNE adapter, OOD·Calibration 검사 Core와 Greet Social Action은 구현됐다. 현재 ModelData와 cue는 fixture 범위다. 승인된 production ModelData·Calibration/OOD·Freeze evidence·Greet Asset과 실제 rollout 검증이 완료되기 전에는 `ResolvePolicyReady=false`다. 정확한 작업 순서와 완료 조건은 [Production Resolve v1 구현 계획](production-resolve-v1-implementation-plan.md)을 따른다.
 
 ## 10.3 현재 상태
 
@@ -444,11 +469,15 @@ Phase 3B의 안전 기준:
 | Goal Dispatcher·Timer Core | PASS | Goal 전환과 Timer Runtime이 구현됨 |
 | Phase 3A: 소리 감지→조사 Goal 시작 | 완료 | 실제 Pawn·Controller·Knowledge 경로에서 검증됨 |
 | Phase 3B: 행동 선택→실행→Goal 단계 진행 | 완료 | 실제 Guard가 네 단계를 실행하고 `IdleObserve`로 복귀함 |
+| `SightAcquired`→Resolve Target transaction | 완료 | exact visible Entity를 `IdentifiedSubject`로 원자적으로 설치함 |
+| Production Resolve v1 | Core 완료, rollout HOLD | Neural evaluator·Utility fallback·`Greet`·Target-loss recovery·promotion authority를 구현했다. 승인된 assets와 rollout evidence가 없어 dormant 상태 |
 | 일반 NPC Gameplay Goal FSM 전체 | 진행 중 | 다른 Goal·중단 경쟁·저장 기능이 남음 |
 | Boss Pattern 안전 Core와 Host/start 기반 | 제한된 phase PASS | fixture-backed 실행 기반은 검증됨 |
 | 실제 Boss 전투 효과 | HOLD | production selector, Montage, Hitbox, Damage 등이 없음 |
-| Neural Policy·ONNX·NNE | HOLD | 실제 모델과 adapter가 없음 |
-| 데이터 품질·성능·최종 Release | NO-GO | Dataset과 품질 증거가 없음 |
+| Neural-first routing Core | PASS | 같은 immutable Snapshot의 Neural-first 선택과 generated Utility exact-once fallback이 구현됨 |
+| Neural Policy·ONNX·NNE·OOD | fixture 검증, production HOLD | NNE adapter와 3-output·Calibration/OOD 검사를 fixture로 검증했다. 승인된 모델과 production assets가 없음 |
+| Procedural·Teacher Dataset | candidate 완료 | 7개 Snapshot과 35회 Provider 판정에서 Teacher Silver 6개를 만들고 1개를 Gold review로 분리했다. 두 shard는 production 사용을 거부함 |
+| 데이터 품질·성능·최종 Release | NO-GO | Gold qualification, Unreal parity, split·중복·누수와 품질 증거가 없음 |
 
 ## 10.4 전체 일반 NPC Runtime 완료라고 말하려면
 
@@ -498,6 +527,7 @@ contracts/current/ai_native_npc_schema_v2_0.yaml
 contracts/current/skill_registry_v1.yaml
 contracts/current/goal_registry_v1.yaml
 contracts/current/test_taxonomy_v1.yaml
+contracts/current/test_case_catalog_v1.yaml
 contracts/current/boss_pattern_contract_v1.yaml
 ```
 

@@ -3,15 +3,17 @@
 # AI Native NPC 세부 기술 요구사항
 ## Runtime·데이터·안전의 정확한 구현 계약
 
-- 문서 버전: **v0.4.17**
-- 개정일: 2026-08-17
+- 문서 버전: **v0.4.19**
+- 개정일: 2026-08-23
 - 적용 범위: **Unreal 클라이언트, 서버 Gameplay AI, Python 학습·평가 코드**
-- 현재 요약: **Knowledge는 NPC가 관측하거나 전달받아 보관하는 정보이며 현재 코드 이름은 `Belief`다. Deterministic Phase 0 Core와 Boss Pattern Commit→StateTree start handoff는 PASS다. 일반 NPC는 Phase 3A bounded initial/Hearing Goal과 Phase 3B Goal-owned Utility→Commit→Skill-result progression까지 구현됐다. 다른 Goal·전체 arbitration·save/load·replication, 나머지 gameplay provider, ML/NNE와 최종 Freeze는 보류다.**
-- 기계 판독 계약: **Schema 2.0.0 RC5 + Goal Registry 1.1.0 + Skill Registry V1 `execution_semantics_v1`**
+- 현재 요약: **일반 NPC는 Phase 3A와 Goal-owned Utility→Commit→Skill-result progression까지 구현됐다. Production Resolve v1의 Neural-first·Utility fallback·Greet·promotion authority Core와 Procedural·Teacher·Parquet candidate Pipeline도 구현했다. 승인된 production 모델·Gold·Unreal parity·rollout evidence가 없어 `Approved=false`, `ResolvePolicyReady=false`와 dormant 경로를 유지한다.**
+- 기계 판독 계약: **Schema 2.0.0 RC6 + Goal Registry 1.2.0 + Skill Registry 1.1.0 `execution_semantics_v1`**
 - 쉬운 요구사항: [초보자용 제품 요구사항](requirements.md)
 - 구현 계획: [AI Native NPC를 만드는 순서](implementation-plan.md)
 - 계약 부록: [AI Native NPC Contract Appendices](contract-appendices.md)
 - Unreal 구현 계획: [UE 5.7 Manny·Quinn 구현 계획](unreal-implementation-plan.md)
+- Production Resolve v1: [Neural evaluator와 Greet 구현 계획](production-resolve-v1-implementation-plan.md)
+- ML Dataset v1: [Procedural Generator와 Teacher Pipeline 구현 계획](ml-data-pipeline-v1-implementation-plan.md)
 - 검증·개정 이력: [Requirements History](../history/README.md)
 - 상세 검토: [Requirements Review](../history/reviews/requirements-review-v0.4.6.md)
 
@@ -23,9 +25,9 @@
 <!-- BEGIN GOAL GAMEPLAY SEMANTICS V1 STATUS -->
 ### Bounded Goal gameplay authority status
 
-- Goal Registry: `1.1.0` / SHA-256 `d9eb13898cf2d066320977073b1e82458cc0d7bdfd512ef6983ad9a2d44c8f3e`
+- Goal Registry: `1.2.0` / SHA-256 `2fe47b0376427c3c086e6d899b934d3d59ddbbd672c3b98900cf84837d1a8dda`
 - `GuardPhase0` bounded semantics authority: **PASS**
-- Authority scope: 9 executable unique guards, 3 provider-unavailable unique guards, 12 executable transition bindings, 2 staged effects, 5 production executable Skills
+- Authority scope: 14 executable unique guards, 0 provider-unavailable unique guards, 18 executable transition bindings, 2 staged effects, 6 production executable Skills
 - Gameplay Goal FSM: **HOLD** — complete guard catalog, other Goals, arbitration/save archive, and product release are not claimed by this bounded authority PASS.
 <!-- END GOAL GAMEPLAY SEMANTICS V1 STATUS -->
 
@@ -43,14 +45,14 @@ AI Native NPC는 **NPC가 현재 알고 있는 정보만으로 장기 목표 안
 
 | 항목 | 현재 상태 | 지금 할 수 있는 일 |
 |---|---|---|
-| Schema·Registry·Generated contract | Schema 2.0 RC5와 Goal Registry `1.1.0`; transition `41 = 35 event + 6 timer`, Python↔C++ Golden·consumer sync PASS | generated binding을 고정 입력으로 사용 |
+| Schema·Registry·Generated contract | Schema `2.0.0-rc6`, Goal Registry `1.2.0`, Skill Registry `1.1.0`; 정확히 10개 입력·272개 Candidate·3개 출력, transition `41 = 35 event + 6 timer`, Python↔C++ Golden·consumer sync PASS | generated binding을 고정 입력으로 사용 |
 | Goal Contract Dispatcher·Timer Core | 41-row typed dispatcher, `2/15/8/4/6/5초` Timer, lifecycle·snapshot·CAS adapter 구현; GoalFsm `23/23` PASS | generated Goal/Timer Core를 deterministic 입력으로 사용 |
 | Gameplay Goal FSM·공통 NPC Runtime | exact Guard Pawn/Controller, Perception Knowledge, execution Target snapshot, generated initial Goal, Hearing→Investigate 전환, Candidate/Utility→Commit→5개 V1 Skill→Goal 진행 구현; broad `146/146`, GeneralNPC `14/14`, production PIE와 Data Validation PASS | Phase 3A·3B 조사 수직 경로 검증 가능. 다른 Goal과 arbitration/save archive는 HOLD |
 | Boss Pattern 선택 안전 Core | C++ Core는 one-shot Handoff까지 구현, Automation 31/31; Definition JCS/cooked parity pending | 모델 없이 Utility 경로와 Commit/Handoff Core 검증 |
 | Boss Pattern 실제 실행 | C++ Phase Executor·event/Session/Host adapter·production StateTree asset·encounter Blueprint physical assembly·fixture-backed Commit/start handoff PASS; concrete gameplay authority provider·전투 효과 미구현 | production Pawn 자동 possession, Session ready, Commit 뒤 `PreAttackTurn` Task 진입과 start-failure fail-closed terminalization 검증 |
-| RC5 2-output Neural 연결 | NNE/ONNX asset·adapter 없음 | generated I/O 계약과 raw-output canonicalization만 사용 가능 |
-| V1 Neural·OOD·Calibration | 구현 계약 보강 중 | 후속 Schema/Registry/Generator patch 전 품질 승격 금지 |
-| 대량 학습 데이터와 최종 Freeze | 준비되지 않음 | Runtime Gate와 Dataset Validator가 닫힐 때까지 보류 |
+| RC6 3-output Neural 연결 | `NNERuntimeORTCpu` B=1 adapter, canonical output와 deadline fallback을 fixture ModelData로 검증 | 승인된 production ModelData 전까지 fixture 검증만 가능 |
+| V1 Neural·OOD·Calibration | Calibration/OOD 검사와 fail-closed promotion authority Core 구현 | 승인된 production asset과 Freeze evidence 전까지 승격 금지 |
+| Dataset과 최종 Freeze | Procedural·Teacher·Parquet candidate Pipeline, 7개 Snapshot·35회 Provider·Silver 6개·Gold review 1개 검증 | Gold·실제 Unreal Capture parity·split·중복/누수·품질 증거 전까지 production publication 보류 |
 
 Goal 계약의 정적 PASS는 Runtime PASS가 아니다. Goal Dispatcher·Timer Core는 `AINativeNPC.GoalFsm` `23/23`으로 PASS했다. Phase 3A·3B 조사 Runtime은 Goal-owned Candidate/Utility→Commit, 완료→Goal event, 실제 Recast 이동과 대기 복귀까지 통과했다. 이 증거는 다른 Goal의 guard/effect, 전체 arbitration, save/load와 replication을 뜻하지 않는다. Boss Pattern의 `31/31`은 선택 안전 Core, `2/2`·`53/53`은 fixture-backed encounter Host/start handoff phase 증거다. 어느 숫자도 실제 공격 효과, NNE/ONNX parity, 품질·성능 완료를 뜻하지 않는다.
 
@@ -116,6 +118,7 @@ contracts/current/ai_native_npc_schema_v2_0.yaml
 contracts/current/skill_registry_v1.yaml
 contracts/current/goal_registry_v1.yaml
 contracts/current/test_taxonomy_v1.yaml
+contracts/current/test_case_catalog_v1.yaml
 ```
 
 계약 완료 조건은 구조화된 원본, 생성 코드, Runtime 집행, 검증 증거의 동시 갱신이다. `archive/`는 감사 기록이다.
@@ -124,11 +127,11 @@ contracts/current/test_taxonomy_v1.yaml
 
 | 표시 | 의미 | 구현 기준 |
 |---|---|---|
-| `ACTIVE RC5` | 현재 YAML·generated code·Appendix에 존재 | 현재 구현 가능 |
-| `POST-RC5` | 다음 Schema/Registry/Generator patch의 목표 | Backlog와 Gate가 닫힐 때까지 구현·승격 보류 |
+| `ACTIVE RC6` | 현재 YAML·generated code·Appendix에 존재 | 현재 구현 가능 |
+| `FUTURE CONTRACT` | 다음 Schema/Registry/Generator patch의 목표 | Backlog와 Gate가 닫힐 때까지 구현·승격 보류 |
 | `PENDING EVIDENCE` | 계약은 있으나 Runtime·품질 증거가 없음 | PASS·Freeze 주장 금지 |
 
-현재 정확한 ID·Tensor·Hash는 [Contract Appendices](contract-appendices.md)가 제공한다. 본문의 `POST-RC5` 절은 목표 계약과 차단 조건을 함께 표시한다.
+현재 정확한 ID·Tensor·Hash는 [Contract Appendices](contract-appendices.md)가 제공한다. 본문의 `FUTURE CONTRACT` 절은 목표 계약과 차단 조건을 함께 표시한다.
 
 ---
 
@@ -1120,7 +1123,7 @@ Production 초기 timer authority:
 - Load 전후 server monotonic epoch가 달라도 stored remaining만 사용하며 wall clock이나 offline elapsed time을 추정하지 않는다.
 - suspend/load가 pump보다 먼저 token을 바꾸면 이전 callback을 폐기한다. pump가 먼저 state를 바꾸면 stale suspend/load CAS를 거부한다.
 - `goal_registry_v1.yaml`은 transition 41개를 typed trigger 35 event + 6 timer로 고정하며 legacy `event` 필드를 금지한다.
-- 현 consumer는 Goal Registry SHA `d9eb13898cf2d066320977073b1e82458cc0d7bdfd512ef6983ad9a2d44c8f3e`의 generated C++ binding과 source hash를 lock으로 고정한다. Registry, generator, generated Python/C++/Markdown과 회귀 검사는 같은 저장소 변경으로 게시한다.
+- 현 consumer는 Goal Registry SHA `5a94b3a2dd57cd4dcd09d47e5d0d3eb2e100f073c09039e4701568a9b8767a47`의 generated C++ binding과 source hash를 lock으로 고정한다. Registry, generator, generated Python/C++/Markdown과 회귀 검사는 같은 저장소 변경으로 게시한다.
 - `GoalFsmRuntime.h/.cpp`, `GoalTimerRuntime.h/.cpp`, `GoalTimerComponent.h/.cpp`와 typed expiry/revision dispatcher가 구현되었다. 2026-08-10 cold UBT/UHT와 `AINativeNPC.GoalFsm` Automation `23/23`에서 Contract Dispatcher·Timer Core·Unreal Timer Core가 PASS했다. 이 PASS는 pure/core·adapter 계약에 한정되며 Production Integration PASS가 아니다.
 - bounded authority의 나머지 gameplay guard/effect production provider와 전체 arbitration/save archive가 닫히기 전에는 전체 `Gameplay Goal FSM Runtime PASS`를 선언하지 않는다.
 - Companion UE 문서의 Phase 표가 Registry와 다르면 Registry transition을 우선하며, UE 문서는 수기 stale 표를 구현 근거로 사용하지 않는다.
@@ -1184,7 +1187,7 @@ Resolver는 current full `FGoalRuntimeToken`을 입력으로 받는다.
 - `InvestigateDisturbance/Orient`, `Navigate`, `Search`는 해당 Goal instance가 소유한 immutable `DisturbancePosition`만 primary Target으로 반환한다.
 - `InvestigateDisturbance/Return`은 session 시작 때 exact Pawn 위치에서 capture한 immutable `HomeWaypoint`만 primary Target으로 반환한다.
 - `SourceSoundHandle`은 provenance다. Candidate Target에는 넣지 않는다.
-- `InvestigateDisturbance/Resolve`는 `GuardPhase0`에서 provider-unavailable다.
+- `InvestigateDisturbance/Resolve`의 `IdentifiedSubject` Entity resolver, NNE evaluator adapter와 production-executable `Greet(Entity)` provider core는 구현됐다. generated promotion authority가 `ResolvePolicyReady=false`인 동안 production 경로만 dormant다.
 - Goal instance, Goal revision, phase generation, authority lifecycle 또는 World가 바뀌면 이전 resolver 결과는 실패한다.
 
 ### 5.11.3 Target→Candidate→Feature Snapshot
@@ -1247,19 +1250,130 @@ Phase 3B 완료는 다음 증거를 모두 요구한다.
 
 이 조건은 모두 충족됐다. 실제 Guard는 한 번의 Hearing 뒤 `TurnTo → Investigate → SearchArea → Approach`를 Commit하고 실제 Recast 경로에서 `Orient → Navigate → Search → Return → IdleObserve`를 완료했다. 네 Decision의 persisted Capture와 committed marker도 readback·Replay를 통과했다.
 
+### 5.12 `InvestigateDisturbance/Resolve` Target과 Policy 경계
+
+이 절은 `SightAcquired → subject_identified → Resolve Target → Policy 선택`의 다음 제품 경계를 소유한다.
+
+#### 5.12.1 `subject_identified` 판정
+
+`subject_identified` authority는 server GameThread의 Gameplay Goal authority다. Sight 성공 자체는 guard를 true로 만들지 않는다.
+
+입력은 current full Goal token, current Knowledge revision, exact `SightAcquired` Entity handle, current visible Entity binding, Goal-owned immutable `DisturbancePosition`, 두 위치와 World identity다.
+
+```text
+planar_distance_cm = sqrt((subject_x - disturbance_x)^2 + (subject_y - disturbance_y)^2)
+subject_identified = all_identity_and_revision_checks_pass
+                  AND both_positions_are_finite
+                  AND same_world
+                  AND planar_distance_cm <= 700.0
+```
+
+거리 비교는 center-to-center XY 평면거리이며 경곗값 `700.0cm`를 포함한다. Z 차이는 이 판정에 사용하지 않는다. NaN, Infinity, stale Knowledge, wrong Entity, sight loss, Goal·phase mismatch와 `700.0cm` 초과는 false다.
+
+성공 시 Target identity는 사건의 exact Entity `(Kind, StableId, Generation)`다. `Resolve` 판단을 만들 때는 같은 identity의 current visible Knowledge record를 다시 캡처하고 current revision과 Actor 위치를 사용한다. 이미 Commit된 Skill의 Target은 계속 frozen이다.
+
+#### 5.12.2 Phase와 Target 변경
+
+`Navigate` 또는 `Search`의 accepted `SightAcquired`만 `Resolve`로 전환할 수 있다. 단계 전환과 identified Entity의 primary Target 설치는 하나의 callback-free authority transaction이다.
+
+전환 전에 current running Skill과 pending Decision을 중단·폐기할 수 있는지 확인한다. 전환 뒤 오래된 Skill·Timer·Decision callback은 상태를 바꾸지 않는다. Target 설치, Timer 전환 또는 중단 정리가 실패하면 assembly를 fail-closed하고 새 Skill을 시작하지 않는다.
+
+`Resolve` resolver는 `IdentifiedSubject` authority의 Entity만 반환한다. 같은 identity의 current visible binding이 없으면 resolver는 실패하고 `TargetInvalidated` 회복 경로만 사용할 수 있다.
+
+#### 5.12.3 Neural-first 선택과 Utility fallback
+
+Candidate Builder가 generated `InvestigateDisturbance/Resolve` allowed Skill, production executable Skill, Entity Target 호환성, current LOS와 Skill precondition의 교집합을 만든다. 이 교집합만 Policy 입력이다.
+
+```text
+one FFinalizedDecisionSnapshot
+→ Neural evaluator available이면 한 번 호출
+→ accepted Neural output이면 Post-process와 Commit
+→ unavailable·failed·abstained·invalid이면 같은 Snapshot의 generated Utility를 한 번 호출
+→ Utility도 실패하면 Skill start 0건
+```
+
+Neural과 Utility는 같은 Target slots, Candidate mask, Candidate-set hash, feature bytes와 Switch Cost 사실을 사용한다. Neural 성공 뒤 Utility를 호출하지 않는다. Neural 실패 뒤 caller-owned 상태를 다시 읽어 기존 Snapshot을 변형하지 않는다. Phase별 Skill 고정, Neural 결과를 무시하는 local bias, 최신 상태와 이전 Tensor를 섞는 fallback은 금지한다.
+
+승인된 production ModelData·Calibration/OOD asset이 없을 때 production evaluator는 승인될 수 없다. 이 경우 Utility는 명시적 fallback source로만 실행된다. NNE fixture adapter의 성공은 model release 증거가 아니다.
+
+#### 5.12.4 Production Resolve v1 고정 계약
+
+Production Resolve v1의 첫 production-executable action Skill은 비적대적 `Greet(Entity)` 하나다. `ContinueCurrentAction`은 같은 Goal token과 exact committed `Greet`가 이미 실행 중일 때만 기존 control Candidate 규칙으로 허용한다. `Warn`, `CallForHelp`, `Attack`은 별도의 authoritative `ResolveDispositionPolicy`가 Skill별 eligibility fact를 제공하기 전에는 production executable set과 Candidate Mask에서 제외한다. `Flee`는 Resolve의 Entity Primary Target 정책과 호환되지 않는다.
+
+V1 production Neural rollout scope는 exact `GuardPhase0/InvestigateDisturbance/Resolve` 하나다. 이 scope는 machine-readable `general_policy_orchestration`이 소유한다. 다른 Goal·phase는 production Neural evaluator를 호출하지 않고 기존 generated Utility를 primary로 사용한다. Host의 local phase branch나 Skill 고정표로 이 rollout scope를 구현하지 않는다.
+
+이 계약의 target version은 Schema `2.0.0` / `contract_revision=2.0.0-rc6` / bundle `0.4.7`, Goal Registry·`goal_gameplay_semantics_v1` `1.2.0`, Skill Registry·`execution_semantics_v1` `1.1.0`이다. 현재 RC5·Goal 1.1.0·Skill 1.0.0 생성물은 Task 1 전 기준선이며 Resolve production readiness 증거가 아니다.
+
+UE 5.7의 V1 production provider는 exact runtime name `NNERuntimeORTCpu`다. Project에서 `NNERuntimeORT` plugin과 `NNE` interface dependency를 enable했고 synchronous `IModelInstanceCPU`, `B=1` fixture adapter를 구현했다. `NNERuntimeORTDml` 또는 다른 provider로 자동 fallback하지 않는다. Provider 변경은 새 parity·latency·packaged smoke와 Freeze Manifest promotion을 요구한다.
+
+`subject_identified`는 `ResolveDispositionPolicy` 입력을 만들지 않으며 relation, threat, hostility, combat permission을 변경하지 않는다. Neural Policy는 이 사실을 생성하거나 hard eligibility를 우회하지 않는다.
+
+Evaluator 입력은 하나의 finalized immutable Snapshot에서 나온 Schema 2.0의 10개 Tensor와 같은 Snapshot에 결속된 `FSwitchCostFacts`다. Evaluator는 World, Actor, Knowledge, Goal Runtime 또는 mutable Component를 직접 읽지 않는다. Model output은 다음 세 Tensor만 허용한다.
+
+```text
+candidate_raw_scores             float32 [B,272]
+candidate_parameter_proposals    float32 [B,272,4]
+tactical_context                 float32 [B,128]
+```
+
+Action은 문자열이나 Registry 이름으로 반환하지 않는다. Runtime은 output의 fixed Candidate index를 finalized `CandidateMask[272]`에 다시 적용한다. out-of-range index, masked row, unknown Skill·Target, descriptor 불일치, non-finite 값, invalid inactive-slot 값은 `Invalid`다.
+
+한 Decision의 총 deadline은 `40ms`이고 Neural inference budget은 그 안의 `20ms`다. Neural result는 `Selected`, `Unavailable`, `Failed`, `Abstained`, `Invalid` 중 하나다. `Unavailable·Failed·Abstained·Invalid`이고 total deadline이 남아 있으면 원본 Snapshot의 generated Utility fallback을 정확히 한 번 호출한다. Neural이 `Selected`면 Utility 호출은 0회다. Neural 반환 시 total deadline이 이미 지났으면 Utility·Commit·Skill start는 모두 0건이다. Utility도 실패하거나 total deadline을 넘기면 Commit과 Skill start는 0건이다.
+
+Evaluator output 뒤 Goal·material Knowledge dependency·World·Candidate·deadline 중 하나가 stale이면 그 output과 같은 Decision을 폐기한다. Entity의 revision-only drift는 §7.1의 `continuous_nonmaterial` 조건과 50ms age bound를 모두 만족할 때만 허용한다. 그 외 stale output을 새 Snapshot에 재사용하거나 같은 호출 안에서 최신 상태를 읽어 fallback하지 않는다. Host는 같은 Goal revision에서 next-tick fresh Snapshot retry를 한 번만 허용한다. 두 번째 stale은 자동 retry를 중단하고 다음 authoritative Goal·Knowledge 변화까지 기다린다. Primary `IdentifiedSubject`의 material·판정불가 Entity revision, identity·World mismatch, Actor invalidation, visibility 또는 LOS loss는 fresh retry가 아니다. Retained Goal-owned `DisturbancePosition`을 resolve할 수 있으면 generated `TargetInvalidated → Search`, 복구 Target도 resolve할 수 없으면 Goal `Failed`다.
+
+`Greet` Commit은 exact `IdentifiedSubject` Entity, current visible binding, §7.1의 Entity revision rule, same World, finite actor transform, LOS, Goal token, Candidate·input hash와 execution authority를 다시 확인한다. callback을 일으킬 수 있는 작업 뒤 actual effect 시작 전에도 같은 identity와 authority를 다시 확인한다.
+
+`Greet`의 gameplay effect는 server-authoritative social signal과 visible greeting cue다. 시작 시 exact Entity를 바라보고 `(GoalToken, DecisionId, SkillId=Greet, TargetHandle)`에 묶인 one-shot signal을 source Guard에 발행한다. Target 쪽 별도 receiver Component는 요구하지 않는다. Source Guard의 authoritative cue state는 decoded `duration` 동안 유지한다. base marker는 `intensity=0`에서도 visible하고 `PresentationStrength=clamp(intensity,0,1)`은 cosmetic 강조 채널로만 전달한다. Skill success는 server world time과 authoritative cue state를 사용하며 client render·ack callback을 기다리지 않는다. Greet는 damage, threat, hostility, relation, Knowledge, combat state, movement reservation을 바꾸지 않는다.
+
+SocialActionComponent는 current Host `SessionId`별 highest applied `DecisionId`와 그 `(GoalToken, SkillId, TargetHandle)` identity를 보존한다. SessionId 변경은 old authority를 닫은 뒤에만 high-water를 초기화한다. 새 `BeginGreet`는 current exact authority와 `DecisionId > highest applied`를 모두 만족해야 한다. Duplicate identity와 더 작거나 같은 DecisionId는 signal·cue를 다시 발행하지 않는다. 이 보장은 in-process session-lifetime at-most-once이며 crash-durable exactly-once가 아니다.
+
+`subject_identified`가 Primary Target을 `IdentifiedSubject`로 바꿔도 Goal-owned immutable `DisturbancePosition` handle과 position은 Goal terminal/resume 전까지 recovery context로 유지한다. Resolve에서는 public Primary Target이나 model Target slot로 다시 노출하지 않는다.
+
+Target invalidation이나 LOS loss는 signal과 cue를 정리한다. Retained `DisturbancePosition`을 resolve할 수 있으면 generated `TargetInvalidated`로 `Search`에 진입하고 조사 Target을 원자적으로 복원한다. 복구 Target도 resolve할 수 없으면 Target 없는 Search를 공개하지 않고 Goal을 `Failed` terminalize한다. Target/LOS invalid producer는 같은 원인으로 `SkillFailed`를 함께 발행하지 않는다. 두 event가 이미 queue에 함께 있어도 `resolution_failed`는 current visible·World·LOS requirement 때문에 false이고, TargetInvalidated 전환 뒤 old SkillFailed는 stale phase result다. Exact signal이 duration 동안 유지되고 현재 Target·World·execution authority가 다시 일치하면 `SkillSucceeded`로 `Return`에 진입한다. non-target operational failure는 exact effect를 정리하고 generated `SkillFailed`로 Goal을 `Failed` terminalize한다. 외부 Goal 전환의 `Interrupted` 결과는 stale result로 폐기하고 새 Goal을 바꾸지 않는다.
+
+`subject_identified` Commit 전 readiness·assembly 실패는 old investigation phase, Target, Timer, Skill과 Decision/retry authority를 보존한다. Resolve Commit 뒤 signal publication 전 Greet assembly가 invalid면 SkillExecutor가 exact `SkillFailed(AssemblyInvalidated)`를 one-shot으로 발행하고 Goal을 `Failed` terminalize한다. Signal·cue와 자동 retry는 0건이다.
+
+`ResolvePolicyReady`는 수동 bool이 아니다. Runtime은 exact generated contract, production ModelData Manifest, NNE descriptor, Calibration/OOD asset, Utility fallback profile, Greet execution semantics, social signal·cue asset, StateTree wiring, runtime assembly와 imported `ResolvePolicyFreezeManifest`의 current artifact hash를 검사해 계산한다. test-only override와 fault injection은 `WITH_DEV_AUTOMATION_TESTS` 밖에서 이 값에 영향을 주지 않는다. Runtime이 테스트 로그를 직접 읽지는 않는다. Contract·hostile·focused·broad Automation, Editor Development build, ORT↔NNE parity, production PIE, Data Validation, Development packaged-runtime smoke와 독립 blocker-0 검토가 모두 통과한 뒤 promotion tool이 `release_status=approved`인 Freeze Manifest를 생성한다. 같은 packaged NNE provider에서 `B=1` 100회 warmup 뒤 1,000회 inference의 p99가 `<=20ms`, max가 `<=40ms`여야 하고 hardware·OS·driver·provider version을 evidence에 기록한다. Manifest가 없거나 scope·Schema·Registry·Model·Calibration/OOD·Greet asset·evidence index hash가 current package와 다르면 `ResolvePolicyReady=false`다.
+
+구현 순서와 파일별 RED→GREEN 작업은 [Production Resolve v1 구현 계획](production-resolve-v1-implementation-plan.md)이 소유한다.
+
+#### 5.12.5 하네스
+
+구현 전 RED는 다음을 고정한다.
+
+1. `699.999cm`와 `700.0cm`는 true이고 `700.001cm`는 false다.
+2. 큰 Z 차이만 있는 동일 XY는 true다.
+3. stale Knowledge, wrong Entity, sight loss, non-finite 위치와 wrong phase는 false다.
+4. 성공한 판정은 exact Entity만 `Resolve` Target으로 설치한다.
+5. Neural accepted는 Utility 호출 0건이다.
+6. Neural unavailable·failed·abstained·invalid는 같은 Snapshot Utility 호출 1건이다.
+7. zero-valid는 Neural·Utility·Commit·Skill start 0건이다.
+8. Sight 전환과 running Skill·Timer 경쟁은 phase와 Target을 한 번만 바꾼다.
+9. 실제 모델·NNE·OOD·Calibration이 없다는 상태를 PASS로 확대하지 않는다.
+10. Resolve v1의 production action Skill은 `Greet(Entity)`와 exact running Greet의 `ContinueCurrentAction`뿐이다.
+11. `Warn`, `CallForHelp`, `Attack`은 `ResolveDispositionPolicy` 없이 hard-valid가 되지 않는다.
+12. Resolve 밖에서는 production Neural 호출 0건이고 기존 generated Utility 결과가 유지된다.
+13. Neural `20ms` budget과 total `40ms` deadline을 검사하고, failure가 deadline 안이면 Utility 1건, Neural 반환 때 deadline 밖이면 Utility 0건임을 검사한다.
+14. material·판정불가 stale의 첫 발생은 fresh Snapshot retry 한 번, 두 번째 발생은 자동 retry 0건이고 허용된 `continuous_nonmaterial` drift는 Commit을 막지 않는다.
+15. Greet success·TargetInvalidated·SkillFailed·Interrupted가 generated 전환과 정리 계약을 지킨다.
+16. social signal 또는 visible cue가 없으면 `ResolvePolicyReady=false`다.
+17. Freeze Manifest가 없거나 `release_status`, scope 또는 artifact hash 하나라도 다르면 `ResolvePolicyReady=false`다.
+18. Target invalid 시 retained `DisturbancePosition`이 resolvable이면 Search Target을 복원하고, unresolvable이면 Target 없는 Search를 공개하지 않고 Goal을 `Failed` terminalize한다.
+
 # 6. Neural Policy와 Post-process
 
 Neural Policy는 Candidate별 `raw score`와 parameter proposal을 출력한다. Post-process는 Switch Cost·OOD·Calibration을 적용하고, abstain 시 Utility Baseline과 Goal fallback을 순서대로 실행한다.
 
 ## 6.1 Policy Interface와 Parameter Proposal
 
-> **상태:** score·parameter 2-output은 `ACTIVE RC5`, `tactical_context`를 포함한 OOD interface는 `POST-RC5`다.
+> **상태:** score·parameter·`tactical_context`의 3-output interface는 `ACTIVE RC6`다. 승인된 production ModelData·Calibration/OOD와 ORT↔NNE parity는 `PENDING EVIDENCE`다.
 
 Reference Model의 정확한 Layer 구조와 bounded scorer 구현은 [구현 계획의 §3](implementation-plan.md#reference-model)을 따른다.
 
 이 절은 Runtime이 집행하는 출력·mask·parameter interface를 소유한다.
 
-V1 OOD Runtime을 포함하는 목표 ONNX output 계약은 다음 세 개다.
+V1 OOD Runtime을 포함하는 현재 RC6 ONNX output 계약은 다음 세 개다.
 
 ```text
 candidate_raw_scores             float32 [B,272]
@@ -1269,9 +1383,7 @@ tactical_context                 float32 [B,128]
 
 `tactical_context`는 Fusion의 `h`와 동일한 FP32 Tensor이며 별도 projection이나 post-export 변환을 적용하지 않는다. OOD asset fit, PyTorch 평가, ONNX Runtime, Unreal NNE가 이 동일 output을 사용한다.
 
-현재 RC5 Schema Appendix는 앞의 두 output만 포함한다. 따라서 현재 Schema로는 OOD Runtime Gate를 통과할 수 없다.
-
-후속 Schema patch는 `tactical_context` output을 구조화된 원본에 추가한다. generated Python/C++/docs, UE descriptor, Golden output, Decision Contract Hash도 같은 patch에서 갱신한다.
+현재 RC6 Schema Appendix와 generated Python/C++/descriptor는 세 output을 모두 포함한다. 다만 production OOD Runtime Gate는 승인된 ModelData·Calibration/OOD asset과 ORT↔NNE parity 없이는 통과할 수 없다.
 
 `target_mask`, `event_mask`, `candidate_mask`는 attention·pooling·loss에 사용한다. Candidate Builder는 hard constraint를 소유한다.
 
@@ -1334,7 +1446,7 @@ AdjustedScore = RawScore - 1.0 × SwitchCost
 
 ## 6.3 Selection, OOD, Calibration 순서
 
-> **상태:** Selection·Switch Cost는 `ACTIVE RC5` 구현 범위다. Runtime OOD·Calibration 승격은 `POST-RC5`다.
+> **상태:** Selection·Switch Cost와 3-output OOD interface는 `ACTIVE RC6` 구현 범위다. production OOD·Calibration asset 승격은 `PENDING EVIDENCE`다.
 
 ```text
 Raw Score
@@ -1411,6 +1523,8 @@ Post-process 이후 선택된 candidate로 학습한 logistic calibrator를 사�
 7~14. Goal Type one-hot 8
 15~22. selected Target Kind one-hot 8
 
+`valid_count=1`이면 second adjusted score는 selected adjusted score와 같고 adjusted gap은 `+0.0`이다. `valid_count=0`이면 Neural·Calibration을 호출하지 않는다. `valid_count>=2`이면 selected row를 제외한 valid row 중 가장 큰 adjusted score를 second로 사용하고 동점은 더 작은 Candidate index 순서로 정한다. 이 규칙은 Python·ONNX 평가·Unreal post-process와 Calibration dataset 생성에서 같아야 한다.
+
 ```text
 P_acceptable = sigmoid(w·x + b)
 ```
@@ -1425,9 +1539,9 @@ Calibrator는 **Adjusted Score로 최종 선택된 행동**을 기준으로 학�
 
 ## 6.4 Version과 Hash 책임 분리
 
-> **상태:** [generated decision hash contract](contract-appendices.md#d7-hash-decision_contract_hash)는 `ACTIVE RC5`다.
+> **상태:** [generated decision hash contract](contract-appendices.md#d7-hash-decision_contract_hash)는 `ACTIVE RC6`다.
 >
-> 아래 `ANPCFEAT1`·`ANPCDEC3` 공식은 `POST-RC5`다.
+> 아래 `ANPCFEAT1`·`ANPCDEC3` 공식은 `FUTURE CONTRACT`다.
 
 | 값 | 포함 내용 |
 |---|---|
@@ -1477,7 +1591,7 @@ Commit Coordinator는 비동기 추론 응답을 최신 상태로 검증하고 S
 
 ## 7.1 Request 상태
 
-> **상태:** 아래 stale-bound envelope와 material revision 규칙은 `POST-RC5`다. 현재 RC5 smoke는 Runtime completion 증거로 사용할 수 없다.
+> **상태:** 아래 stale-bound envelope와 material revision 규칙은 `FUTURE CONTRACT`다. 현재 RC6 fixture smoke는 production completion 증거로 사용할 수 없다.
 
 NPC별 상태:
 
@@ -1592,7 +1706,9 @@ Reservation:
 - 부분 예약과 `StartCommit` 실패는 전부 rollback
 - 후보 생성 전에는 ReservationId가 없으며 ResourceGeneration과 AvailabilityRevision만 존재
 
-## 7.4 모델 거부·실패 후 Fallback
+## 7.4 일반 스케줄러의 모델 거부·실패 후 Fallback
+
+이 절은 `GuardPhase0/InvestigateDisturbance/Resolve` v1 scope에 적용하지 않는다. Resolve v1은 §5.12.4가 우선하며, pre-Commit Neural `Unavailable|Failed|Abstained|Invalid`이고 total deadline이 남을 때만 original immutable Snapshot Utility를 1회 호출한다. Neural 반환 시 deadline이 만료됐으면 Utility는 0회다. Commit stale 뒤에는 같은 호출의 Utility를 실행하지 않고 bounded next-tick fresh retry를 사용하며, Primary Entity invalid는 recoverable/unrecoverable `TargetInvalidated` 경로를 사용한다.
 
 다음 조건은 Neural 결과를 폐기하고 fallback을 시작한다.
 
@@ -2104,7 +2220,7 @@ Critical mutation은 Train·Validation·Calibration·General·OOD와 동일한 `
 
 In-distribution family는 사전에 검토한 `split_assignment.csv`로 배치한다. 배치 비율은 Train 70%, Validation 10%, Calibration 10%, General Test 10%다.
 
-`test_taxonomy_v1.yaml`은 OOD/Critical family 이름과 최소 분모를 소유한다. 후속 machine-readable `test_case_catalog_v1.yaml`은 실제 OOD 9 family와 Critical 9 family의 허용 사례를 명시해야 한다.
+`test_taxonomy_v1.yaml`은 OOD/Critical family 이름과 최소 분모를 소유한다. `test_case_catalog_v1.yaml`은 RC6의 first-class generated·Lock·Validator source지만, 현재 Catalog의 범위는 Resolve policy case group과 split contract뿐이며 실제 OOD/Critical fixture allowlist를 소유하지 않는다. 해당 allowlist는 후속 등록 버전에서 별도 section과 상호 검증을 추가한 뒤에만 Catalog authority로 승격한다.
 
 ```text
 case_id
@@ -2119,7 +2235,7 @@ owner
 
 명시적 allowlist 충족 여부는 Taxonomy family와 case catalog fixture entry를 함께 검사한다.
 
-`test_case_catalog_v1.yaml`이 생성·Lock·Validator 대상에 포함되기 전에는 OOD/Critical split을 열 수 없다. Appendix E의 Role×Goal 최소 분모와 family 격리는 split 비율보다 우선한다.
+현재 `test_case_catalog_v1.yaml`이 생성·Lock·Validator 대상에 포함돼 있어도 Resolve-only scope만으로 OOD/Critical split을 열 수 없다. 실제 OOD/Critical fixture allowlist section과 duplicate/leakage 검증이 등록될 때까지 해당 split은 닫혀 있다. Appendix E의 Role×Goal 최소 분모와 family 격리는 split 비율보다 우선한다.
 
 Dataset Validator는 학습 전에 다음을 모두 검사한다.
 
@@ -2291,6 +2407,8 @@ perf_manifest.json
 
 `policy_manifest.json.files`에는 `policy_manifest.json` 자신을 제외한 Bundle 파일의 이름, byte 크기, SHA-256을 기록한다. Manifest가 자기 자신의 hash를 포함하도록 요구하지 않는다.
 
+Production Resolve v1 promotion은 Model Bundle 밖에 `resolve_policy_freeze_manifest.json`을 생성한다. 이 파일은 `release_scope_id`, `release_status`, `engine_version=5.7`, `runtime_name=NNERuntimeORTCpu`, `runtime_plugin_version=1.0`, Schema contract revision과 Schema·Goal Registry·Skill Registry·Policy Manifest·Calibration/OOD·Greet asset set·evidence index SHA-256을 기록한다. Promotion 전에는 존재하면 안 되며 `policy_manifest.json.files`나 Model Decision Contract Hash에 포함하지 않는다. Runtime에 import된 Freeze Manifest Data Asset은 모든 current artifact hash를 다시 검사한다.
+
 - `model_sha256 = SHA256(policy.onnx raw bytes)`로 고정한다.
 - `checkpoint_sha256 = SHA256(model.safetensors raw bytes)`는 학습 provenance이며 Runtime `model_sha256`과 구분한다.
 - Model, Schema, Registry, Normalization, Slotter, Post-process, Calibration/OOD hash로 `decision_contract_hash`를 계산한다.
@@ -2317,7 +2435,7 @@ contracts/current/goal_registry_v1.yaml
 
 평가 family와 Critical/OOD 분모는 `contracts/current/test_taxonomy_v1.yaml`이 소유한다.
 
-실제 OOD/Critical fixture allowlist는 후속 `contracts/current/test_case_catalog_v1.yaml`이 소유한다. case catalog를 추가할 때 Generator·Catalog·Lock·Archive·Validator 대상에도 즉시 포함한다.
+현재 `contracts/current/test_case_catalog_v1.yaml`은 Resolve policy group·split만 소유하며 실제 OOD/Critical fixture allowlist를 소유하지 않는다. 후속 등록 버전에서 그 section을 추가할 때 Generator·Catalog·Lock·Archive·Validator 상호 검증에도 함께 포함한다.
 
 Schema YAML은 Normalizer, Range, Missing, Padding, Hash byte order, Target Slotter quantization을 구조화된 값으로 가진다. 생성기가 자연어 수식을 해석하거나 별도 상수를 하드코딩해서는 안 된다.
 
@@ -2372,21 +2490,21 @@ Hash field/order/type/endianness는 YAML의 구조화된 배열이 단일 원본
 
 Cross-Environment Release Pipeline과 단일 release 명령은 [구현 계획의 §7](implementation-plan.md#release-pipeline)이 소유한다.
 
-## 10.6 RC5 구조화 계약 Remediation 상태
+## 10.6 RC6 구조화 계약 상태
 
 각 항목의 현재 authority 상태와 남은 후속 작업을 구분한다.
 
 | ID | 현재 상태 | 목표·완료 내용 | Freeze 집행 |
 |---|---|---|---|
-| `SCHEMA-OUTPUT-001` | output 2개 | `tactical_context float32 [B,128]` 추가 | Schema semantic validation + PyTorch/ORT/NNE 3-output parity |
-| `GOAL-TRIGGER-001` | 완료 — Registry `1.1.0` | 35 event + 6 finite timer typed trigger, legacy `event` 0 | Registry validator + 41-row C++17 full-field Golden parity |
-| `GOAL-REVISION-001` | 완료 — Registry `1.1.0` | `interruptibility_changed`, `resume_policy_changed` 포함 | Python/C++ generated policy + C++17 Golden parity |
+| `SCHEMA-OUTPUT-001` | 완료 — RC6 output 3개 | `tactical_context float32 [B,128]` 포함 | Schema semantic validation + 승인 모델의 PyTorch/ORT/NNE 3-output parity는 pending |
+| `GOAL-TRIGGER-001` | 완료 — Registry `1.2.0` | 35 event + 6 finite timer typed trigger, legacy `event` 0 | Registry validator + 41-row C++17 full-field Golden parity |
+| `GOAL-REVISION-001` | 완료 — Registry `1.2.0` | `interruptibility_changed`, `resume_policy_changed` 포함 | Python/C++ generated policy + C++17 Golden parity |
 | `IDENTITY-EQUALITY-001` | Pair Feature source가 `handle equality`/`typed handle equals`로 모호 | `same_as_current_target`와 `same_as_current_skill_target`에 `comparison_key: identity_key` 구조화 | generated helper + Revision-only mutation Golden |
 | `ASYNC-STALE-001` | continuous float drift allowlist와 age bound가 구조화되지 않음 | Entity Revision-only `staleness_class`, `max_nonmaterial_stale_ms=50`, exact-match Target Kind를 Decision Runtime Contract에 추가 | stale boundary·Kind별 Revision Runtime/Golden test |
 | `ASYNC-DEADLINE-001` | request deadline field와 40ms 계산이 구조화되지 않음 | `request_deadline_budget_ms=40`, checked absolute deadline, capture-to-Commit clock을 Decision Runtime Contract에 추가 | 39/40/41ms boundary·overflow·deadline miss Runtime test |
 | `FALLBACK-001` | timeout·abstain·supersede의 fallback 규칙과 failure code가 여러 절에 분산 | `CandidateHashMismatch`를 포함한 failure enum과 reason→기존 Skill 유지→latest snapshot Utility→Goal fallback 순서를 Decision Runtime Contract에 구조화 | hash mismatch·timeout·OOD·stale·urgent race Runtime test |
 | `EVENT-MOVING-001` | `source_moving_probability`가 bool | 확률이면 ratio `[0,1]`; boolean 의미를 유지하려면 `source_is_moving`으로 rename | Schema migration + Float Feature parity |
-| `TEST-CATALOG-001` | family taxonomy만 존재 | 실제 case allowlist YAML 추가 | Catalog/Lock/Archive validation |
+| `TEST-CATALOG-001` | 완료 — current case allowlist YAML | taxonomy scope/action/group/minimum/split과 exact parity | Schema dependency + Catalog/Manifest/Lock validation |
 
 Auto-generated marker 내부를 수동 편집해 위 문제를 숨기지 않는다. 구조화된 원본과 Generator를 먼저 고치고 Appendix·Python·C++·Golden·Manifest를 함께 재생성한다.
 

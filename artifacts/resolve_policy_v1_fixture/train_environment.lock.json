@@ -1,0 +1,7 @@
+{
+  "numpy": "2.5.2",
+  "onnx": "1.22.0",
+  "onnxruntime": "1.29.0",
+  "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "python": "3.12.13 (main, Jun 11 2026, 04:03:26) [Clang 22.1.3 ]"
+}

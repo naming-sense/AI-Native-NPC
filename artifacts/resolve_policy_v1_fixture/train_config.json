@@ -1,0 +1,7 @@
+{
+  "duration_feature": "global_state[0]",
+  "intensity_feature": "global_state[1]",
+  "label_source": "contract_generated_fixture",
+  "score_target": 0.5,
+  "seed": 20260820
+}

@@ -3,11 +3,13 @@
 # Unreal에서 NPC 판단을 연결하는 구현 계획
 ## AI Native NPC · Unreal Engine 5.7 · NeuralGame
 
-- 문서 버전: **v0.4.44**
-- 개정일: **2026-08-17**
-- 현재 상태: **Phase 0 장면 slice의 자동 구성은 완료됐다. 실제 Profile Asset 3개, 읽기 전용 Debug 표시, Quinn의 연속 Sight 위치 갱신과 발소리 Emitter, Surface A·B, 전용 Test Level과 Manny·Quinn 자동 PIE가 연결됐다. 사람이 수정본에서 파란 Entity 스피어 연속 추적, 벽 뒤 노란 LastKnownPosition 전환, 실제 발 접촉 발소리의 빨간 스피어와 `IdleObserve/Observe → InvestigateDisturbance/Orient` Goal 전환, Walk 전환 입력, Surface A·B × Walk·Jog 네 값을 확인했다. 관측 중인 Actor가 종료되면 현재 Entity를 제거하고 마지막 관측 위치만 남긴다. 자동 PIE는 Quinn의 실제 이동과 locomotion Animation Notify를 재생해 Walk·Jog × Surface A·B 네 조합을 판정한다. Surface A는 cyan, Surface B는 orange 바닥과 2.5 m 높이의 충돌 없는 양면 표지판으로 구분한다. 실제 Play 캡처에서 양면 글자의 거울상을 찾았고, 두 TextRender가 각각 actor 바깥쪽을 향하도록 교정한 뒤 같은 카메라에서 두 색과 `SURFACE A/B`를 정상 방향으로 확인했다. 숨은 Quinn 이동 중 LastKnownPosition 고정과 실제 Recast Phase 3B 전체 행동이 자동 PIE에서 통과했다. Decision Capture는 Skill 실행 전에 파일 write·exact readback·Replay를 통과하며 변조를 거부한다. 실제 Timer callback fallback도 자동검사에서 통과했다. Windows cook과 필수 Asset 포함 검사는 통과했다. assistant가 추가로 수행한 Shipping 빌드·패키징·startup smoke는 한 번 통과했다. 이 Shipping 결과는 일회성 테스트 기록이며 Phase 3B 완료 조건, 정기 회귀 또는 제품 Release 승인을 뜻하지 않는다.**
+- 문서 버전: **v0.4.46**
+- 개정일: **2026-08-23**
+- 현재 상태: **Phase 3A·3B 실게임 수직 경로와 Production Resolve v1 Runtime Core를 구현했다. `Greet(Entity)`, NNE fixture adapter, same-Snapshot Utility fallback, Target-loss recovery와 fail-closed readiness를 검증했다. 승인된 production ModelData·Calibration/OOD·Greet Asset·Freeze evidence와 actual Resolve PIE·packaged smoke가 남아 있어 production 경로는 dormant다.**
 - 실제 Unreal 프로젝트: `D:\Codex-cli\NeuralProject\NeuralGame\NeuralGame.uproject`
 - Unreal 모듈: `Source/NeuralGame/AINativeNPC`
+- Production Resolve v1: [Neural evaluator와 Greet 구현 계획](production-resolve-v1-implementation-plan.md)
+- ML Dataset v1: [Procedural Generator와 Teacher Pipeline 구현 계획](ml-data-pipeline-v1-implementation-plan.md)
 
 이 문서의 역할은 **Unreal에서 일반 NPC 판단 흐름과 Test Level, Manny·Quinn, Blueprint·Asset을 만드는 순서, 담당 파일, 실패 시 보존할 상태, 완료 조건을 정하는 것**이다.
 
@@ -74,7 +76,8 @@
 | Unreal 실게임 수직 구성 | Phase 3B PIE·cook 완료 | 전용 Test Level에서 전체 조사 행동과 Capture를 확인하고 Windows cook을 통과했다. Shipping 빌드와 시작은 추가 테스트로 한 번 확인했다. | Shipping을 반복하지 않고 다음 제품 기능으로 진행한다. |
 | 일반 NPC 전체 Goal Runtime | 진행 중 | Phase 3A·3B 조사 수직 경로를 exact production Pawn과 실제 장면에서 검증할 수 있다. | 다른 Goal, 전체 중단 경쟁, 저장과 복제를 추가한다. |
 | 보스 공격 패턴 | 제한된 실행 기반 완료 | 고정된 테스트 자산으로 Commit부터 StateTree 시작까지 확인한다. | 실제 전투 선택 정보와 공격 효과를 연결한다. |
-| Neural Policy | 후속 작업 | 생성된 입력 계약과 Utility 경로를 사용할 수 있다. | ONNX, NNE Adapter, Calibration과 OOD를 구현한다. |
+| Neural Policy | fixture adapter 검증, production dormant | `NNERuntimeORTCpu` B=1 adapter, `tactical_context`, canonical output과 deadline fallback을 fixture ModelData로 검증한다. | frozen gameplay dataset 기반 production ModelData와 Calibration/OOD를 승격한다. |
+| Production Resolve v1 | Runtime 기반 구현, readiness false | RC6 `Greet(Entity)`, SocialAction cue, retained disturbance recovery와 computed Freeze gate를 사용한다. | approved production assets와 Freeze evidence 뒤 actual Resolve PIE·packaged smoke를 통과한다. |
 
 <a id="runtime-flow"></a>
 ## 0.3 전체 판단 흐름
@@ -647,6 +650,25 @@ Phase 3B는 다음 조건을 모두 만족하면 완료다.
 - 계약 검사, Editor build, 변경 기능 검사, 관련 기능 검사와 Asset 검사가 모두 통과한다.
 - 실제 Guard Pawn을 Editor나 실행 게임에서 한 번 끝까지 동작시키는 확인이 통과한다.
 - 최신 source에 결속된 독립 재검토에서 blocker가 0개다.
+
+## 6.9.1 Production Resolve v1: `SightAcquired → Resolve → Greet`
+
+`Navigate` 또는 `Search` 중 처음 획득한 visible Entity가 Goal-owned `DisturbancePosition`의 XY 평면거리 `700cm` 안에 있는지 확인하는 guard와 transaction은 구현·검증됐다.
+
+성공하면 exact Entity identity를 `IdentifiedSubject`로 설치하고 `Resolve`의 Primary Target으로 사용한다. current Knowledge revision, exact visible binding, same World와 유한 좌표를 Commit 전후 callback 경계에서 다시 확인한다.
+
+구현된 bounded core는 [Production Resolve v1 구현 계획](production-resolve-v1-implementation-plan.md)을 따른다. 첫 production-executable Resolve Skill은 비적대적 `Greet(Entity)` 하나다. Host가 Skill을 직접 고정하지 않고 generated production mask가 Candidate를 제한하며, Neural-first orchestrator가 finalized Candidate에서 선택한다.
+
+| 책임 | 구현 경계 |
+|---|---|
+| 700cm 판정 | generated 수치를 읽는 순수 `subject_identified` evaluator |
+| Entity 설치 | Goal Host의 callback-free phase+primary Target transaction |
+| Target recapture | current visible Knowledge Entity identity와 revision |
+| Policy 순서 | Neural accepted 우선, unavailable·failed·abstained·invalid 뒤 Utility 한 번 |
+| Commit | 기존 `FDecisionCommitCoordinator`의 current Goal·Knowledge·Target 재검증 |
+| 실행 | v1은 actual gameplay effect가 있는 `Greet(Entity)`만 Candidate-valid |
+
+`candidate_raw_scores [B,272]`, `candidate_parameter_proposals [B,272,4]`, `tactical_context [B,128]`을 반환하는 NNE fixture adapter와 Greet social signal·visible cue core는 구현됐다. 승인된 production ModelData·Calibration/OOD bundle, Gold qualification, Unreal parity와 rollout 증거가 없으면 `ResolvePolicyReady=false`다.
 
 ## 6.10 이번 구현에서 고정한 제품 연결
 
@@ -2094,7 +2116,7 @@ Resource Target, 예약 Subsystem과 rollback 검사가 준비된 뒤 연결한�
 | `GameplayTags` module | Build 의존성 있음 | 생성 Registry와 Asset tag 사용에 유지한다. |
 | `AIModule` | Build 의존성 있음 | Perception과 AI Controller에 사용한다. |
 | `NavigationSystem` | Build 의존성 있음 | 이동 Skill과 NavMesh에 사용한다. |
-| NNE와 NNE Runtime | plugin 미활성화·Build 의존성 없음 | 제품 Phase 1 설치본과 cook 지원 확인 뒤 추가한다. |
+| NNE와 NNE Runtime | `NNERuntimeORT` plugin·`NNE` dependency 활성화 | fixture adapter를 유지하고 승인된 ModelData의 cook·packaged parity를 통과한다. |
 | Smart Objects | 미활성화 | Cover·resource Target 작업 전 확인한다. |
 
 현재 일반 NPC 모듈은 `Core`, `CoreUObject`, `Engine`, `InputCore`, `EnhancedInput`, `AIModule`, `NavigationSystem`, `StateTreeModule`, `GameplayStateTreeModule`, `GameplayTags`, `PhysicsCore`, `Json`, `UMG`, `Slate`를 공개 의존성으로 가진다.
@@ -2248,20 +2270,25 @@ Neural Policy의 역할은 **게임 규칙이 허용한 Candidate 안에서 더 
 
 ## 9.1 현재 상태
 
-제품 Phase 0의 실제 연결은 Utility를 사용한다.
+Neural-first routing, same-Snapshot Utility fallback, NNE fixture adapter와 첫 production Resolve action인 `Greet(Entity)` core는 구현됐다. 승인된 production ModelData·Calibration/OOD bundle이 없어 actual production 연결은 dormant다.
 
-ONNX ModelData와 NNE Adapter는 제품 Phase 1의 구현 대상이다.
+승인 모델과 Gold·Unreal parity·rollout은 [Production Resolve v1 구현 계획](production-resolve-v1-implementation-plan.md)의 남은 Gate다.
 
-## 9.2 구현할 순서
+V1 provider는 UE 5.7 `NNERuntimeORTCpu`로 고정한다. Project는 `NNERuntimeORT` plugin과 `NNE` interface dependency를 enable했고, synchronous `IModelInstanceCPU`의 `B=1` fixture adapter를 구현했다. 승인된 production ModelData·Calibration/OOD bundle과 packaged parity는 아직 남아 있다.
 
-1. Dataset Record와 split 규칙을 고정한다.
-2. Python과 Unreal이 같은 Feature 값을 만드는지 확인한다.
-3. 작은 fixture 모델을 학습하고 ONNX로 내보낸다.
-4. Unreal NNE가 입력과 출력 descriptor를 확인한다.
-5. `B=1,2,4,8` batch의 ORT와 NNE 결과를 비교한다.
-6. 모델 실패 시 같은 Snapshot의 Utility 결과를 사용한다.
-7. Calibration과 OOD asset을 추가한다.
-8. 패키징한 Development와 Shipping 게임에서 최소 실제 경로를 끝까지 실행한다.
+V1 production Neural rollout은 generated scope가 허용한 exact `GuardPhase0/InvestigateDisturbance/Resolve`에서만 활성화한다. 다른 Goal·phase는 기존 generated Utility 결과를 유지한다.
+
+## 9.2 구현과 승격 순서
+
+1. **완료:** Resolve v1 machine-readable contract와 hostile harness를 RED→GREEN한다.
+2. **완료:** `Greet(Entity)` social signal, visible cue와 StateTree effect를 구현한다.
+3. **완료:** Dataset Record와 split 규칙을 고정한다.
+4. **완료:** 작은 fixture 모델로 NNE descriptor, failure path와 same-Snapshot Utility fallback을 구현한다.
+5. **남음:** 실제 gameplay 분포의 Gold Dataset과 production model, Calibration/OOD와 Model Bundle을 freeze한다.
+6. **남음:** frozen production model의 PyTorch↔ORT↔NNE parity와 synthetic-real Feature parity를 통과한다.
+7. **남음:** Development packaged-runtime에서 actual Resolve 경로를 끝까지 실행한다.
+
+Shipping build와 startup은 실제 배포 요청이 있을 때만 별도 Release gate로 수행한다.
 
 ## 9.3 Unreal 연결 조건
 
@@ -2280,11 +2307,11 @@ Unreal은 Model Bundle의 Manifest에서 다음 계약 식별 정보를 확인�
 ```json
 {
   "schema_version": "2.0.0",
-  "schema_sha256": "a7791004de0534f29198ebf5eaaff7cd764185b59b05446d419f5d0a3303f886",
-  "skill_registry_version": "1.0.0",
-  "skill_registry_sha256": "ed0454691c17761d81ee52ac0c729f6f83adec97a954a4808107d078ba49975d",
-  "goal_registry_version": "1.1.0",
-  "goal_registry_sha256": "d9eb13898cf2d066320977073b1e82458cc0d7bdfd512ef6983ad9a2d44c8f3e"
+  "schema_sha256": "e641071c61cfad3fa892324e855b87111c8a27f42037aac19b9c7f40d62b1d3f",
+  "skill_registry_version": "1.1.0",
+  "skill_registry_sha256": "15b47b23066c2b64f4228dadd21dd36d0cf2681a9e387c624a1111965b952467",
+  "goal_registry_version": "1.2.0",
+  "goal_registry_sha256": "2fe47b0376427c3c086e6d899b934d3d59ddbbd672c3b98900cf84837d1a8dda"
 }
 ```
 
@@ -2408,7 +2435,8 @@ Source/NeuralGame/AINativeNPC/
 | Target 자리 | `Target/TargetSlotter.h/.cpp` |
 | Candidate | `Candidate/CandidateBuilder.h/.cpp` |
 | Feature Snapshot | `Feature/DecisionFeatureBuilder.h/.cpp` |
-| Utility | `Policy/UtilitySelection.h/.cpp` |
+| Neural-first routing | `Policy/DecisionPolicyOrchestrator.h/.cpp` |
+| Utility fallback | `Policy/UtilitySelection.h/.cpp` |
 | Commit | `Policy/DecisionCommitCoordinator.h/.cpp` |
 | Skill 시작 | `Execution/AINativeNPCSkillExecutorComponent.h/.cpp` |
 | StateTree 전달 | `Execution/AINativeNPCSkillHandoffComponent.h/.cpp` |
@@ -2653,13 +2681,14 @@ Phase 0 실제 장면 구성의 최신 검증은 다음과 같다.
 
 | 계약 | 버전 또는 SHA-256 |
 |---|---|
-| Requirements SHA-256 | `2444ad635a79a74c7326f6d1bd3a05d03d56894677368988459e43dbb0be8168` |
-| Technical Requirements SHA-256 | `084f8ba9c6091878da1096d5525e34f7659621a28ffd09b6c458ed4018cb50ae` |
-| Schema YAML SHA-256 | `a7791004de0534f29198ebf5eaaff7cd764185b59b05446d419f5d0a3303f886` |
+| Requirements SHA-256 | `a9b98653b9b4ff9ffd85a489d5bf9218931edf5d98e8af10e71bb66403a187b6` |
+| Technical Requirements SHA-256 | `add5a3f9ba1a10e5bc3624825a3f69175ccc2a6b6c4040fe23118d14ec5a2647` |
+| Schema YAML SHA-256 | `e641071c61cfad3fa892324e855b87111c8a27f42037aac19b9c7f40d62b1d3f` |
 | Boss Pattern Contract SHA-256 | `e4f828c114fcc5db1cb04b5d0a6e2b3d29dada7e45c60a3dd18c674baa78c789` |
-| Skill Registry SHA-256 | `ed0454691c17761d81ee52ac0c729f6f83adec97a954a4808107d078ba49975d` |
-| Goal Registry `1.1.0` SHA-256 | `d9eb13898cf2d066320977073b1e82458cc0d7bdfd512ef6983ad9a2d44c8f3e` |
-| Test Taxonomy SHA-256 | `2c4f911c23c8502231351fd2a1ffc606a04c29c4c3e39ea384099462811dad79` |
+| Skill Registry SHA-256 | `15b47b23066c2b64f4228dadd21dd36d0cf2681a9e387c624a1111965b952467` |
+| Goal Registry `1.2.0` SHA-256 | `2fe47b0376427c3c086e6d899b934d3d59ddbbd672c3b98900cf84837d1a8dda` |
+| Test Taxonomy SHA-256 | `2d4c668af7034ca245cee92c25d8f9fea3cee663af39bcfd4f6de2958696f917` |
+| Test Case Catalog SHA-256 | `651c744f468deb8b5dbd355c0fdf5a67c2db7527fc69e5dd9ffb8641c506acae` |
 
 ## 15.3 자동 생성된 Goal 상태
 
@@ -2673,9 +2702,9 @@ Phase 0 실제 장면 구성의 최신 검증은 다음과 같다.
 <!-- BEGIN GOAL GAMEPLAY SEMANTICS V1 STATUS -->
 ### Bounded Goal gameplay authority status
 
-- Goal Registry: `1.1.0` / SHA-256 `d9eb13898cf2d066320977073b1e82458cc0d7bdfd512ef6983ad9a2d44c8f3e`
+- Goal Registry: `1.2.0` / SHA-256 `2fe47b0376427c3c086e6d899b934d3d59ddbbd672c3b98900cf84837d1a8dda`
 - `GuardPhase0` bounded semantics authority: **PASS**
-- Authority scope: 9 executable unique guards, 3 provider-unavailable unique guards, 12 executable transition bindings, 2 staged effects, 5 production executable Skills
+- Authority scope: 14 executable unique guards, 0 provider-unavailable unique guards, 18 executable transition bindings, 2 staged effects, 6 production executable Skills
 - Gameplay Goal FSM: **HOLD** — complete guard catalog, other Goals, arbitration/save archive, and product release are not claimed by this bounded authority PASS.
 <!-- END GOAL GAMEPLAY SEMANTICS V1 STATUS -->
 

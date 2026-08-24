@@ -4,8 +4,8 @@
 
 **Status: PRODUCTION AUTHORITY**
 
-- Approved: `2026-08-11`
-- Skill Registry SHA-256: `ed0454691c17761d81ee52ac0c729f6f83adec97a954a4808107d078ba49975d`
+- Approved: `2026-08-20`
+- Skill Registry SHA-256: `15b47b23066c2b64f4228dadd21dd36d0cf2681a9e387c624a1111965b952467`
 - Runtime authority: server GameThread
 - Target position: execution-start recapture, then frozen
 - DecisionRecord v2 layout: unchanged
@@ -26,6 +26,7 @@ New perception updates Knowledge and affects the next selection. It does not rei
 | Approach | 4 | planar distance ≤ preferred_distance | 0 s | complete path only |
 | Investigate | 8 | distance and yaw error ≤ 15.0° | 0.5 s | base turn 360.0°/s |
 | SearchArea | 9 | all valid points, or deadline after ≥1 visit | duration budget | 9 fixed world-axis points; 100.0 cm acceptance |
+| Greet | 10 | exact one-shot signal and authoritative visible cue duration complete | duration | Entity + LOS; duration 1.0–5.0 s; intensity 0.0–1.0 |
 
 ## Deterministic SearchArea offsets
 

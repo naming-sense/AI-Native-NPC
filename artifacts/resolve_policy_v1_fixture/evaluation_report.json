@@ -1,0 +1,40 @@
+{
+  "nan_inf_count": 0,
+  "ort_parity": {
+    "1": {
+      "max_abs": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "passed": true
+    },
+    "2": {
+      "max_abs": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "passed": true
+    },
+    "4": {
+      "max_abs": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "passed": true
+    },
+    "8": {
+      "max_abs": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "passed": true
+    }
+  },
+  "production_eligible": false,
+  "reference": "numpy_contract_reference",
+  "status": "passed_fixture_parity"
+}

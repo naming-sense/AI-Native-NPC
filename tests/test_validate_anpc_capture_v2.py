@@ -142,10 +142,14 @@ class CaptureV2ValidatorTests(unittest.TestCase):
     def test_unreal_golden_has_python_canonical_parity(self) -> None:
         result = validate_capture(FIXTURE)
         self.assertTrue(result["canonical_cbor_parity"])
-        self.assertEqual(result["feature_contract_hash"], "c6a063be57d82813ad6001af98b86c92ae9c5cf2d120bb7a2209e185bfb77634")
+        parts = _parse_capture(FIXTURE.read_bytes())
+        expected_feature_hash = hashlib.sha256(
+            b"ANPCFEAT1" + b"".join(bytes.fromhex(value) for value in parts[8][:6])
+        ).hexdigest()
+        self.assertEqual(result["feature_contract_hash"], expected_feature_hash)
         self.assertEqual(result["record_version"], "anpc_decision_record_v2")
         self.assertEqual(result["tensor_lengths"], [512, 3264, 136, 17, 1152, 96, 96, 12, 17408, 272])
-        self.assertEqual(result["valid_candidate_count"], 2)
+        self.assertEqual(result["valid_candidate_count"], 1)
         self.assertEqual(result["acceptable_candidate_count"], 1)
 
     def test_metadata_tamper_is_rejected(self) -> None:

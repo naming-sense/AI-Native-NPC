@@ -1,0 +1,8 @@
+{
+  "case_catalog_sha256": "651c744f468deb8b5dbd355c0fdf5a67c2db7527fc69e5dd9ffb8641c506acae",
+  "case_count": 448,
+  "group_count": 7,
+  "production_eligible": false,
+  "source": "contract_generated_fixture",
+  "split_overlap_count": 0
+}
