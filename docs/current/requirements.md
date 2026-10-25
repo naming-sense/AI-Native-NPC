@@ -1,10 +1,8 @@
-# 🚨 분실한 iPad입니다 — 습득하신 분은 010-5184-5134로 연락주세요
-
 # AI Native NPC 제품 요구사항
 ## 처음 보는 사람을 위한 의사결정 시스템 설명
 
-- 문서 버전: **v0.4.17**
-- 개정일: 2026-08-23
+- 문서 버전: **v0.4.18**
+- 개정일: 2026-10-25
 - 주 독자: **기획자, 사업 책임자, Gameplay Designer, 새로 합류한 개발자**
 - 한 줄 상태: **일반 NPC Phase 3A와 Phase 3B까지 완료됐다. Production Resolve v1 핵심 코드와 Greet 중심 Dataset·Teacher 후보도 검증했으며, Production Profile·Provider·Dataset 승인과 실제 rollout은 아직 닫혀 있다.**
 - 세부 기술 계약: [AI Native NPC 세부 기술 요구사항](technical-requirements.md)
@@ -342,6 +340,22 @@ Commit 뒤 Skill Executor가 이동, 시선, 대화, 엄폐와 전투를 실제�
 
 Teacher LLM은 개발용 Silver label만 만든다. Runtime에서 NPC를 조종하지 않으며, Calibration·General Test·OOD·Critical 평가의 유일한 정답이 될 수 없다.
 
+학습 데이터의 대량 생산은 자동 생성·수집을 중심으로 구성한다.
+사람은 대표 사례를 직접 플레이해 확인하고 적절한 행동과 정답을 검토한다.
+모든 학습 사례를 사람이 반복해서 플레이하도록 요구하지 않는다.
+
+- **상황:** NPC가 한 번 판단하는 순간의 상태. 예: 소리만 들리고 상대가 보이지 않음.
+- **시나리오:** 초기 조건과 사건의 진행 순서를 정한 플레이 구성. 예: 벽 뒤 발소리 → 상대 등장 → 다시 가려짐.
+- **변형 사례:** 같은 시나리오의 거리·위치·가림·관계·타이밍을 허용 범위 안에서 바꾼 조건.
+
+한 시나리오를 실행하면 여러 판단 상황이 생길 수 있다. 저장된 상황에는 별도의 행동 정답 검토가 필요하다.
+AI 개발 에이전트가 기존 규칙을 바탕으로 시나리오 초안과 도구를 만들고, 사용자가 원하는 행동과 대표 사례를 검토한다.
+생성·실행 도구가 조건별 변형과 반복 수집을 담당한다.
+
+목표 화면은 **시나리오 선택 → 직접 플레이 또는 자동 수집 → 같은 조건 재실행·결과 확인**을 제공한다.
+이 선택 화면과 자동 실행 기능은 구현 전이다. 현재의 Snapshot 생성·Capture 저장 기반과 구분한다.
+구체적인 역할과 검증 조건은 [학습용 시나리오 실행·수집 계획](ml-data-pipeline-v1-implementation-plan.md#scenario-collection-plan)을 따른다.
+
 배포 전에는 최소한 다음을 확인한다.
 
 - 숨은 정보가 모델 입력에 들어가지 않았는가
@@ -476,8 +490,9 @@ NNE adapter, OOD·Calibration 검사 Core와 Greet Social Action은 구현됐다
 | 실제 Boss 전투 효과 | HOLD | production selector, Montage, Hitbox, Damage 등이 없음 |
 | Neural-first routing Core | PASS | 같은 immutable Snapshot의 Neural-first 선택과 generated Utility exact-once fallback이 구현됨 |
 | Neural Policy·ONNX·NNE·OOD | fixture 검증, production HOLD | NNE adapter와 3-output·Calibration/OOD 검사를 fixture로 검증했다. 승인된 모델과 production assets가 없음 |
-| Procedural·Teacher Dataset | candidate 완료 | 7개 Snapshot과 35회 Provider 판정에서 Teacher Silver 6개를 만들고 1개를 Gold review로 분리했다. 두 shard는 production 사용을 거부함 |
+| Procedural·Teacher·Human Gold Dataset | candidate 완료 | 7개 Snapshot과 35회 Provider 판정에서 Teacher Silver 6개를 만들었다. low-identity 1개는 사용자가 `인사하지 않음` Human Gold로 확정했다. Procedural·Silver·Gold candidate shard는 production 사용을 거부함 |
 | 데이터 품질·성능·최종 Release | NO-GO | Gold qualification, Unreal parity, split·중복·누수와 품질 증거가 없음 |
+| 학습용 시나리오 실행·수집 도구 | 계획 문서화, 구현 전 | 시나리오 묶음·조건 변형·선택 화면·직접 플레이와 자동 수집을 후속 구현 |
 
 ## 10.4 전체 일반 NPC Runtime 완료라고 말하려면
 

@@ -1,10 +1,8 @@
-# 🚨 분실한 iPad입니다 — 습득하신 분은 010-5184-5134로 연락주세요
-
 # Unreal에서 NPC 판단을 연결하는 구현 계획
 ## AI Native NPC · Unreal Engine 5.7 · NeuralGame
 
-- 문서 버전: **v0.4.46**
-- 개정일: **2026-08-23**
+- 문서 버전: **v0.4.47**
+- 개정일: **2026-10-25**
 - 현재 상태: **Phase 3A·3B 실게임 수직 경로와 Production Resolve v1 Runtime Core를 구현했다. `Greet(Entity)`, NNE fixture adapter, same-Snapshot Utility fallback, Target-loss recovery와 fail-closed readiness를 검증했다. 승인된 production ModelData·Calibration/OOD·Greet Asset·Freeze evidence와 actual Resolve PIE·packaged smoke가 남아 있어 production 경로는 dormant다.**
 - 실제 Unreal 프로젝트: `D:\Codex-cli\NeuralProject\NeuralGame\NeuralGame.uproject`
 - Unreal 모듈: `Source/NeuralGame/AINativeNPC`
@@ -47,6 +45,8 @@
 | Candidate | Skill과 Target을 합친 행동 후보 | `FCandidateRow` |
 | Feature | 현재 상황을 선택기가 읽을 수 있는 숫자로 표현한 값 | `FDecisionFeatureBuilder` |
 | Snapshot | 한 번의 판단에 사용하도록 고정한 상태 | `FFinalizedDecisionSnapshot` |
+| 상황 | NPC가 한 번 판단하는 순간의 상태 | 판단 Snapshot으로 저장 |
+| 시나리오 | 초기 조건과 사건의 진행 순서를 정한 플레이 구성 | 실행 도구는 후속 구현 |
 | Utility | 규칙과 가중치로 Candidate 점수를 계산하는 선택기 | `FUtilitySelection` |
 | Commit | 최신 상태를 다시 확인하고 실행을 확정하는 짧은 서버 작업 | `FDecisionCommitCoordinator` |
 | Host | 실제 Pawn 안에서 여러 Runtime과 Component를 연결하는 소유자 | `UAINativeNPCGoalHostComponent` |
@@ -78,6 +78,7 @@
 | 보스 공격 패턴 | 제한된 실행 기반 완료 | 고정된 테스트 자산으로 Commit부터 StateTree 시작까지 확인한다. | 실제 전투 선택 정보와 공격 효과를 연결한다. |
 | Neural Policy | fixture adapter 검증, production dormant | `NNERuntimeORTCpu` B=1 adapter, `tactical_context`, canonical output과 deadline fallback을 fixture ModelData로 검증한다. | frozen gameplay dataset 기반 production ModelData와 Calibration/OOD를 승격한다. |
 | Production Resolve v1 | Runtime 기반 구현, readiness false | RC6 `Greet(Entity)`, SocialAction cue, retained disturbance recovery와 computed Freeze gate를 사용한다. | approved production assets와 Freeze evidence 뒤 actual Resolve PIE·packaged smoke를 통과한다. |
+| 학습용 시나리오 실행·수집 도구 | 계획 문서화, 구현 전 | 기존 Capture 저장·검증 기반을 재사용할 수 있다. | 시나리오 선택·직접 플레이·조건별 자동 수집·초기화를 구현한다. |
 
 <a id="runtime-flow"></a>
 ## 0.3 전체 판단 흐름
@@ -669,6 +670,37 @@ Phase 3B는 다음 조건을 모두 만족하면 완료다.
 | 실행 | v1은 actual gameplay effect가 있는 `Greet(Entity)`만 Candidate-valid |
 
 `candidate_raw_scores [B,272]`, `candidate_parameter_proposals [B,272,4]`, `tactical_context [B,128]`을 반환하는 NNE fixture adapter와 Greet social signal·visible cue core는 구현됐다. 승인된 production ModelData·Calibration/OOD bundle, Gold qualification, Unreal parity와 rollout 증거가 없으면 `ResolvePolicyReady=false`다.
+
+### 6.9.2 실제 Play에서 확인한 Resolve Primary Target 중복 경계
+
+2026-08-31 Capture-only 실제 Play는 committed Phase 3B Capture 세 개를 만들었지만 `ResolveShadow` Capture는 만들지 못했다. Runtime log는 Resolve 진입 뒤 `DecisionFail=TargetSlotter`를 기록했다.
+
+원인은 current visible Entity가 Knowledge Universe에 exact handle·revision으로 이미 존재하는데 Goal Host가 같은 Entity를 `ActiveGoalPrimaryTarget`으로 한 번 더 추가한 것이다. `FTargetSlotter`는 같은 identity·revision 두 개를 ambiguous input으로 거부하므로 실제 Resolve 판단이 시작되지 않았다. 이 Phase 3B Capture 세 개는 validator 통과를 확인했지만 Resolve 분포로 계산하지 않는다.
+
+수정 계약은 다음과 같다.
+
+- Goal Primary Target과 exact identity·revision이 같은 Knowledge Candidate가 하나 있으면 새 row를 추가하지 않고 그 row를 `ActiveGoalPrimaryTarget`으로 승격한다.
+- 기존 Candidate의 visibility, confidence, age와 subject facts는 유지하고 Goal-owned position·distance·availability authority만 현재 값으로 갱신한다.
+- exact duplicate가 둘 이상이거나 Target 값이 유효하지 않으면 fail-closed한다.
+- hostile 검사는 실제 sight Knowledge Entity가 이미 Universe에 있는 상태에서 capture-only Resolve를 실행해 committed Dagger Capture가 한 번 생성되는지 확인한다.
+- 수정 뒤 focused Resolve 검사, `GeneralNPC`, 전체 `AINativeNPC`와 실제 Play를 다시 검증한다.
+
+수정은 exact matching Candidate를 in-place 승격하도록 구현했다. Runtime hostile 검사는 기존 동작에서 `DecisionFail=TargetSlotter`와 Capture·Skill count 실패로 RED를 재현했고, 수정 뒤 committed Dagger Capture, exact readback과 `Greet` 시작까지 GREEN이었다. 이어 `AINativeNPC.Shipping.GeneralNPC` 21/21과 전체 `AINativeNPC` 167/167을 다시 통과했다. 자동화가 만든 `ResolveShadow` 자료는 제거했으며 실제 Play 재수집은 남아 있다.
+
+### 6.9.3 학습용 시나리오 선택과 자동 수집 — 구현 전
+
+대량 학습 자료는 자동 생성·수집으로 확보하고, 사람은 대표 사례의 Play 확인과 정답 검토를 맡는다.
+기본 시나리오와 변형 규칙은 AI 개발 에이전트가 작성하고, 사용자/Gameplay·Data owner가 원하는 행동과 허용 범위를 검토한다.
+시나리오 정의·출처 구분·검증 조건은 [학습용 시나리오 실행·수집 계획](ml-data-pipeline-v1-implementation-plan.md#scenario-collection-plan)이 소유한다.
+
+- 하나의 시나리오 정의에서 직접 플레이, 자동 수집과 같은 조건 재실행을 제공한다.
+- 실제 Pawn·Perception·Knowledge·Goal·Commit을 거쳐 기록한다. Tensor 직접 주입 테스트와 실제 게임 실행 자료를 구분한다.
+- 회차 사이에 월드·Knowledge·Goal·Timer 등을 초기화하되 기존 유효 기록과 process-wide capture sequence는 보존한다.
+- 인사하지 않음·대상 상실·판단 실패는 별도 진단 기록 경로를 정의한다. 기존 committed Capture의 성공 조건을 완화하지 않는다.
+- 자동 실행과 사람 Play를 별도 출처로 관리한다. 임의의 Play 횟수는 학습량 또는 분포 검증 기준으로 사용하지 않는다.
+
+이 절의 선택 화면과 자동 실행 도구는 아직 없다. 기존 Capture 저장·자동화 회귀 통과를 이 도구의 구현 완료로 확대하지 않는다.
+Shipping이나 패키징은 이 Editor용 수집 설계의 완료 조건에 추가하지 않는다.
 
 ## 6.10 이번 구현에서 고정한 제품 연결
 
@@ -1996,6 +2028,9 @@ Identity 기반, Profile C++ 3종, exact native Pawn·Controller와 자동 장�
 
 ## 7.12 Play에서 직접 확인하는 시나리오
 
+이 절은 사람이 확인하는 제품 동작 사례다. 학습량을 채우기 위한 반복 플레이 목록으로 사용하지 않는다.
+학습용 선택 화면·조건 변형·자동 수집의 후속 범위는 [시나리오 실행·수집 계획](ml-data-pipeline-v1-implementation-plan.md#scenario-collection-plan)을 따른다.
+
 각 시나리오는 입력, 화면에서 볼 결과와 현재 구현 경계를 함께 기록한다. 이 절은 제품 Play 완료 조건이며 자동 장면 slice 통과와 같지 않다. 현재 사람은 파란 Entity 스피어 연속 추적, 벽 뒤 노란 LastKnownPosition 전환, 실제 발 접촉의 빨간 SoundEvent, 같은 발소리의 `IdleObserve/Observe → InvestigateDisturbance/Orient` 전환, Walk 입력, Surface A·B × Walk·Jog 네 값 `0.45/0.70/0.70/1.00`을 확인했다. 숨은 Quinn 이동 중 노란 위치 고정은 남아 있다.
 
 ### 7.12.1 Quinn 기본 조작
@@ -2602,8 +2637,8 @@ Phase 0 실제 장면 구성의 최신 검증은 다음과 같다.
 | `AINativeNPC.Shipping.ProductionVertical` | 2/2, native Pawn·Controller 파생 차단 포함 |
 | `AINativeNPC.Play.ProductionVertical` | 1/1, direct probe, exact `ABP_Unarmed` Walk·Jog Sequence provenance 네 조합, 양면 라벨 outward 방향, 실제 Recast와 Capture readback 포함 |
 | `AINativeNPC.Authoring.ProductionVertical` fresh process 2회 | PASS, 18/18 package bytes unchanged |
-| `AINativeNPC.Shipping.GeneralNPC` | 14/14 |
-| 전체 `AINativeNPC` | 146/146 |
+| `AINativeNPC.Shipping.GeneralNPC` | 21/21 |
+| 전체 `AINativeNPC` | 167/167 |
 | 전체 검사 뒤 Data Validation | 299 assets, error 0, warning 0 |
 
 현재 Phase 3B PIE·cook 증거 파일은 다음과 같다.
@@ -2681,8 +2716,8 @@ Phase 0 실제 장면 구성의 최신 검증은 다음과 같다.
 
 | 계약 | 버전 또는 SHA-256 |
 |---|---|
-| Requirements SHA-256 | `a9b98653b9b4ff9ffd85a489d5bf9218931edf5d98e8af10e71bb66403a187b6` |
-| Technical Requirements SHA-256 | `add5a3f9ba1a10e5bc3624825a3f69175ccc2a6b6c4040fe23118d14ec5a2647` |
+| Requirements SHA-256 | `d7c45700ce51b33d57422fbce44a8193df3ed56ba3ac729f6e6318af0a6a763f` |
+| Technical Requirements SHA-256 | `812e6a5b1ffdec1eaa6f0a14af09a06b75ca950e4ce19176e2ba90a40f0e6948` |
 | Schema YAML SHA-256 | `e641071c61cfad3fa892324e855b87111c8a27f42037aac19b9c7f40d62b1d3f` |
 | Boss Pattern Contract SHA-256 | `e4f828c114fcc5db1cb04b5d0a6e2b3d29dada7e45c60a3dd18c674baa78c789` |
 | Skill Registry SHA-256 | `15b47b23066c2b64f4228dadd21dd36d0cf2681a9e387c624a1111965b952467` |

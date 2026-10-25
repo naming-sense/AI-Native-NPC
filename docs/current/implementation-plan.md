@@ -1,10 +1,8 @@
-# 🚨 분실한 iPad입니다 — 습득하신 분은 010-5184-5134로 연락주세요
-
 # AI Native NPC를 만드는 순서
 ## 데이터 준비부터 모델 학습·Unreal 검증까지 설명하는 구현 계획
 
-- 문서 버전: **v0.4.19**
-- 개정일: 2026-08-23
+- 문서 버전: **v0.4.20**
+- 개정일: 2026-10-25
 - 현재 상태: **Phase 3A·3B와 Production Resolve v1 핵심 코드를 구현했다. Greet 중심 `production_candidate`와 Teacher Silver 후보 검증도 완료했으며, 승인된 모델·Gold·Unreal rollout 증거가 없어 `ResolvePolicyReady=false`와 dormant 경로를 유지한다.**
 - 주 독자: **기획자, 사업 책임자, 새로 합류한 개발자, ML·Data·Gameplay AI·Server·Unreal NNE·QA·Release 담당자**
 - 설명 범위: **구현 순서, 담당 팀, 모델 구조, 학습 데이터 생성, 학습 설정, Unreal 검증과 최종 승인 절차**
@@ -20,8 +18,14 @@
 
 - **계약:** Schema `2.0.0-rc6`, Skill Registry `1.1.0`, Goal Registry `1.2.0`, 정확히 10개 입력 Tensor·272개 Candidate·3개 모델 출력을 generated Python/C++ binding과 Golden에 동기화했다.
 - **Runtime:** Neural-first 평가, same-Snapshot Utility fallback, `Greet(Entity)` Social Action, Target-loss recovery와 fail-closed promotion authority를 구현했다. Unreal Automation 166개, Data Validation 301 assets, Development Editor·non-editor build가 통과했다.
-- **ML Dataset 후보:** 7개 `production_candidate` Snapshot을 생성하고 Teacher command provider를 Snapshot마다 5회, 총 35회 호출했다. 6개는 Teacher Silver로 채택하고 low-identity weak-consensus 1개는 Gold review로 분리했다.
+- **ML Dataset 후보:** 7개 `production_candidate` Snapshot을 생성하고 Teacher command provider를 Snapshot마다 5회, 총 35회 호출했다. 6개는 Teacher Silver로 유지했다. low-identity weak-consensus 1개는 사용자가 **신원 확신이 낮으면 인사하지 않음**으로 검토해 Human Gold로 확정했다. 이 1-row Gold는 candidate persistence 증거이며 전체 Production Dataset 승인은 아니다.
 - **Production 경계:** Procedural 7-row shard와 Teacher Silver 6-row shard는 모두 `--require-production`에서 거부된다. Production Profile·Provider·Dataset 승인, Gold qualification, Unreal synthetic-real parity와 실제 rollout은 아직 완료되지 않았다.
+
+## 2026-10-25 수집 설계 정리
+
+상황과 시나리오를 구분하고, 대량 생산은 자동화·사람은 대표 플레이 확인과 정답 검토를 맡도록 정했다.
+기본 시나리오·선택 화면·조건별 자동 실행은 구현 전이며 [수집 도구 계획](ml-data-pipeline-v1-implementation-plan.md#scenario-collection-plan)을 따른다.
+이번 문서 갱신은 새로운 Runtime·Dataset·학습 모델의 완료 증거를 추가하지 않는다.
 
 
 <!-- BEGIN GOAL GAMEPLAY SEMANTICS V1 STATUS -->
@@ -64,6 +68,9 @@
 | Target의 종류와 식별 정보 | NPC가 행동을 적용할 대상의 종류와 정확한 대상을 나타내는 정보. 코드 이름은 `Typed Target` |
 | Skill | NPC가 실제로 실행할 수 있는 행동 |
 | Candidate | 현재 Goal에서 가능한 `Skill + Target` 조합 |
+| 상황 | NPC가 한 번 판단하는 순간의 상태 |
+| 시나리오 | 초기 조건과 사건의 진행 순서를 정한 플레이 구성 |
+| 변형 사례 | 같은 시나리오에서 거리·가림·관계·타이밍 등을 고정한 조건 조합 |
 | Utility | 사람이 정한 점수식으로 Candidate 순위를 매기는 기준 로직 |
 | Neural 모델 | 학습 데이터로 Candidate 선호 순위를 배우는 모델 |
 | Silver | 절차 생성과 Teacher LLM으로 만드는 낮은 가중치의 학습 예시 |
@@ -530,6 +537,15 @@ Procedural Generator, Teacher request·consensus와 Dataset mapper의 실행 계
 ## 4.1 게임 상황을 학습 Record로 만든다
 
 Unreal Capture는 실제 플레이 상황을 저장한다. Procedural Generator는 계약에 맞는 가상 상황을 만든다. 두 경로는 한 번의 NPC 판단 상황을 변경 불가능한 Dataset shard로 저장한다.
+
+대량 생산은 자동 생성·수집을 중심으로 구성한다. 사람은 대표 사례의 플레이 확인과 정답 검토를 맡는다.
+현재 Procedural Generator는 설정된 입력의 Snapshot을 생성하며, Unreal 장면을 자동 배치·실행하는 도구는 별도 구현 대상이다.
+직접 플레이·자동 실행·같은 조건 재실행은 같은 시나리오 정의를 공유하도록 설계한다.
+AI 개발 에이전트가 기본 시나리오와 변형 규칙을 작성하고, Gameplay/Data owner가 행동·범위·분포를 검토한다.
+
+후속 순서는 [학습용 시나리오 실행·수집 계획](ml-data-pipeline-v1-implementation-plan.md#scenario-collection-plan)의
+문서·하네스 확정 → 단일 장면·대표 사람 Play → 자동 실행·초기화 → Capture·label 검증 → 조건별 확장이다.
+실제 수집 도구는 구현 전이며, 임의의 Play 횟수를 학습량 기준으로 사용하지 않는다.
 
 절차 생성기의 공통 Profile·Snapshot shard·실행 CLI는 위 v1 구현 계획을 따른다. Greet `production_candidate`는 사용자 승인 권장 기본값과 parameter label 공식을 실행하지만 heuristic Silver에 한정한다. Production scenario family는 Gold와 Unreal Capture 분포 비교 전까지 열지 않는다.
 

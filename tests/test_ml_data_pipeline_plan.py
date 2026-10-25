@@ -1,3 +1,5 @@
+import hashlib
+import re
 from pathlib import Path
 
 
@@ -43,10 +45,11 @@ def test_current_docs_report_candidate_progress_and_keep_production_dormant() ->
 
     assert "## 2026-08-23 진행 요약" in implementation
     assert "총 35회 호출" in implementation
-    assert "Teacher Silver로 채택" in implementation
+    assert "Teacher Silver로 유지" in implementation
+    assert "Human Gold로 확정" in implementation
     assert "`--require-production`에서 거부" in implementation
     assert "Production Resolve v1 | Core 완료, rollout HOLD" in requirements
-    assert "Procedural·Teacher Dataset | candidate 완료" in requirements
+    assert "Procedural·Teacher·Human Gold Dataset | candidate 완료" in requirements
     assert "Schema 2.0.0 RC6" in technical
     assert "`Approved=false`, `ResolvePolicyReady=false`" in technical
     assert "production 경로는 dormant" in unreal
@@ -55,6 +58,20 @@ def test_current_docs_report_candidate_progress_and_keep_production_dormant() ->
     assert "구현은 시작하지 않음" not in requirements
     assert "Schema 2.0.0 RC5" not in technical
     assert "RC5 2-output Neural 연결" not in technical
+
+
+def test_production_plan_separates_completed_gold_persistence_from_qualification() -> None:
+    text = (CURRENT / "production-resolve-v1-implementation-plan.md").read_text(encoding="utf-8")
+    completed = text.split("### 10.2 현재 검증된 범위", 1)[1].split("### 10.3 남은 production Gate", 1)[0]
+    remaining = text.split("### 10.3 남은 production Gate", 1)[1]
+
+    assert "Human Gold 1-row persistence 검증 완료" in completed
+    assert "candidate 저장 증거" in completed
+    assert "production Dataset·Provider 승인 근거가 아니다" in completed
+    assert "low-identity Human Gold 1-row persistence 검증과" not in remaining
+    assert "immutable Provider revision 기반 전체 Gold qualification" in remaining
+    assert "12개 Role×Goal group마다 100개 이상, 총 1,200개 이상" in remaining
+    assert "ResolvePolicyReady=false" in remaining
 
 
 def test_ml_plan_defines_greet_production_candidate_and_provider_qualification() -> None:
@@ -81,11 +98,123 @@ def test_ml_plan_defines_greet_production_candidate_and_provider_qualification()
     assert "Teacher Silver 6개" in text
     assert "Gold review 1개" in text
     assert "low identity confidence" in text
+    assert "신원 확신이 낮으면 인사하지 않음" in text
+    assert "source_type=gold" in text
+    assert "source_weight=1.0" in text
+    assert "같은 immutable byte image를 hash·parse·join" in text
+    assert "한 번 읽은 Parquet bytes" in text
+    assert "anpc_ml gold promote" in text
+    assert "anpc_ml gold map" in text
+    assert "audit_production_readiness.py" in text
+    assert "manifest directory 아래의 상대 경로만 허용" in text
+    assert "`sha256:<64 lowercase hex>`" in text
+    assert "실제 Parquet에서 다시 계산한 denominator" in text
+    assert "ML/teacher/candidates/production_resolve_v1_candidate/" in text
+    assert "-AINativeNPCResolveCaptureOnly" in text
+    assert "Neural evaluator를 반드시 `nullptr`" in text
+    assert "`Dagger` weak label" in text
+    assert "ResolveShadow/<session-id>" in text
+    assert "process-wide monotonic sequence" in text
+    assert "기존 committed Capture를 지우지 않고" in text
+    assert "`AINativeNPC.Shipping.GeneralNPC` 21/21" in text
+    assert "전체 `AINativeNPC` 167/167" in text
+    assert "committed Phase 3B hearing Capture 세 개" in text
+    assert "`ResolveShadow` Capture는 0개" in text
+    assert "`TargetSlotter`" in text
+    assert "exact matching Knowledge Candidate를 in-place Goal Primary Target으로 승격" in text
+    assert "실제 Play를 다시 수집한다" in text
     assert "production Provider 승인 근거가 아니다" in text
-    assert "ML Python suite: **33 passed**" in text
+    assert "ML Python suite: **47 passed**" in text
     assert "Contract repository: **89 passed, 133 subtests passed**" in text
     assert "두 `production_candidate` shard를 Production Dataset으로 거부" in text
     assert "예제 Profile과 smoke Dataset은 `integration_fixture`와 `production_candidate` 범위" in text
     assert "Repository에는 작은 `integration_fixture` Profile과 별도 `production_candidate` Profile을 둔다." in text
     assert "현재 Generator는 `integration_fixture`만 실행" not in text
     assert "Repository에는 작은 `integration_fixture` Profile만 둔다." not in text
+
+
+def _collection_plan() -> str:
+    text = (CURRENT / "ml-data-pipeline-v1-implementation-plan.md").read_text(encoding="utf-8")
+    anchor = '<a id="scenario-collection-plan"></a>'
+    assert anchor in text, "학습용 시나리오 실행·수집 계획이 필요하다"
+    return text.split(anchor, 1)[1]
+
+
+def test_collection_terminology_distinguishes_state_scenario_and_episode() -> None:
+    text = (CURRENT / "technical-requirements.md").read_text(encoding="utf-8")
+    assert '<a id="collection-terminology"></a>' in text
+    for term in ("상황", "시나리오", "변형 사례", "실행 회차", "scenario_family_id"):
+        assert term in text
+    assert "한 번 판단하는 시점의 상태" in text
+    assert "초기 조건과 사건의 진행 순서" in text
+    assert "시나리오 한 회차에서 여러 판단 상황" in text
+
+
+def test_collection_plan_assigns_bulk_work_to_automation_and_bounds_human_play() -> None:
+    text = _collection_plan()
+    for phrase in (
+        "AI 개발 에이전트", "Gameplay/Data owner", "생성·실행 도구",
+        "대표 사례", "정답 검토", "Play 7회", "학습량 기준",
+        "구현 전", "수집 출처", "라벨 출처",
+    ):
+        assert phrase in text
+    assert "자동 실행을 사람 플레이 분포로 집계하지 않는다" in text
+
+
+def test_collection_plan_defines_shared_modes_and_runtime_boundary() -> None:
+    text = _collection_plan()
+    for phrase in (
+        "시나리오 선택", "직접 플레이", "자동 수집", "같은 조건 재실행",
+        "같은 시나리오 정의", "Perception", "Knowledge", "Commit",
+        "최대 회차", "회차 시간 제한", "중단", "초기화",
+        "process-wide monotonic sequence", "byte-identical", "미지원",
+    ):
+        assert phrase in text
+    assert "Tensor나 Knowledge 결과를 직접 주입" in text
+
+
+def test_collection_plan_preserves_failed_and_uncommitted_observations_separately() -> None:
+    text = _collection_plan()
+    for phrase in (
+        "인사하지 않음", "대상 상실", "판단 실패", "진단 기록",
+        ".anpccap2", ".committed", "유효 학습 row", "수집 출처와 라벨 출처",
+        "Utility 선택을 정답으로 복사하지 않는다", "Dagger", "Gold",
+    ):
+        assert phrase in text
+    assert "실패·미확정 기록을 committed Capture로 위장하지 않는다" in text
+    assert "source_type" in text and "Schema" in text
+
+
+def test_collection_plan_requires_coverage_split_and_closed_readiness() -> None:
+    text = _collection_plan()
+    for phrase in (
+        "고유 입력", "근접 중복", "조건별", "scenario_family_id",
+        "Train", "Validation", "Calibration", "Test", "OOD", "Critical",
+        "Approved=false", "ResolvePolicyReady=false", "production_eligible=false",
+        "문서·하네스", "Snapshot", "검증",
+    ):
+        assert phrase in text
+
+
+def test_collection_plan_is_discoverable_from_active_reader_entrypoints() -> None:
+    link = "ml-data-pipeline-v1-implementation-plan.md#scenario-collection-plan"
+    for name in (
+        "requirements.md", "technical-requirements.md", "implementation-plan.md",
+        "unreal-implementation-plan.md",
+    ):
+        text = (CURRENT / name).read_text(encoding="utf-8")
+        assert link in text, name
+        assert "시나리오" in text, name
+    assert "docs/current/" + link in (ROOT / "README.md").read_text(encoding="utf-8")
+
+
+def test_unreal_plan_pins_current_reader_and_technical_requirements() -> None:
+    text = (CURRENT / "unreal-implementation-plan.md").read_text(encoding="utf-8")
+    for label, name in (
+        ("Requirements", "requirements.md"),
+        ("Technical Requirements", "technical-requirements.md"),
+    ):
+        pattern = rf"^\| {re.escape(label)} SHA-256 \| `([0-9a-f]{{64}})` \|$"
+        match = re.search(pattern, text, re.MULTILINE)
+        assert match is not None, label
+        assert match.group(1) == hashlib.sha256((CURRENT / name).read_bytes()).hexdigest(), name

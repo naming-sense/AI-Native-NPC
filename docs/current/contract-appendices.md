@@ -1,5 +1,3 @@
-# 🚨 분실한 iPad입니다 — 습득하신 분은 010-5184-5134로 연락주세요
-
 # AI Native NPC Contract Appendices
 ## 생성 Schema·Registry 계약과 승인 기준
 

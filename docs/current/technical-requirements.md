@@ -1,10 +1,8 @@
-# 🚨 분실한 iPad입니다 — 습득하신 분은 010-5184-5134로 연락주세요
-
 # AI Native NPC 세부 기술 요구사항
 ## Runtime·데이터·안전의 정확한 구현 계약
 
-- 문서 버전: **v0.4.19**
-- 개정일: 2026-08-23
+- 문서 버전: **v0.4.20**
+- 개정일: 2026-10-25
 - 적용 범위: **Unreal 클라이언트, 서버 Gameplay AI, Python 학습·평가 코드**
 - 현재 요약: **일반 NPC는 Phase 3A와 Goal-owned Utility→Commit→Skill-result progression까지 구현됐다. Production Resolve v1의 Neural-first·Utility fallback·Greet·promotion authority Core와 Procedural·Teacher·Parquet candidate Pipeline도 구현했다. 승인된 production 모델·Gold·Unreal parity·rollout evidence가 없어 `Approved=false`, `ResolvePolicyReady=false`와 dormant 경로를 유지한다.**
 - 기계 판독 계약: **Schema 2.0.0 RC6 + Goal Registry 1.2.0 + Skill Registry 1.1.0 `execution_semantics_v1`**
@@ -52,7 +50,7 @@ AI Native NPC는 **NPC가 현재 알고 있는 정보만으로 장기 목표 안
 | Boss Pattern 실제 실행 | C++ Phase Executor·event/Session/Host adapter·production StateTree asset·encounter Blueprint physical assembly·fixture-backed Commit/start handoff PASS; concrete gameplay authority provider·전투 효과 미구현 | production Pawn 자동 possession, Session ready, Commit 뒤 `PreAttackTurn` Task 진입과 start-failure fail-closed terminalization 검증 |
 | RC6 3-output Neural 연결 | `NNERuntimeORTCpu` B=1 adapter, canonical output와 deadline fallback을 fixture ModelData로 검증 | 승인된 production ModelData 전까지 fixture 검증만 가능 |
 | V1 Neural·OOD·Calibration | Calibration/OOD 검사와 fail-closed promotion authority Core 구현 | 승인된 production asset과 Freeze evidence 전까지 승격 금지 |
-| Dataset과 최종 Freeze | Procedural·Teacher·Parquet candidate Pipeline, 7개 Snapshot·35회 Provider·Silver 6개·Gold review 1개 검증 | Gold·실제 Unreal Capture parity·split·중복/누수·품질 증거 전까지 production publication 보류 |
+| Dataset과 최종 Freeze | Procedural·Teacher·Parquet candidate Pipeline, 7개 Snapshot·35회 Provider·Silver 6개와 사용자 검토 low-identity Human Gold 1개 | Gold 전체 수량·실제 Unreal Capture parity·split·중복/누수·품질 증거 전까지 production publication 보류 |
 
 Goal 계약의 정적 PASS는 Runtime PASS가 아니다. Goal Dispatcher·Timer Core는 `AINativeNPC.GoalFsm` `23/23`으로 PASS했다. Phase 3A·3B 조사 Runtime은 Goal-owned Candidate/Utility→Commit, 완료→Goal event, 실제 Recast 이동과 대기 복귀까지 통과했다. 이 증거는 다른 Goal의 guard/effect, 전체 arbitration, save/load와 replication을 뜻하지 않는다. Boss Pattern의 `31/31`은 선택 안전 Core, `2/2`·`53/53`은 fixture-backed encounter Host/start handoff phase 증거다. 어느 숫자도 실제 공격 효과, NNE/ONNX parity, 품질·성능 완료를 뜻하지 않는다.
 
@@ -1804,6 +1802,11 @@ Authoritative 물리·충돌·피해 판정은 Ground Truth를 사용할 수 있
 
 LLM과 생성기는 Silver 데이터를 공급한다.
 
+대량 상황 생성·수집은 자동화하고 사람은 대표 사례의 플레이 확인과 정답 검토를 맡는다.
+수집 방식과 Silver·Gold 등의 라벨 출처는 별도로 추적한다.
+용어와 책임 경계는 [상황·시나리오와 수집 단위](#collection-terminology),
+후속 도구 설계는 [학습용 시나리오 실행·수집 계획](ml-data-pipeline-v1-implementation-plan.md#scenario-collection-plan)을 따른다.
+
 ### 9.1.1 Teacher LLM Silver Label 생성
 
 Teacher LLM은 개발 단계에서 Decision Snapshot의 행동 후보를 판정해 Silver label을 만든다.
@@ -1983,6 +1986,35 @@ Dataset mapper는 source snapshot shard와 annotation shard를 다음 key로 joi
 Dataset mapper는 Snapshot의 Tensor, `candidate_set_canonical_bytes`, mask, switch term을 Dataset Record에 복사한다. 복사한 값으로 hash를 다시 계산한다.
 
 Dataset Record의 `annotator_set_hash`는 annotation row를 가리킨다. Teacher Silver의 Loss `source_weight`는 `0.25`다.
+
+<a id="collection-terminology"></a>
+### 9.1.2 상황·시나리오와 수집 단위
+
+| 용어 | 정의 | 예시 |
+|---|---|---|
+| 상황 | NPC가 한 번 판단하는 시점의 상태. 학습 입력에는 NPC가 알고 있는 허용된 정보만 포함 | 소리는 들었지만 상대는 보이지 않음 |
+| 시나리오 | 초기 조건과 사건의 진행 순서를 정한 플레이 구성 | 벽 뒤 발소리 → 상대 등장 → 다시 가려짐 |
+| 변형 사례 | 같은 시나리오의 허용 범위 안에서 거리·위치·가림·관계·타이밍 등을 고정한 조건 조합 | 같은 접근 흐름을 다른 거리와 가림 배치로 실행 |
+| 실행 회차 | 선택한 시나리오·변형 사례를 한 번 실행하는 episode | 같은 조건 재실행도 새 회차로 기록 |
+| 시나리오 family | 학습·평가 분리에서 함께 묶는 관련 시나리오 집합. 기존 `scenario_family_id`와 분할 계약으로 식별 | 같은 template·layout·사건 순서 계열 |
+
+시나리오 한 회차에서 여러 판단 상황이 생길 수 있다.
+상황은 Snapshot·label·저장·Dataset 검증을 거친 뒤 유효한 학습 Record로 사용한다.
+시나리오 선택 목록, 실행 회차 수와 유효 Record 수는 서로 다른 단위다.
+
+AI 개발 에이전트는 기존 게임 규칙을 바탕으로 기본 시나리오와 변형 규칙을 설계하고 구현한다.
+사용자/Gameplay·Data owner는 원하는 행동, 대표 사례, 허용 분포와 정답 검토 기준을 승인한다.
+생성·실행 도구는 승인된 범위의 반복을 담당한다. 사람에게 모든 변형의 수동 플레이를 요구하지 않는다.
+소수의 사람 Play는 대표 사례 확인이며, 분포 대표성·Gold 수량·품질 승인 기준을 대체하지 않는다.
+
+실제 Runtime을 거친 자동 실행, 사람 플레이, offline Procedural과 test fixture의 출처를 구분한다.
+시나리오나 수집 도구의 승인은 개별 행동 정답과 production Dataset 승인을 부여하지 않는다.
+Utility는 §9.3의 비교군·fallback 역할을 유지하고, 현재 capture-only의 Utility weak label만으로 production 학습을 승인하지 않는다.
+실행되지 않은 상태·실패 진단은 기존 committed Capture와 분리하며, 별도 검증 계약 전까지 유효 학습 Record로 세지 않는다.
+세부 field·포맷·mapper 변경은 기계 계약과 검증을 먼저 갱신한 뒤 구현한다.
+
+시나리오 선택 화면·조건 변형·자동 수집 도구는 현재 구현 전이다.
+기존 Snapshot 생성기·Capture 저장 기능과 새 도구의 완료 상태를 구분한다.
 
 ## 9.2 분할
 

@@ -1,5 +1,3 @@
-# 🚨 분실한 iPad입니다 — 습득하신 분은 010-5184-5134로 연락주세요
-
 # AI Native NPC
 
 AI Native NPC는 게임 속 NPC가 알고 있는 정보와 현재 목적을 보고 다음 행동을 고르는 시스템입니다. 서버는 선택한 행동의 안전성과 유효성을 검사한 뒤 실행합니다.
@@ -10,23 +8,28 @@ AI Native NPC는 게임 속 NPC가 알고 있는 정보와 현재 목적을 보�
 
 일반 NPC가 유효한 소리를 들으면 조사 Goal을 시작하고, 현재 Goal의 Target과 행동을 선택·Commit한 뒤 실행 결과에 따라 `Orient → Navigate → Search → Return → IdleObserve`로 진행하는 흐름을 실제 Unreal 경로에서 검증했습니다.
 
+학습 자료의 대량 생성·수집은 자동화하고, 사람은 대표 사례의 플레이 확인과 정답 검토를 맡도록 계획했습니다.
+상황은 NPC가 판단하는 순간의 상태이고, 시나리오는 초기 조건과 사건 순서를 정한 플레이 구성입니다.
+[학습용 시나리오 실행·수집 계획](docs/current/ml-data-pipeline-v1-implementation-plan.md#scenario-collection-plan)에
+AI 개발 에이전트·사용자·생성 도구의 역할과 직접 플레이·자동 수집 방식을 정리했습니다. 선택 화면과 실행 도구는 구현 전입니다.
+
 ### 개발자용 상세 상태
 
-- 기계 계약: **Schema 2.0 RC5 + Goal Registry 1.1.0**, Python↔C++ 생성·Golden 검증 완료
+- 기계 계약: **Schema 2.0.0-rc6 + Goal Registry 1.2.0 + Skill Registry 1.1.0**, Python↔C++ 생성·Golden 검증 완료
 - 소리를 듣고 조사 Goal 시작(Phase 3A): **완료**. `IdleObserve/Observe`에서 유효한 소리를 받으면 `InvestigateDisturbance/Orient`로 안전하게 전환
 - 목표에 맞는 행동 선택과 진행(Phase 3B): **완료**. Goal-owned Target 해결 → Candidate·Feature 생성 → Utility 선택 → Commit → Skill 실행 → 결과에 따른 Goal 단계 진행을 production Goal Host와 실제 Recast PIE에서 검증
 - 판단 기록과 공개: **완료**. persisted Capture v2 write·readback·replay와 committed marker를 검증하고 변조·불완전 publication을 거부
 - 일반 NPC 실행 Skill: `Idle`, `TurnTo`, `Approach`, `Investigate`, `SearchArea` 구현과 자동검사 완료
 - 보스 공격 시작: 고정 테스트 입력 기반 검증 통과(PASS). Commit 뒤 StateTree start handoff focused `2/2`, broad `53/53`
 - 실제 보스 전투: production PatternSet·selector trigger·authored transition·Montage·Hitbox·Damage·Root Motion·replication·save/load 구현이 필요
-- 일반 NPC 후속 제품 범위: 추가 Goal·Skill, save/load, replication, UI, 전투 효과와 Neural Policy 구현이 남음
+- 일반 NPC 후속 제품 범위: 추가 Goal·Skill, save/load, replication, UI, 전투 효과와 승인된 Neural Policy의 실게임 적용이 남음
 - 전체 제품 Release: 학습·ONNX/NNE·OOD·품질·성능과 실제 배포 검증이 남음
 
 상태 표시의 뜻은 [구현 계획의 현재 상태 표시](docs/current/implementation-plan.md#04-현재-상태-표시)에서 확인할 수 있습니다.
 
 ## 먼저 읽을 문서
 
-`docs/current` 바로 아래의 다섯 문서가 현재 구현 기준입니다.
+`docs/current` 아래 문서가 현재 요구사항·구현 계획과 참고 계약을 소유합니다.
 
 1. [AI Native NPC 제품 요구사항](docs/current/requirements.md)
    - 도메인 지식 없이 시스템 목적, 판단 흐름, 책임과 현재 상태를 이해하는 문서입니다.
@@ -38,6 +41,10 @@ AI Native NPC는 게임 속 NPC가 알고 있는 정보와 현재 목적을 보�
    - Schema·Registry의 생성 표와 품질·안전·성능 승인 기준을 제공합니다.
 5. [UE5.7 Manny 공간·시야·청각 구현 계획](docs/current/unreal-implementation-plan.md)
    - 요구사항을 Unreal에서 구현하고 시험하는 절차를 정의합니다.
+6. [Neural evaluator와 Greet 구현 계획](docs/current/production-resolve-v1-implementation-plan.md)
+   - Resolve 판단·인사 실행과 production 승인 경계를 정합니다.
+7. [Procedural Generator와 Teacher Pipeline 구현 계획](docs/current/ml-data-pipeline-v1-implementation-plan.md)
+   - 기존 Dataset 생성 경로와 후속 시나리오 선택·자동 수집 도구의 역할·검증 범위를 정합니다.
 
 제품 요구사항은 목적과 책임을 설명합니다. 세부 기술 요구사항은 정확한 Runtime 의미를, Implementation Plan과 UE Plan은 실행 절차를, Contract Appendices는 생성된 값과 승인 Gate를 제공합니다.
 

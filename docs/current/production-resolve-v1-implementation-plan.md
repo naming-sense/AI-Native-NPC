@@ -649,11 +649,12 @@ Promotion tool은 evidence 하나가 누락·실패·timeout이거나 hash가 cu
 - 기존 production vertical PIE 회귀 통과
 - Data Validation: 301 assets, error 0, warning 0
 - Win64 Development Editor와 non-editor build 통과
-- ML candidate: 7개 Snapshot × 5회 Provider 판정, strict-valid 35회, Teacher Silver 6개와 Gold review 1개. Procedural 7-row와 Teacher 6-row shard는 `--require-production`에서 모두 거부
+- ML candidate: 7개 Snapshot × 5회 Provider 판정, strict-valid 35회, Teacher Silver 6개와 사용자 검토 low-identity Human Gold 1개. 모든 candidate shard는 `--require-production`에서 거부
+- low-identity Human Gold 1-row persistence 검증 완료. 이 결과는 candidate 저장 증거이며 production Dataset·Provider 승인 근거가 아니다.
 
 ### 10.3 남은 production Gate
 
-- low-identity weak-consensus 1개 Gold review 확정과 immutable Provider revision 기반 Gold qualification
+- immutable Provider revision 기반 전체 Gold qualification: 12개 Role×Goal group마다 100개 이상, 총 1,200개 이상과 ML 데이터 계획 §11의 품질 기준 충족
 - Unreal rollout Capture와 synthetic-real parity, family-aware split·중복·누수 검사
 - frozen gameplay Decision Capture dataset 기반 production model과 Calibration/OOD 승격
 - approved production ModelData, Calibration/OOD, Freeze Manifest와 `WBP_AINativeNPCGreetCueV1`
