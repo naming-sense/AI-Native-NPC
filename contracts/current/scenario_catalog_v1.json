@@ -1,0 +1,102 @@
+{
+  "format": "scenario_catalog_v1",
+  "version": 1,
+  "scope": "production_candidate",
+  "support_semantics": "code_supported_pending_runtime_validation",
+  "variation_scope": "tool_validation_defaults",
+  "scenarios": [
+    {
+      "id": "hearing_only", "version": 1,
+      "title": "Hearing from real movement",
+      "description": "Move the real player outside initial sight and observe footsteps through production hearing. Placement requires runtime validation.",
+      "supported": true, "unsupported_reason": null,
+      "scenario_family_id": "hearing_only_v1", "template_family": "single_player_guard_v1",
+      "layout_family": "mvp_unvalidated_layout_v1", "event_sequence_family": "hearing_only_v1",
+      "map": "/Game/AINativeNPC/Maps/L_AINativeNPC_MVP",
+      "variations": {"distance_cm": [400, 600], "approach_angle_deg": [0], "seed": [0, 1, 2]},
+      "events": [
+        {"order": 0, "type": "move_for_hearing", "trigger": "episode_running", "timeout_seconds": 10, "movement_seconds": 2}
+      ],
+      "termination": {"max_duration_seconds": 30, "preparation_timeout_seconds": 10, "max_decisions": 100}
+    },
+    {
+      "id": "hearing_appearance", "version": 1,
+      "title": "Hearing followed by appearance",
+      "description": "After actual hearing, move the real player into sight. No knowledge injection or assumed wall occlusion; placement requires runtime validation.",
+      "supported": true, "unsupported_reason": null,
+      "scenario_family_id": "hearing_appearance_v1", "template_family": "single_player_guard_v1",
+      "layout_family": "mvp_unvalidated_layout_v1", "event_sequence_family": "hearing_appearance_v1",
+      "map": "/Game/AINativeNPC/Maps/L_AINativeNPC_MVP",
+      "variations": {"distance_cm": [400, 600], "approach_angle_deg": [0], "seed": [0, 1, 2]},
+      "events": [
+        {"order": 0, "type": "move_for_hearing", "trigger": "episode_running", "timeout_seconds": 10, "movement_seconds": 2},
+        {"order": 1, "type": "appear", "trigger": "hearing_observed", "timeout_seconds": 10}
+      ],
+      "termination": {"max_duration_seconds": 30, "preparation_timeout_seconds": 10, "max_decisions": 100}
+    },
+    {
+      "id": "hearing_appearance_loss", "version": 1,
+      "title": "Hearing, appearance and target loss",
+      "description": "Observe actual hearing, appearance and subsequent sight loss through real player movement. Spatial success is not yet validated.",
+      "supported": true, "unsupported_reason": null,
+      "scenario_family_id": "hearing_appearance_loss_v1", "template_family": "single_player_guard_v1",
+      "layout_family": "mvp_unvalidated_layout_v1", "event_sequence_family": "hearing_appearance_loss_v1",
+      "map": "/Game/AINativeNPC/Maps/L_AINativeNPC_MVP",
+      "variations": {"distance_cm": [400, 600], "approach_angle_deg": [0], "seed": [0, 1, 2]},
+      "events": [
+        {"order": 0, "type": "move_for_hearing", "trigger": "episode_running", "timeout_seconds": 10, "movement_seconds": 2},
+        {"order": 1, "type": "appear", "trigger": "hearing_observed", "timeout_seconds": 10},
+        {"order": 2, "type": "lose_target", "trigger": "appearance_observed", "timeout_seconds": 10}
+      ],
+      "termination": {"max_duration_seconds": 30, "preparation_timeout_seconds": 10, "max_decisions": 100}
+    },
+    {
+      "id": "relationship_friendly", "version": 1,
+      "title": "Friendly relationship variation",
+      "description": "Reserved friendly relationship case; no simulated relationship facts are allowed.",
+      "supported": false, "unsupported_reason": "No verified production adapter for assigning friendly relationship facts.",
+      "scenario_family_id": "relationship_friendly_v1", "template_family": "single_player_guard_v1",
+      "layout_family": "mvp_unvalidated_layout_v1", "event_sequence_family": "unsupported_relationship_v1",
+      "map": "/Game/AINativeNPC/Maps/L_AINativeNPC_MVP",
+      "variations": {"distance_cm": [400, 600], "approach_angle_deg": [0], "seed": [0, 1, 2]},
+      "events": [],
+      "termination": {"max_duration_seconds": 30, "preparation_timeout_seconds": 10, "max_decisions": 100}
+    },
+    {
+      "id": "relationship_hostile", "version": 1,
+      "title": "Hostile relationship variation",
+      "description": "Reserved hostile relationship case; no simulated relationship facts are allowed.",
+      "supported": false, "unsupported_reason": "No verified production adapter for assigning hostile relationship facts.",
+      "scenario_family_id": "relationship_hostile_v1", "template_family": "single_player_guard_v1",
+      "layout_family": "mvp_unvalidated_layout_v1", "event_sequence_family": "unsupported_relationship_v1",
+      "map": "/Game/AINativeNPC/Maps/L_AINativeNPC_MVP",
+      "variations": {"distance_cm": [400, 600], "approach_angle_deg": [0], "seed": [0, 1, 2]},
+      "events": [],
+      "termination": {"max_duration_seconds": 30, "preparation_timeout_seconds": 10, "max_decisions": 100}
+    },
+    {
+      "id": "low_identity", "version": 1,
+      "title": "Low identity confidence",
+      "description": "Reserved low-identity case; do not manufacture confidence in Knowledge or tensors.",
+      "supported": false, "unsupported_reason": "No verified production cause or adapter for controlled low identity confidence.",
+      "scenario_family_id": "low_identity_v1", "template_family": "single_player_guard_v1",
+      "layout_family": "mvp_unvalidated_layout_v1", "event_sequence_family": "unsupported_identity_v1",
+      "map": "/Game/AINativeNPC/Maps/L_AINativeNPC_MVP",
+      "variations": {"distance_cm": [400, 600], "approach_angle_deg": [0], "seed": [0, 1, 2]},
+      "events": [],
+      "termination": {"max_duration_seconds": 30, "preparation_timeout_seconds": 10, "max_decisions": 100}
+    },
+    {
+      "id": "unreachable_greet", "version": 1,
+      "title": "Unreachable Greet target",
+      "description": "Reserved navigation-failure case; do not fake path failure or wall geometry.",
+      "supported": false, "unsupported_reason": "No validated unreachable placement and production Greet navigation-failure setup.",
+      "scenario_family_id": "unreachable_greet_v1", "template_family": "single_player_guard_v1",
+      "layout_family": "mvp_unvalidated_layout_v1", "event_sequence_family": "unsupported_unreachable_v1",
+      "map": "/Game/AINativeNPC/Maps/L_AINativeNPC_MVP",
+      "variations": {"distance_cm": [400, 600], "approach_angle_deg": [0], "seed": [0, 1, 2]},
+      "events": [],
+      "termination": {"max_duration_seconds": 30, "preparation_timeout_seconds": 10, "max_decisions": 100}
+    }
+  ]
+}

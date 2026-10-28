@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:anpc:scenario-collection:v1",
+  "title": "Scenario collection V1",
+  "oneOf": [{"$ref":"#/$defs/catalog"},{"$ref":"#/$defs/session"},{"$ref":"#/$defs/episode"},{"$ref":"#/$defs/index"},{"$ref":"#/$defs/entry"}],
+  "$defs": {
+    "id": {"type":"string","minLength":1,"maxLength":128,"pattern":"^[A-Za-z0-9][A-Za-z0-9_.-]*$(?![\\s\\S])"},
+    "uuid": {"type":"string","pattern":"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$(?![\\s\\S])"},
+    "hash": {"type":"string","pattern":"^[0-9a-f]{64}$(?![\\s\\S])"},
+    "text": {"type":"string","minLength":1,"maxLength":2048,"pattern":"^[^\\u0000-\\u001f\\u007f]+$(?![\\s\\S])"},
+    "captureId": {"type":"string","minLength":1,"maxLength":256,"pattern":"^[ -~]+$(?![\\s\\S])"},
+    "seconds": {"type":"number","minimum":0,"maximum":31536000},
+    "duration": {"type":"number","exclusiveMinimum":0,"maximum":3600},
+    "map": {"const":"/Game/AINativeNPC/Maps/L_AINativeNPC_MVP"},
+    "source": {"enum":["human_play","automated_runtime","offline_procedural","test_fixture"]},
+    "mode": {"enum":["manual","automatic","replay"]},
+    "controller": {"enum":["human","automated"]},
+    "split": {"enum":["unassigned","train","validation","calibration","test","ood","critical"]},
+    "family": {
+      "type":"object","additionalProperties":false,
+      "required":["scenario_family_id","template_family","layout_family","event_sequence_family","split"],
+      "properties":{"scenario_family_id":{"$ref":"#/$defs/id"},"template_family":{"$ref":"#/$defs/id"},"layout_family":{"$ref":"#/$defs/id"},"event_sequence_family":{"$ref":"#/$defs/id"},"split":{"$ref":"#/$defs/split"}}
+    },
+    "conditions": {
+      "type":"object","additionalProperties":false,"required":["distance_cm","approach_angle_deg","seed"],
+      "properties":{"distance_cm":{"type":"integer","enum":[400,600]},"approach_angle_deg":{"type":"integer","const":0},"seed":{"type":"integer","enum":[0,1,2]}}
+    },
+    "variations": {
+      "type":"object","additionalProperties":false,"required":["distance_cm","approach_angle_deg","seed"],
+      "properties":{"distance_cm":{"const":[400,600]},"approach_angle_deg":{"const":[0]},"seed":{"const":[0,1,2]}}
+    },
+    "event": {
+      "oneOf":[
+        {"type":"object","additionalProperties":false,"required":["order","type","trigger","timeout_seconds","movement_seconds"],"properties":{"order":{"const":0},"type":{"const":"move_for_hearing"},"trigger":{"const":"episode_running"},"timeout_seconds":{"$ref":"#/$defs/duration"},"movement_seconds":{"$ref":"#/$defs/duration"}}},
+        {"type":"object","additionalProperties":false,"required":["order","type","trigger","timeout_seconds"],"properties":{"order":{"const":1},"type":{"const":"appear"},"trigger":{"const":"hearing_observed"},"timeout_seconds":{"$ref":"#/$defs/duration"}}},
+        {"type":"object","additionalProperties":false,"required":["order","type","trigger","timeout_seconds"],"properties":{"order":{"const":2},"type":{"const":"lose_target"},"trigger":{"const":"appearance_observed"},"timeout_seconds":{"$ref":"#/$defs/duration"}}}
+      ]
+    },
+    "termination": {
+      "type":"object","additionalProperties":false,"required":["max_duration_seconds","preparation_timeout_seconds","max_decisions"],
+      "properties":{"max_duration_seconds":{"$ref":"#/$defs/duration"},"preparation_timeout_seconds":{"$ref":"#/$defs/duration"},"max_decisions":{"type":"integer","minimum":1,"maximum":100000}}
+    },
+    "scenario": {
+      "type":"object","additionalProperties":false,
+      "required":["id","version","title","description","supported","unsupported_reason","scenario_family_id","template_family","layout_family","event_sequence_family","map","variations","events","termination"],
+      "properties":{
+        "id":{"$ref":"#/$defs/id"},"version":{"type":"integer","const":1},"title":{"$ref":"#/$defs/text"},"description":{"$ref":"#/$defs/text"},"supported":{"type":"boolean"},"unsupported_reason":{"oneOf":[{"type":"null"},{"$ref":"#/$defs/text"}]},
+        "scenario_family_id":{"$ref":"#/$defs/id"},"template_family":{"$ref":"#/$defs/id"},"layout_family":{"$ref":"#/$defs/id"},"event_sequence_family":{"$ref":"#/$defs/id"},"map":{"$ref":"#/$defs/map"},"variations":{"$ref":"#/$defs/variations"},"events":{"type":"array","maxItems":3,"items":{"$ref":"#/$defs/event"}},"termination":{"$ref":"#/$defs/termination"}
+      },
+      "allOf":[{"if":{"properties":{"supported":{"const":true}}},"then":{"properties":{"unsupported_reason":{"type":"null"},"events":{"minItems":1}}},"else":{"properties":{"unsupported_reason":{"$ref":"#/$defs/text"},"events":{"maxItems":0}}}}]
+    },
+    "catalog": {
+      "type":"object","additionalProperties":false,"required":["format","version","scope","support_semantics","variation_scope","scenarios"],
+      "properties":{"format":{"const":"scenario_catalog_v1"},"version":{"type":"integer","const":1},"scope":{"const":"production_candidate"},"support_semantics":{"const":"code_supported_pending_runtime_validation"},"variation_scope":{"const":"tool_validation_defaults"},"scenarios":{"type":"array","minItems":7,"maxItems":7,"items":{"$ref":"#/$defs/scenario"}}}
+    },
+    "contracts": {
+      "type":"object","additionalProperties":false,"required":["collection_schema_sha256","capture_schema_sha256","skill_registry_sha256","goal_registry_sha256"],
+      "properties":{"collection_schema_sha256":{"$ref":"#/$defs/hash"},"capture_schema_sha256":{"$ref":"#/$defs/hash"},"skill_registry_sha256":{"$ref":"#/$defs/hash"},"goal_registry_sha256":{"$ref":"#/$defs/hash"}}
+    },
+    "limits": {
+      "type":"object","additionalProperties":false,"required":["max_episodes","episode_timeout_seconds","preparation_timeout_seconds","storage_limit_bytes"],
+      "properties":{"max_episodes":{"type":"integer","minimum":1,"maximum":10000},"episode_timeout_seconds":{"$ref":"#/$defs/duration"},"preparation_timeout_seconds":{"$ref":"#/$defs/duration"},"storage_limit_bytes":{"type":"integer","minimum":1,"maximum":1099511627776}}
+    },
+    "session": {
+      "type":"object","additionalProperties":false,"required":["format","version","session_id","catalog_sha256","profile_sha256","runtime_build_sha256","contract_hashes","input_source","execution_mode","controller","observation_mapping_version","limits"],
+      "properties":{"format":{"const":"scenario_collection_session_v1"},"version":{"type":"integer","const":1},"session_id":{"$ref":"#/$defs/uuid"},"catalog_sha256":{"$ref":"#/$defs/hash"},"profile_sha256":{"$ref":"#/$defs/hash"},"runtime_build_sha256":{"$ref":"#/$defs/hash"},"contract_hashes":{"$ref":"#/$defs/contracts"},"input_source":{"$ref":"#/$defs/source"},"execution_mode":{"$ref":"#/$defs/mode"},"controller":{"$ref":"#/$defs/controller"},"observation_mapping_version":{"const":"observed_geometry_goal_v1"},"limits":{"$ref":"#/$defs/limits"}}
+    },
+    "observation": {
+      "type":"object","additionalProperties":false,"required":["order","observed_at_seconds"],
+      "properties":{"order":{"type":"integer","minimum":0,"maximum":2},"observed_at_seconds":{"$ref":"#/$defs/seconds"}}
+    },
+    "episode": {
+      "type":"object","additionalProperties":false,
+      "required":["format","version","session_id","collection_episode_id","scenario_id","scenario_version","variant_id","map","conditions","seeds","family","input_source","execution_mode","controller","observation_mapping_version","state","reason","reset_result","event_observations"],
+      "properties":{
+        "format":{"const":"scenario_collection_episode_v1"},"version":{"type":"integer","const":1},"session_id":{"$ref":"#/$defs/uuid"},"collection_episode_id":{"$ref":"#/$defs/uuid"},"replay_of":{"$ref":"#/$defs/uuid"},"scenario_id":{"$ref":"#/$defs/id"},"scenario_version":{"type":"integer","const":1},"variant_id":{"$ref":"#/$defs/id"},"map":{"$ref":"#/$defs/map"},"conditions":{"$ref":"#/$defs/conditions"},
+        "seeds":{"type":"object","additionalProperties":false,"required":["map_seed","simulation_seed"],"properties":{"map_seed":{"type":"integer","enum":[0,1,2]},"simulation_seed":{"type":"integer","enum":[0,1,2]}}},
+        "family":{"$ref":"#/$defs/family"},"input_source":{"$ref":"#/$defs/source"},"execution_mode":{"$ref":"#/$defs/mode"},"controller":{"$ref":"#/$defs/controller"},"observation_mapping_version":{"const":"observed_geometry_goal_v1"},"state":{"enum":["preparing","running","completed","cancelled","timed_out","failed"]},"reason":{"oneOf":[{"type":"null"},{"$ref":"#/$defs/text"}]},"reset_result":{"enum":["not_attempted","verified","failed","unverified"]},"event_observations":{"type":"array","maxItems":3,"items":{"$ref":"#/$defs/observation"}}
+      }
+    },
+    "path": {"type":"string","minLength":1,"maxLength":1024,"pattern":"^[A-Za-z0-9_-][A-Za-z0-9_.-]*(/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*$(?![\\s\\S])"},
+    "artifact": {
+      "type":"object","additionalProperties":false,"required":["path","size_bytes","sha256"],
+      "properties":{"path":{"$ref":"#/$defs/path"},"size_bytes":{"type":"integer","minimum":1,"maximum":1099511627776},"sha256":{"$ref":"#/$defs/hash"}}
+    },
+    "captureIdentity": {
+      "type":"object","additionalProperties":false,"required":["episode_id","decision_id","input_content_hash","sample_id"],
+      "properties":{"episode_id":{"$ref":"#/$defs/captureId"},"decision_id":{"type":"integer","minimum":1,"maximum":18446744073709551615},"input_content_hash":{"$ref":"#/$defs/hash"},"sample_id":{"$ref":"#/$defs/hash"}}
+    },
+    "committedEntry": {
+      "type":"object","additionalProperties":false,"required":["kind","collection_episode_id","input_source","execution_mode","controller","observation_mapping_version","family","capture_identity","capture","committed"],
+      "properties":{"kind":{"const":"committed"},"collection_episode_id":{"$ref":"#/$defs/uuid"},"input_source":{"$ref":"#/$defs/source"},"execution_mode":{"$ref":"#/$defs/mode"},"controller":{"$ref":"#/$defs/controller"},"observation_mapping_version":{"const":"observed_geometry_goal_v1"},"family":{"$ref":"#/$defs/family"},"capture_identity":{"$ref":"#/$defs/captureIdentity"},"capture":{"$ref":"#/$defs/artifact"},"committed":{"$ref":"#/$defs/artifact"}}
+    },
+    "diagnostic": {
+      "type":"object","additionalProperties":false,"required":["kind","collection_episode_id","input_source","execution_mode","controller","observation_mapping_version","family","diagnostic_id","observed_id","stage","reason","observed_at_seconds","snapshot_present","snapshot_ref"],
+      "properties":{"kind":{"const":"diagnostic"},"collection_episode_id":{"$ref":"#/$defs/uuid"},"input_source":{"$ref":"#/$defs/source"},"execution_mode":{"$ref":"#/$defs/mode"},"controller":{"$ref":"#/$defs/controller"},"observation_mapping_version":{"const":"observed_geometry_goal_v1"},"family":{"$ref":"#/$defs/family"},"diagnostic_id":{"$ref":"#/$defs/uuid"},"observed_id":{"oneOf":[{"type":"null"},{"$ref":"#/$defs/captureId"}]},"stage":{"enum":["preparation","execution","capture","storage","reset"]},"reason":{"$ref":"#/$defs/text"},"observed_at_seconds":{"$ref":"#/$defs/seconds"},"snapshot_present":{"type":"boolean"},"snapshot_ref":{"oneOf":[{"type":"null"},{"$ref":"#/$defs/artifact"}]}},
+      "allOf":[{"if":{"properties":{"snapshot_present":{"const":false}}},"then":{"properties":{"snapshot_ref":{"type":"null"}}},"else":{"properties":{"snapshot_ref":{"$ref":"#/$defs/artifact"}}}}]
+    },
+    "entry": {"oneOf":[{"$ref":"#/$defs/committedEntry"},{"$ref":"#/$defs/diagnostic"}]},
+    "index": {
+      "type":"object","additionalProperties":false,"required":["format","version","session_id","entries"],
+      "properties":{"format":{"const":"scenario_collection_index_v1"},"version":{"type":"integer","const":1},"session_id":{"$ref":"#/$defs/uuid"},"entries":{"type":"array","items":{"$ref":"#/$defs/entry"}}}
+    }
+  }
+}

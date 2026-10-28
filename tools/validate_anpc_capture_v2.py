@@ -220,7 +220,7 @@ def validate_float32_block(block: bytes, name: str, normalized: bool = False) ->
             require(0.0 <= value <= 1.0, f"{name} normalized value out of range")
 
 
-def _validate_capture_bytes(capture_bytes: bytes, path: Path) -> dict[str, Any]:
+def _validate_capture_bytes(capture_bytes: bytes, path: Path, *, include_payload: bool = False) -> dict[str, Any]:
     reader = Reader(capture_bytes)
     require(reader.take(8) == MAGIC, "capture magic mismatch")
     require(reader.u32() == 1, "unsupported capture envelope version")
@@ -385,7 +385,7 @@ def _validate_capture_bytes(capture_bytes: bytes, path: Path) -> dict[str, Any]:
     sample_material = SAMPLE_MAGIC + bytes.fromhex(input_hash) + struct.pack("<I", len(episode)) + episode + struct.pack("<Q", decision_id) + bytes.fromhex(label_hash)
     require(hashlib.sha256(sample_material).hexdigest() == sample_id, "sample_id mismatch")
 
-    return {
+    result: dict[str, Any] = {
         "path": str(path),
         "bytes": len(reader.data),
         "record_version": record_version,
@@ -410,16 +410,47 @@ def _validate_capture_bytes(capture_bytes: bytes, path: Path) -> dict[str, Any]:
         "acceptable_candidate_count": sum(acceptable_bits),
         "canonical_cbor_parity": True,
     }
+    if include_payload:
+        result.update({
+            "captured_at_server_time": captured_at,
+            "contract_hashes": contract_hashes,
+            "annotator_agreement": agreement,
+            "parent_policy_hash": parent_policy,
+            "input_cbor": input_cbor,
+            "label_cbor": label_cbor,
+            "candidate_bytes": candidate_bytes,
+            "tensor_blocks": tensors,
+            "target_handles": [
+                {"kind": kind, "stable_id": stable_id, "generation": generation, "revision": revision}
+                for kind, stable_id, generation, revision in handles
+            ],
+            "switch_cost_terms": [
+                [bool(value) for value in terms[offset : offset + 4]]
+                for offset in range(0, CANDIDATE_COUNT * 4, 4)
+            ],
+            "captured_switch_cost": list(struct.unpack(f"<{CANDIDATE_COUNT}f", switch_cost_bytes)),
+            "labels": {
+                "acceptable_candidate_indices": [index for index, value in enumerate(acceptable_bits) if value],
+                "preference_pairs": pairs,
+                "parameter_target_norm": list(struct.unpack(f"<{CANDIDATE_COUNT * 4}f", label_obj[2])),
+                "parameter_label_mask": [bool(value) for value in parameter_mask],
+                "selected_is_acceptable": selected_acceptable,
+                "label_confidence": confidence,
+                "reason_tags": reason_tags,
+            },
+        })
+    return result
 
 
 def validate_capture(path: Path) -> dict[str, Any]:
     return _validate_capture_bytes(path.read_bytes(), path)
 
 
-def validate_committed_capture(path: Path) -> dict[str, Any]:
-    capture_bytes = path.read_bytes()
-    marker_path = Path(str(path) + ".committed")
-    marker_bytes = marker_path.read_bytes()
+def _validate_committed_capture_bytes(
+    capture_bytes: bytes, marker_bytes: bytes, path: Path, *, include_payload: bool = False,
+) -> dict[str, Any]:
+    require(type(capture_bytes) is bytes, "capture bytes must be immutable bytes")
+    require(type(marker_bytes) is bytes, "committed marker bytes must be immutable bytes")
     marker_prefix = (
         COMMIT_MAGIC
         + struct.pack("<I", 1)
@@ -428,9 +459,29 @@ def validate_committed_capture(path: Path) -> dict[str, Any]:
     )
     require(marker_bytes == marker_prefix + hashlib.sha256(marker_prefix).digest(),
             "committed marker missing, malformed, tampered, or bound to different capture bytes")
-    result = _validate_capture_bytes(capture_bytes, path)
-    result["committed_marker"] = str(marker_path)
+    result = _validate_capture_bytes(capture_bytes, path, include_payload=include_payload)
+    result["committed_marker"] = str(Path(str(path) + ".committed"))
     return result
+
+
+def validate_committed_capture(path: Path) -> dict[str, Any]:
+    capture_bytes = path.read_bytes()
+    marker_bytes = Path(str(path) + ".committed").read_bytes()
+    return _validate_committed_capture_bytes(capture_bytes, marker_bytes, path)
+
+
+def decode_committed_capture_bytes(
+    capture_bytes: bytes, marker_bytes: bytes, *, path: Path = Path("<memory>"),
+) -> dict[str, Any]:
+    """Return validated raw payload and summary without file reads or provenance promotion."""
+    return _validate_committed_capture_bytes(capture_bytes, marker_bytes, path, include_payload=True)
+
+
+def decode_committed_capture(path: Path) -> dict[str, Any]:
+    """Read each committed image once, then validate and decode those same bytes."""
+    capture_bytes = path.read_bytes()
+    marker_bytes = Path(str(path) + ".committed").read_bytes()
+    return decode_committed_capture_bytes(capture_bytes, marker_bytes, path=path)
 
 
 def main() -> int:

@@ -12,6 +12,7 @@ AI Native NPC는 게임 속 NPC가 알고 있는 정보와 현재 목적을 보�
 상황은 NPC가 판단하는 순간의 상태이고, 시나리오는 초기 조건과 사건 순서를 정한 플레이 구성입니다.
 [학습용 시나리오 실행·수집 계획](docs/current/ml-data-pipeline-v1-implementation-plan.md#scenario-collection-plan)에
 AI 개발 에이전트·사용자·생성 도구의 역할과 직접 플레이·자동 수집 방식을 정리했습니다. 선택 화면과 실행 도구는 구현 전입니다.
+세부 [시나리오 수집 V1 구현 계획](docs/current/scenario-collection-v1-implementation-plan.md)에 따라 계약·실패 검사부터 구현하고 있습니다.
 
 ### 개발자용 상세 상태
 
@@ -43,8 +44,12 @@ AI 개발 에이전트·사용자·생성 도구의 역할과 직접 플레이·
    - 요구사항을 Unreal에서 구현하고 시험하는 절차를 정의합니다.
 6. [Neural evaluator와 Greet 구현 계획](docs/current/production-resolve-v1-implementation-plan.md)
    - Resolve 판단·인사 실행과 production 승인 경계를 정합니다.
-7. [Procedural Generator와 Teacher Pipeline 구현 계획](docs/current/ml-data-pipeline-v1-implementation-plan.md)
-   - 기존 Dataset 생성 경로와 후속 시나리오 선택·자동 수집 도구의 역할·검증 범위를 정합니다.
+7. [학습 데이터 생성·수집 계획](docs/current/ml-data-pipeline-v1-implementation-plan.md)
+   - 무엇을 만들었고 무엇이 남았는지, 판단 기록이 학습 데이터가 되는 순서를 설명합니다.
+8. [시나리오 실행·수집 도구 V1 구현 계획](docs/current/scenario-collection-v1-implementation-plan.md)
+   - 실제 관측 Feature, 회차별 초기화, 충돌 없는 저장, 선택 화면과 ML import를 순서대로 연결합니다.
+9. [Host 관측 연결과 수집 Capture 발행 V1 계약](docs/current/scenario-host-capture-v1-contract.md)
+   - Task 2의 회차 실패·검증된 초기화 장벽, 관측 호출, 출처와 append-only 발행을 정의한 활성 구현 계약입니다. 문서 하네스 단계이며 Host/bridge Runtime 구현은 후속입니다.
 
 제품 요구사항은 목적과 책임을 설명합니다. 세부 기술 요구사항은 정확한 Runtime 의미를, Implementation Plan과 UE Plan은 실행 절차를, Contract Appendices는 생성된 값과 승인 Gate를 제공합니다.
 

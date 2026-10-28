@@ -5,6 +5,51 @@ from pathlib import Path
 
 ROOT = Path(__file__).parents[1]
 CURRENT = ROOT / "docs" / "current"
+HISTORY = ROOT / "docs" / "history" / "ml-data-pipeline-v1-history-2026-10-28.md"
+
+
+def test_ml_plan_opens_with_reader_guide_and_scoped_current_status() -> None:
+    text = (CURRENT / "ml-data-pipeline-v1-implementation-plan.md").read_text(encoding="utf-8")
+    opening = text.split('<a id="implementation-reference"></a>', 1)[0]
+    assert text.startswith("# 학습 데이터 생성·수집 계획\n")
+    for heading in (
+        "## 1. 목표와 읽는 순서",
+        "## 2. 먼저 알아둘 용어",
+        "## 3. 완료된 일과 남은 일",
+        "## 4. 데이터가 만들어지는 과정",
+        "## 5. 학습용 시나리오 실행·수집 도구",
+        "## 6. 다음 작업과 완료 조건",
+    ):
+        assert heading in opening
+    assert opening.index("## 2.") < opening.index("## 3.")
+    assert "Task 2D" in opening and "저장·읽기와 NPC 실행 연결" in opening
+    assert "선택 화면·자동 실행·회차 초기화" in opening
+    assert "일반 플레이 수집 활성화는 남아 있다" in opening
+    assert "Schema `2.0.0-rc6`" not in opening
+    assert "47 passed" not in opening and "167/167" not in opening
+    assert "duration = clamp" not in opening
+    assert text.count('<a id="scenario-collection-plan"></a>') == 1
+    assert text.count("<details>") == text.count("</details>") >= 3
+
+
+def test_ml_plan_history_preserves_previous_execution_claims() -> None:
+    text = HISTORY.read_text(encoding="utf-8")
+    assert "현재 구현 기준은" in text
+    for phrase in (
+        "독립 hostile review에서",
+        "7개 Snapshot × 5회 = 35회", "Teacher Silver 6개", "Gold review 1개",
+        "`AINativeNPC.Shipping.GeneralNPC` 21/21", "전체 `AINativeNPC` 167/167",
+        "committed Phase 3B hearing Capture 세 개", "`ResolveShadow` Capture는 0개",
+        "`TargetSlotter`",
+        "exact matching Knowledge Candidate를 in-place Goal Primary Target으로 승격",
+        "실제 Play를 다시 수집한다",
+        "ML Python suite: **47 passed**",
+        "Contract repository: **89 passed, 133 subtests passed**",
+        "두 `production_candidate` shard를 Production Dataset으로 거부",
+    ):
+        assert phrase in text
+    current = (CURRENT / "ml-data-pipeline-v1-implementation-plan.md").read_text(encoding="utf-8")
+    assert "../history/ml-data-pipeline-v1-history-2026-10-28.md" in current
 
 
 def test_ml_data_pipeline_plan_bounds_fixture_and_production_scope() -> None:
@@ -20,7 +65,6 @@ def test_ml_data_pipeline_plan_bounds_fixture_and_production_scope() -> None:
     assert "Candidate canonical bytes를 구조적으로 decode" in text
     assert "raw provider payload 5개의 path·hash·response를 재검증" in text
     assert "`source_weight`는 `silver=0.25`" in text
-    assert "독립 hostile review에서" in text
 
 
 def test_main_implementation_plan_delegates_pipeline_contract() -> None:
@@ -94,9 +138,6 @@ def test_ml_plan_defines_greet_production_candidate_and_provider_qualification()
     assert "duration = clamp(1.0, 5.0, 1.0 + 0.60 × affinity + 0.40 × sociability - 0.30 × hostility)" in text
     assert "intensity = clamp(0.0, 1.0, 0.20 + 0.35 × sociability + 0.30 × affinity + 0.15 × trust - 0.40 × hostility)" in text
     assert "7개 anchor" in text
-    assert "7개 Snapshot × 5회 = 35회" in text
-    assert "Teacher Silver 6개" in text
-    assert "Gold review 1개" in text
     assert "low identity confidence" in text
     assert "신원 확신이 낮으면 인사하지 않음" in text
     assert "source_type=gold" in text
@@ -116,17 +157,7 @@ def test_ml_plan_defines_greet_production_candidate_and_provider_qualification()
     assert "ResolveShadow/<session-id>" in text
     assert "process-wide monotonic sequence" in text
     assert "기존 committed Capture를 지우지 않고" in text
-    assert "`AINativeNPC.Shipping.GeneralNPC` 21/21" in text
-    assert "전체 `AINativeNPC` 167/167" in text
-    assert "committed Phase 3B hearing Capture 세 개" in text
-    assert "`ResolveShadow` Capture는 0개" in text
-    assert "`TargetSlotter`" in text
-    assert "exact matching Knowledge Candidate를 in-place Goal Primary Target으로 승격" in text
-    assert "실제 Play를 다시 수집한다" in text
     assert "production Provider 승인 근거가 아니다" in text
-    assert "ML Python suite: **47 passed**" in text
-    assert "Contract repository: **89 passed, 133 subtests passed**" in text
-    assert "두 `production_candidate` shard를 Production Dataset으로 거부" in text
     assert "예제 Profile과 smoke Dataset은 `integration_fixture`와 `production_candidate` 범위" in text
     assert "Repository에는 작은 `integration_fixture` Profile과 별도 `production_candidate` Profile을 둔다." in text
     assert "현재 Generator는 `integration_fixture`만 실행" not in text
@@ -137,7 +168,26 @@ def _collection_plan() -> str:
     text = (CURRENT / "ml-data-pipeline-v1-implementation-plan.md").read_text(encoding="utf-8")
     anchor = '<a id="scenario-collection-plan"></a>'
     assert anchor in text, "학습용 시나리오 실행·수집 계획이 필요하다"
-    return text.split(anchor, 1)[1]
+    return text.split(anchor, 1)[1].split('<a id="implementation-reference"></a>', 1)[0]
+
+
+def _runtime_collection_reference() -> str:
+    text = (CURRENT / "ml-data-pipeline-v1-implementation-plan.md").read_text(encoding="utf-8")
+    return text.split('<a id="runtime-collection-contract"></a>', 1)[1].split(
+        '<a id="implementation-files-and-checks"></a>', 1
+    )[0]
+
+
+def test_collection_definition_keeps_family_goal_and_phase_required() -> None:
+    definition = _collection_plan().split("### 5.2", 1)[1].split("### 5.3", 1)[0]
+    for field in ("scenario family", "`Goal`", "`phase`"):
+        assert field in definition
+
+
+def test_collection_approved_limits_are_pinned_in_execution_profile() -> None:
+    coverage = _collection_plan().split("### 5.5", 1)[1].split("## 6.", 1)[0]
+    assert "허용 조합·비율·수집 예산과 중단 기준" in coverage
+    assert "수집 설정(`Profile`)에 고정한다" in coverage
 
 
 def test_collection_terminology_distinguishes_state_scenario_and_episode() -> None:
@@ -154,35 +204,44 @@ def test_collection_plan_assigns_bulk_work_to_automation_and_bounds_human_play()
     text = _collection_plan()
     for phrase in (
         "AI 개발 에이전트", "Gameplay/Data owner", "생성·실행 도구",
-        "대표 사례", "정답 검토", "Play 7회", "학습량 기준",
+        "대표 사례", "정답 검토",
         "구현 전", "수집 출처", "라벨 출처",
     ):
         assert phrase in text
     assert "자동 실행을 사람 플레이 분포로 집계하지 않는다" in text
+    reference = _runtime_collection_reference()
+    assert "Play 7회" in reference and "학습량 기준" in reference
 
 
 def test_collection_plan_defines_shared_modes_and_runtime_boundary() -> None:
     text = _collection_plan()
     for phrase in (
         "시나리오 선택", "직접 플레이", "자동 수집", "같은 조건 재실행",
-        "같은 시나리오 정의", "Perception", "Knowledge", "Commit",
+        "같은 시나리오 정의",
         "최대 회차", "회차 시간 제한", "중단", "초기화",
         "process-wide monotonic sequence", "byte-identical", "미지원",
     ):
         assert phrase in text
-    assert "Tensor나 Knowledge 결과를 직접 주입" in text
+    reference = _runtime_collection_reference()
+    for phrase in ("Perception", "Knowledge", "Commit", "Tensor나 Knowledge 결과를 직접 주입"):
+        assert phrase in reference
 
 
 def test_collection_plan_preserves_failed_and_uncommitted_observations_separately() -> None:
     text = _collection_plan()
     for phrase in (
         "인사하지 않음", "대상 상실", "판단 실패", "진단 기록",
-        ".anpccap2", ".committed", "유효 학습 row", "수집 출처와 라벨 출처",
-        "Utility 선택을 정답으로 복사하지 않는다", "Dagger", "Gold",
+        ".anpccap2", ".committed", "유효 학습 항목", "수집 출처와 라벨 출처",
     ):
         assert phrase in text
-    assert "실패·미확정 기록을 committed Capture로 위장하지 않는다" in text
+    assert "실패·미확정 기록은 실행 확정 기록으로 취급하지 않는다" in text
     assert "source_type" in text and "Schema" in text
+    reference = _runtime_collection_reference()
+    for phrase in (
+        "유효 학습 row", "Utility 선택을 정답으로 복사하지 않는다", "Dagger", "Gold",
+        "실패·미확정 기록을 committed Capture로 위장하지 않는다",
+    ):
+        assert phrase in reference
 
 
 def test_collection_plan_requires_coverage_split_and_closed_readiness() -> None:
@@ -190,10 +249,12 @@ def test_collection_plan_requires_coverage_split_and_closed_readiness() -> None:
     for phrase in (
         "고유 입력", "근접 중복", "조건별", "scenario_family_id",
         "Train", "Validation", "Calibration", "Test", "OOD", "Critical",
-        "Approved=false", "ResolvePolicyReady=false", "production_eligible=false",
-        "문서·하네스", "Snapshot", "검증",
+        "문서·하네스", "검증",
     ):
         assert phrase in text
+    reference = _runtime_collection_reference()
+    for phrase in ("Approved=false", "ResolvePolicyReady=false", "production_eligible=false", "Snapshot"):
+        assert phrase in reference
 
 
 def test_collection_plan_is_discoverable_from_active_reader_entrypoints() -> None:

@@ -4,6 +4,9 @@
 
 ## 개정 이력
 
+- [ML 데이터 계획 개편 전 원문](ml-data-pipeline-v1-history-2026-10-28.md)
+  - 독자용 흐름과 구현 참고를 나누기 전의 전체 원문과 과거 검증 기록을 보존합니다.
+
 - [Unreal 구현 계획 v0.4.15 원문](unreal-implementation-history-v0.4.15.md)
   - 독자 중심 v0.4.16 개편 전의 상세 구현 상태, 계약 설명과 검증 기록을 보존합니다.
 - [Requirements History v0.4.13](requirements-history-v0.4.13.md)
