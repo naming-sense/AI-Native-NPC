@@ -53,6 +53,15 @@ AI 개발 에이전트·사용자·생성 도구의 역할과 직접 플레이·
 
 제품 요구사항은 목적과 책임을 설명합니다. 세부 기술 요구사항은 정확한 Runtime 의미를, Implementation Plan과 UE Plan은 실행 절차를, Contract Appendices는 생성된 값과 승인 Gate를 제공합니다.
 
+### 수집 자료와 일반 플레이
+
+- [Runtime 수집 자료의 ML 가져오기 V1 계약](docs/current/runtime-capture-import-v1-contract.md)
+  - 원본 출처 확인, 정답 승인, 학습 자격을 구분하고 정확한 변환 규칙을 설명합니다.
+- [일반 플레이 수집 세션·초기화와 최종 목록 저장 구현계획](docs/current/scenario-collection-play-session-index-v1-implementation-plan.md)
+  - 수집 시작·다음 회차·종료와 저장 연결을 정합니다. 현재 작업 방식은 문서 §0을 따릅니다.
+- [별도 Development Game 보충 설계](docs/current/development-game-launch-slice-01.md)
+  - 기존 로컬 설계의 공개 보관본입니다. 작성 당시 상태와 현재 작업 방식을 구분합니다.
+
 ## 문서 작성 규칙
 
 - 정의와 결론을 첫 문장에 씁니다.
