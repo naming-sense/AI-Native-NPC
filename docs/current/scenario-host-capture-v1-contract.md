@@ -19,8 +19,13 @@
 **고정 후보의 최종 검토 기록:** 독립 SPEC와 QUALITY가 같은 `final-05` source와 실행 증거의 Task2C 부분 범위를 승인했다. 부모는 subject 전체 파일과 두 검토 산출물의 동일성을 재검증했다. 승인 기록은 `/home/namingsense/AI-Native-NPC-evidence/collection-next-uq63w5dx/review-01/acceptance/acceptance.json`이다. **원본 승격 없음**이며 실제 저장·reset·production authority·학습 준비 완료는 이 승인에 포함하지 않는다. 검토 당시의 상태 문서와 기존 증거는 read-only subject에 그대로 보존하고, 이 단락과 승인 상태 문구만 현재 문서에 갱신했다.
 <!-- T2C:end -->
 
-<!-- T2D:active -->
-**현재 후속 단계:** [Task2D 안전 저장·동일 이미지 검증 세부 계획](scenario-collection-storage-v1-implementation-plan.md)이 활성 계획이다. 문서/하네스 작성 뒤 부모가 lower Store/Dataset과 실제 Host wiring을 따로 구현·실행한다. **Task2D 전체 완료는 lower test만으로 주장 금지**다. metadata/group/context join·sidecar·diagnostic은 Task2E, 실제 owner/reset/UI는 Task3, authority/import는 Task4로 남긴다. 새 문서 하네스는 C++ 행동 검증을 대체하지 않는다.
+<!-- T2D:historical -->
+**역사적 Task2D 착수 상태:** [Task2D 안전 저장·동일 이미지 검증 세부 계획](scenario-collection-storage-v1-implementation-plan.md)에 따라 문서/하네스 뒤 lower Store/Dataset과 실제 Host wiring을 따로 구현·실행하는 순서였다. **Task2D 전체 완료는 lower test만으로 주장 금지**라는 경계는 유지한다. 위 Task2C의 저장 미구현·원본 승격 없음은 해당 고정 checkpoint의 역사적 사실이다.
+
+<!-- T2E:current -->
+**현재 후속 단계:** Task2D의 native FileStore·same-image Dataset·Reader-owned receipt·실제 Host 저장 연결은 지정 범위에서 독립 SPEC→QUALITY와 부모 승인을 마쳤다. 근거는 `/home/namingsense/AI-Native-NPC-evidence/collection-publication-c92d7rmc/predecessor/task2d-final-acceptance-01.json`이다.
+[Task2E 출처·결과 연결 세부 계획](scenario-collection-publication-v1-implementation-plan.md)이 metadata/group/context join·sidecar·diagnostic의 다음 구현 기준이다. Task3 실제 owner/reset/UI와 Task4 authority/import는 남아 있으며 **production collection closed**다. §§4–11의 정책·순서·실패 acceptance는 그대로 유지한다. 문서 하네스는 C++ 행동 검증을 대체하지 않는다.
+<!-- T2E:end -->
 
 순수 관측 adapter의 기존 Development Editor focused 37·broad 204와 독립 명세/품질 검토는 별도 과거 단계의 증거다. 보조 검사 44·242는 Unreal 실행 수에 합산하지 않는다. provenance 구조 단계의 완료도 보존한다. 이번 하네스는 문서 일관성만 검사하며 C++ 동작·새 Capture·실제 입력·reset·발행 권한을 실행 검증하지 않는다. Task 2C의 좁은 파일 경계·실패 검사·남은 acceptance는 [수집 context/lease 구현 계획](scenario-collection-context-v1-implementation-plan.md)에 둔다.
 

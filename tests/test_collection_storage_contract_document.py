@@ -265,8 +265,11 @@ def test_missing_plan_is_normative_assertion_red() -> None:
 def test_entrypoints_link_active_storage_plan_and_bounded_approval(name: str) -> None:
     text = read(name)
     assert f"]({STORAGE})" in text
-    assert "<!-- T2D:active -->" in text
+    assert "<!-- T2D:historical -->" in text
     assert "Task2D 전체 완료는 lower test만으로 주장 금지" in text
+    current = text.split("<!-- T2E:current -->", 1)[1].split("<!-- T2E:end -->", 1)[0]
+    assert "지정 범위" in current and "task2d-final-acceptance-01.json" in current
+    assert "scenario-collection-publication-v1-implementation-plan.md" in current
     assert "독립 SPEC→QUALITY 승인 완료; 고정된 Task2C 부분 범위만" in text
     assert "production collection closed" in text
     assert "독립 승인 대기로 구분한다" not in text

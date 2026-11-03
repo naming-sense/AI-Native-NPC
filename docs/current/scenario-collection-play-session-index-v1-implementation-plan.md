@@ -1,378 +1,787 @@
-# 일반 플레이 수집 세션·초기화와 최종 목록 저장 V1 구현 기준
+# 일반 플레이 수집 구현계획
 
-**목표:** 사람이 일반 플레이에서 수집을 켜고 중단하거나 새 회차를 시작하며, 저장된 결과를 최종 index 파일로 남기는 최소 연결을 구현한다.
+일반 플레이 수집은 사람이 게임을 하면서 NPC의 판단 기록을 파일로 남기는 기능이다.
 
-**구조:** GameInstance subsystem이 World보다 오래 살아 있는 session ledger·예산·metadata·발행 권한을 소유한다. Host는 실제 회차의 immutable context/lease만 소비한다. 최종 index는 종료된 session의 동결 ledger에서 만든다.
+**이 계획은 수집 시작, 다음 회차, 종료와 저장을 연결한다.** 사용자는 준비한 게임을 별도 창으로 실행한다. 게임 안에서 수집을 시작하고, 같은 조건으로 다음 회차를 진행하고, 결과를 저장한다.
 
-**기술:** Unreal Engine 5.7 C++, 기존 native FileStore·CaptureBridge, Python 문서 pytest 및 기존 collection validator.
+**새 수집 화면의 빌드와 기본 자동 수집 흐름을 확인했다.** 같은 화면 빌드의 세 세션에서 정상 완료 두 회차, 시간 초과 한 회차, 요청 중단 한 회차를 기록했다. 판단 기록 10개와 최종 목록을 저장했다. 시야 상실 시간 초과, 선택 목록 가독성과 일부 검사 실패가 남아 있다. 이전 준비07의 수집 자료는 보존했다. 자동 입력 수집 결과이며 사람 플레이나 모델 학습 결과가 아니다.
 
-**구현 대상:** 기존 `NeuralGame` Game target과 설치 엔진을 사용하는 별도 Development Game 경로다. 빌드·cook·게임 실행과 수집 통합 확인은 사용자 담당이다. 과거 실행 대상 선택은 유지하며 AI의 실행 권한은 아래 구현 전용 작업 방식으로 교체한다.
+본문은 사용 흐름과 작업 범위를 설명한다. 정확한 코드 이름과 파일 형식은 뒤의 부록에 모았다. 기존 설정값과 저장 규칙은 유지한다. 기존 빌드로 다시 수집하는 기능은 태스크 2의 현재 작업 범위다.
 
-**함께 읽을 문서:** [Runtime 수집 자료의 ML 가져오기 V1 계약](runtime-capture-import-v1-contract.md), [별도 Development Game 보충 설계의 공개 보관본](development-game-launch-slice-01.md).
+## 0. 현재 작업 방식 — 사용자 로컬 직접 작업
 
-## 0. 현재 작업 방식 — 문서 태스크 단위 구현 전용
+후속 수집 화면 작업에서는 사용자가 빌드·검토·테스트·실행 확인을 직접 요청했다. 2026-11-03 그 범위의 실행을 수행했다. 일반적인 구현 전용 방식과 이번 명시적 확인 요청을 구분한다. 실패와 미확인 범위는 [수집 화면 확인 기록](../history/collection-ui-verification-2026-11-03.md)에 남겼다.
 
-사용자는 이 문서의 태스크 덩어리를 한 번에 구현하고 검토·검증·구현 확인을 직접 담당한다. 이 절은 아래의 과거 하네스·실행 순서·검증 지시보다 우선한다.
+2026-11-03 사용자는 NPC 초기 방향만 바꾸는 맵 수정의 승인을 요청받은 적이 없다고 밝혔다. 기존 문서의 승인 단정을 철회한다. 과거 변경 기록과 백업은 변경 사실을 설명하는 자료이며 사용자 승인 증거가 아니다. AI의 후속 수정은 중단했다. 사용자가 로컬에서 직접 작업하며, 이번 AI 작업은 현재 변경 요약과 Git 커밋·push에 한정한다. 맵을 추가 수정하거나 되돌리지 않는다. 변경 전후 방향과 백업 위치는 [로컬 작업 인계](../history/local-development-handoff-2026-11-03.md)에 기록한다.
 
-- AI의 작업 단위는 §12.2의 구현 태스크 2–6이다. 태스크마다 선언·본문·호출 경로·관련 파일 연결을 한 묶음으로 작성한다.
-- helper·함수·파일 읽기·통신 단계별 새 문서/검사/구현 위임으로 다시 쪼개지 않는다. 서브에이전트를 쓰면 문서 태스크 전체를 한 구현 작업자에게 맡긴다.
-- AI는 구현에 필요한 문서·소스·API 정의를 읽고 코드를 작성한다. 검토, 코드 리뷰, 실패 재현, RED/GREEN, 검사 전용 하네스/probe 작성, 빌드·테스트·lint·정적 검사·전체 회귀·PIE·cook·게임 실행·해시 대조·실파일 재검증·보고 검사기를 수행하지 않는다.
-- §11, §12.1 및 §12.4의 검사·실행 항목은 사용자 확인용 참고다. AI의 선행 조건이나 남은 실행 할 일로 사용하지 않는다. 과거 build/cook 승인은 현재 구현 작업의 실행 권한으로 재사용하지 않는다.
-- 제품 자체의 입력 검증·권한·수명·예산·저장 보호 계약은 유지한다. 개발 검증 생략은 제품 보호 로직을 제거하거나 가짜 성공을 만드는 허가가 아니다.
-- 기존 코드·테스트·수집 파일·역사적 실행 증거를 보존한다. 기존 검사를 다시 실행하거나 결과를 덮어쓰지 않는다.
-- AI는 `코드 작성 완료`와 `남은 구현`을 인계한다. 검토·검증·구현 확인은 `사용자 담당`이다. 작성 완료를 동작 확인이나 승인 완료로 표현하지 않는다.
-- 사용자가 이후 특정 검토나 실행을 직접 요청한 경우에만 그 요청 범위에 한정한다. commit/push·Shipping·관리자 실행은 계속 별도 명시 요청 사항이다.
+아래 세 문단은 인계 전의 구현 전용 작업 방식이다. 현재의 사용자 직접 작업 전환과 AI 중단 지시가 우선한다.
 
-**문서 작성자 인계 당시 상태:** 문서·문서 하네스 작성 단계다. **문서 하네스 미실행**, C++ 미수정, Unreal/build 미실행이다. 본문의 새 클래스·함수·명령·파일은 부모 구현 대상으로 제안한 이름이다. 부모의 후속 실행 상태는 별도 evidence에 기록한다. 독립 검토를 요청하거나 추가하지 않는다.
+AI는 코드를 작성했다. 코드 검토, 테스트와 실제 실행 확인은 사용자 담당으로 두었으며, 빌드는 명시적으로 요청받은 범위에서 AI가 수행했다.
+
+한 작업 단위에는 필요한 선언, 함수 본문과 호출 연결을 함께 포함한다. 작업 단위는 §12.2의 태스크를 따른다. 다른 AI에 맡길 때도 태스크 전체를 한 작업자에게 맡긴다.
+
+AI는 작성에 필요한 문서와 소스를 읽는다. 별도 검사나 실행 확인 단계를 추가하지 않는다. 기존 테스트와 수집 자료는 보존한다. 커밋·push, 배포용 빌드, 관리자 실행과 기존 자료 삭제는 별도 요청을 받은 뒤 수행한다.
 
 <!-- PS:scope -->
-## 1. 적용 범위와 선행 기록
+## 1. 기능과 용어
 
-문서 작성자 인계 당시 상태는 **문서 하네스 미실행**이다. 부모의 후속 실행 결과는 별도 evidence에 기록한다.
+수집은 한 세션 안에서 회차를 이어 가는 방식으로 진행한다.
 
-- **PS01**: 이번 범위는 일반 플레이의 수동 수집 start/stop/new episode, 실제 GameInstance 소유 수명, 최종 index 저장이다. 독립 검토는 사용자 요청으로 생략한다.
-- **PS02**: Approved=false; ResolvePolicyReady=false; production_eligible=false를 유지한다. 일반 플레이 수집 활성화 허용은 학습·Resolve policy·ML import 승인이 아니다.
-- **PS03**: 문서 작성자는 신규 문서·신규 문서 하네스·지정 design-handoff만 작성한다. 기존 문서·tests·C++는 읽기 전용이며 Unreal/build/terminal/execute_code/commit/push/skill 변경은 수행하지 않는다.
+- **빌드**는 특정 소스 코드로 만든 게임 실행물이다.
+- **세션**은 수집을 시작한 때부터 최종 결과를 저장할 때까지의 묶음이다.
+- **회차**는 정해진 초기 조건에서 한 시나리오를 플레이하는 단위다.
+- **게임 상태**는 현재 맵과 그 안의 플레이어·NPC를 포함한다. Unreal에서는 이를 World로 관리한다.
+- **판단 기록**은 NPC가 무엇을 보고 어떤 행동을 골랐는지 담은 자료다. 코드에서는 Capture라고 부른다.
+- **최종 목록**은 한 세션에서 저장한 판단 기록과 오류 기록의 목록이다. 파일 형식에서는 index라고 부른다.
 
-권위는 `scenario-collection-v1-data-contract.md`, `scenario-host-capture-v1-contract.md`, `scenario-collection-v1-implementation-plan.md` Task 3, `runtime-capture-import-v1-contract.md` §§2–3과 `contracts/current/scenario_collection_v1.schema.json`, `contracts/current/scenario_catalog_v1.json`이다. 이번 문서는 Task 3 전체 UI/자동/replay 범위를 승인하지 않는다. 기존 문서의 production collection closed는 당시 단계의 경계다. 이번 요청은 아래 private runtime issuer와 수동 경로만 추가로 허용한다. 학습/정답/Resolve 승인 경계는 그대로다.
+사용 흐름은 다음과 같다.
 
-선행 실제 구현 기록은 `/home/namingsense/AI-Native-NPC-evidence/collection-publication-c92d7rmc/publication-runtime-implementation-01/implementation-result-01.md`다. 거기에는 Host 97·broad 347, 실행별 committed JSON 20·diagnostic JSON 4, macro-off compile 8 TU·preprocess 2 TU가 기록돼 있다. 이는 **역사적 선행 실행**이며 이 문서의 새 구현이나 문서 하네스 실행 결과가 아니다.
+1. 사용할 빌드를 준비한다.
+2. 별도 게임 창에서 수집을 시작한다.
+3. 플레이어를 움직여 NPC의 반응을 수집한다.
+4. 다음 회차를 요청하면 맵을 새로 열어 같은 조건으로 시작한다.
+5. 수집을 종료하면 최종 목록을 저장하고 일반 플레이로 돌아간다.
 
-현 소스에서 확인한 경계:
+## 2. 현재 상태와 작업 범위
 
-- `Collection/AINativeNPCCollectionContext.h/.cpp`: Context/Lease/FixtureSession constructor와 fixture payload issuer가 dev-only다. World 독립 `FAINativeNPCCollectionFixtureSession`에 root, 누적 budget, index bytes, accepted/diagnostic entry 배열이 이미 있다.
-- `Execution/AINativeNPCGoalHostComponent.cpp`: `TryAttachOwnedCollectionForTest`, `TryBindCollectionStorageForTest`는 테스트 경로다. `ReserveCollectionPublication`, `TryPublishCollectionReceipt`, failure diagnostic과 실제 phase hook은 runtime 경로다.
-- `Collection/AINativeNPCCollectionFileStore.cpp::IsCanonicalJsonRelativePath`: 현재 entries/diagnostics의 네 segment만 받는다. session/episode/index를 저장할 새 purpose와 닫힌 경로 검사가 필요하다.
-- `Execution/AINativeNPCSkillExecutorComponent.h/.cpp`: `GetStatus`, `IsIdleTimerActive`, `IsExecutionTimerActive`가 있다. `bResultDispatchInProgress`, `bExternalEffectInProgress`, `mCommittedGreetStartInProgress`는 내부 상태다. 기존 `EndPlay`는 dispatch 플래그를 초기화하므로 실제 drain 증명이 될 수 없다.
-- `Config/DefaultEngine.ini`: 기본·Editor map은 ThirdPerson이다. 수집을 위해 Config를 바꾸지 않는다.
-- `NeuralGame.Build.cs`: Engine/Json/UMG 및 Editor 조건 UnrealEd 의존성이 이미 있다. 새 UI나 모듈 의존성 추가는 필요하지 않다.
+### 최신 수집 화면 결과 — 2026-11-03
 
-<!-- PS:files -->
-## 2. 작성 범위와 부모 구현 exact allowlist
+새 화면을 포함한 Editor·Development Game 빌드와 게임 자료 준비가 성공했다. 같은 빌드를 세 번 실행해 조건 선택·자동 시작·다음 회차·진행 중 중단·최종 저장·복사·닫기를 실제 확인했다. 소리만 듣기 두 회차는 정상 완료했다. 발소리·등장·시야 상실 회차는 마지막 사건에서 시간 초과가 발생했다. 별도의 중단 확인 회차는 요청에 따라 종료됐다.
 
-- **PS04**: 부모 구현은 아래 exact allowlist만 사용한다. Config·Content·PlayerController·Build.cs·Schema·catalog·generated·Builder·serializer·ObservationAdapter·Coordinator·ML과 기존 tests는 보존한다.
+새 화면 빌드의 판단 기록은 정상 두 회차에서 4개, 시간 초과 회차에서 5개, 요청 중단 회차에서 1개다. 세 세션의 최종 목록과 연결 파일을 실제로 읽어 대조했다. 실행기 종료 코드 0은 저장·연결 종료 결과이며 시나리오 전체 성공은 아니다. 첫 화면 세션의 파일 26개와 준비 완료 기록은 재사용 뒤에도 같았다.
 
-문서 작성자의 쓰기 허용 파일은 다음뿐이다. 나머지는 읽기 전용이다.
+시야 상실 시나리오의 시간 초과, 펼친 목록의 글자 대비와 일부 검사 실패가 남아 있다. 사람 직접 플레이와 학습 입력 연결은 미확인·후속 범위다. 상세 결과는 [수집 화면 확인 기록](../history/collection-ui-verification-2026-11-03.md)을 따른다.
 
-- `/home/namingsense/AI-Native-NPC/docs/current/scenario-collection-play-session-index-v1-implementation-plan.md`
-- `/home/namingsense/AI-Native-NPC/tests/test_collection_play_session_index_document.py`
-- `/home/namingsense/AI-Native-NPC-evidence/collection-publication-c92d7rmc/play-session-index-implementation-01/design-handoff-01.md`
-- `/home/namingsense/AI-Native-NPC-evidence/collection-publication-c92d7rmc/play-session-index-implementation-01/design-handoff-01.json`
+### 이전 준비07의 재사용 결과 — 2026-11-03
 
-위 목록과 PS03은 최초 문서 작성 인계의 범위를 보존한 기록이다. 이번 실행 대상 보정 작성자는 이 활성 계획과 evidence root의 `development-game-launch-slice-01.md`, `play_session_game_plan.py`, `test_play_session_game_plan.py`, `development-game-plan-red-handoff-01.json/.md`, 추가 문서 하네스 `tests/test_collection_game_launch_document.py`만 쓴다. 기존 문서 하네스·L1/L2a·launcher·normative Schema/validator는 동결한다. Engine·Target.cs·Build.cs·plugin·Content·Config 편집 권한을 추가하지 않는다.
+기존 준비 빌드를 그대로 재사용했다. 새 빌드와 cook은 실행하지 않았다. 새 실행과 세션에는 이전과 다른 번호가 발급됐다. 첫 회차는 판단 기록 1개를 저장했다. 다음 회차는 판단 기록 3개를 저장했다. 새 세션의 최종 목록에는 판단 기록 4개가 있으며 오류 기록은 없다.
 
-후속 사용자의 `해당 설정 수정 승인`에 따라 §12.4 DG09의 조건부 public-header include 경로 한 항목과 대응 문서·검사를 추가로 허용한다. 이 한정 예외가 PS04와 위 실행 대상 보정의 Build.cs 보존 범위에 우선한다. 나머지 보존 조건과 기존 검사 본문은 유지한다.
+세션은 정상 최종 저장으로 종료됐다. 실행기는 종료 코드 0을 반환했다. 게임 로그에서 일반 플레이 복귀를 확인했다. 실행 전 보관한 기존 파일 20개의 내용은 실행 뒤에도 같았다. 준비 완료 기록도 바뀌지 않았다. 이 준비 빌드의 두 세션에 저장된 판단 기록은 합계 6개다.
 
-다음 경로의 기준 root는 `/mnt/d/Codex-cli/NeuralProject/NeuralGame`이다. 부모는 실행 소유자이며, 실제 수정 전에 이 범위와 최신 작업 중 변경을 고정한다. 아래 범위로 해결되지 않으면 무관한 파일을 조용히 추가하지 말고 인계 범위 변경을 명시한다.
+입력은 자동 실행 도구가 제공했다. 사람 입력 수집, 정답 승인과 모델 학습은 이번 결과에 포함하지 않는다. 이전 빌드 삭제도 수행하지 않았다. 수집 자료 백업과 삭제는 별도 작업이다.
 
-| 파일 | 작업 | 허용 변경 |
-|---|---|---|
-| Source/NeuralGame/AINativeNPC/Collection/AINativeNPCCollectionSessionSubsystem.h | 신규 | GameInstance owner·typed 공개 요청 |
-| Source/NeuralGame/AINativeNPC/Collection/AINativeNPCCollectionSessionSubsystem.cpp | 신규 | nondev console·수명·reset·최종 저장 |
-| Source/NeuralGame/AINativeNPC/Collection/AINativeNPCCollectionRuntimeInputs.h | 신규 | owned validated inputs·private issuer |
-| Source/NeuralGame/AINativeNPC/Collection/AINativeNPCCollectionRuntimeInputs.cpp | 신규 | strict metadata·실제 build/start binding |
-| Source/NeuralGame/AINativeNPC/Collection/AINativeNPCCollectionContext.h | 수정 | runtime-private 생성·session ledger 재사용 |
-| Source/NeuralGame/AINativeNPC/Collection/AINativeNPCCollectionContext.cpp | 수정 | 공통 검증·runtime namespace·lease 발급 |
-| Source/NeuralGame/AINativeNPC/Execution/AINativeNPCGoalHostComponent.h | 수정 | owner-only attach/stop/관측 경계 |
-| Source/NeuralGame/AINativeNPC/Execution/AINativeNPCGoalHostComponent.cpp | 수정 | 실제 assembly rendezvous·stop·ledger 연결 |
-| Source/NeuralGame/AINativeNPC/Execution/AINativeNPCSkillExecutorComponent.h | 수정 | collection-only stop/drain 관측 |
-| Source/NeuralGame/AINativeNPC/Execution/AINativeNPCSkillExecutorComponent.cpp | 수정 | 실제 timer/move/dispatch 정지 확인 |
-| Source/NeuralGame/AINativeNPC/Player/PlayerNoiseEmitterComponent.cpp | 수정 | collection preparing/stop 때 발소리 발행 차단 |
-| Source/NeuralGame/AINativeNPC/Collection/AINativeNPCCollectionCaptureBridge.h | 수정 | typed session/episode/index encoding |
-| Source/NeuralGame/AINativeNPC/Collection/AINativeNPCCollectionCaptureBridge.cpp | 수정 | canonical JSON·ledger index·budget 경계 |
-| Source/NeuralGame/AINativeNPC/Collection/AINativeNPCCollectionFileStore.h | 수정 | owner-private purpose publication 요청 |
-| Source/NeuralGame/AINativeNPC/Collection/AINativeNPCCollectionFileStore.cpp | 수정 | 닫힌 path grammar·nonreplace/readback |
-| Source/NeuralGame/AINativeNPC/Tests/AINativeNPCCollectionPlaySessionTests.cpp | 신규 | AINativeNPC.Collection.Host.PlaySession.* |
+현재 범위는 한 명의 로컬 플레이어가 수집 명령을 사용하는 기능이다. 실행 대상은 기존 NeuralGame의 Development Game 빌드다. Development Game은 개발 중 기능을 확인할 때 사용하는 별도 게임 실행물이다.
 
-`FAINativeNPCCollectionFixtureSession` 이름은 변경폭을 줄이기 위해 유지한다. subsystem의 실제 owned instance가 일반 session ledger가 된다. ctor를 그냥 public으로 풀지 않는다. owner-private runtime constructor/factory를 추가하고 dev-only라는 현재 주석을 역할에 맞춘다. 테스트 namespace와 minting은 계속 dev-only다. 이름 변경 자체를 GameInstance ownership의 증거로 사용하지 않는다. 새 멤버는 protected `m` 접두어, 실패 우선, 다음 줄 중괄호를 따른다.
+### 작성한 코드
+
+- 게임 실행물과 수집 설정을 연결하는 코드를 작성했다.
+- 세션을 유지하면서 회차를 바꾸는 코드를 작성했다.
+- 진행 중인 행동을 정지하고 결과를 저장하는 코드를 작성했다.
+- 최종 목록과 누적 저장 용량을 관리하는 코드를 작성했다.
+- Live Coding의 모든 상태를 감시하지 못한다는 이유로 시작을 항상 거부하던 조건을 제거했다.
+- 무관한 파일 변경 감시와 반복 검사도 정리했다.
+- 준비 완료 기록을 읽어 기존 빌드를 다시 실행하는 API와 명령을 작성했다.
+- 새 실행의 입력과 로그를 분리하고 게임의 세션 관리자에 연결했다.
+
+### 이전 준비 과정
+
+아래 기록의 미완료·대기 상태는 각 실행 당시의 상태다. 현재 결과는 위의 최신 수집 결과를 따른다.
+
+기능 작성 범위는 코드 작성 인계에 근거한다. 사용자의 빌드 요청에 따라 2026-11-02에 Development Game 빌드를 수행했다. 헤더 경로와 공유 포인터 선언 오류를 수정한 뒤 컴파일과 링크가 성공했다.
+
+이후 최초 준비 중 발견한 Editor 빌드 오류를 수정했다. 같은 날 원본 프로젝트와 별도 준비 복사본의 Editor·Game 빌드가 성공했다. 별도 준비 복사본에서는 cook과 실행 자료 배치도 성공했다. 그 뒤 자료 목록을 만드는 도구의 로그 읽기가 파일 점유 오류로 중단됐다. 로그 읽기를 보완한 뒤 해당 도구를 다시 실행해 정상 종료와 로그 읽기를 확인했다.
+
+자료 목록에는 검사 전용 가상 경로와 아직 없는 Neural 정책의 기본 경로를 필수로 요구하는 문제도 있었다. 현재 고정 Utility 수집 범위에 맞게 준비 도구와 게임의 해석을 함께 수정했다. 실제로 보관한 cook 결과에서 선택한 자료 목록을 읽는 데 성공했다. 이후 준비 08의 전체 최초 준비와 완료 기록 발행이 성공했다. 기존 준비 결과와 중단 기록은 보존한다. 실제 수집·재실행 성공은 아직 확인하지 않았다.
+
+진단 파일을 필수 실행 자료로 요구하던 오류는 설치된 Unreal의 실제 배치 규칙에 맞춰 수정했다. 편집기용 개별 Actor 파일이 맵에 포함되는 경우도 자료 목록 처리에 반영했다. 이 수정이 들어간 준비 08의 Editor·Game 빌드, cook·실행 자료 배치와 완료 기록 발행이 성공했다.
+
+준비 08의 첫 Game 실행에서는 게임이 만든 설정 파일을 고정 빌드 입력으로 오분류했다. 실행기는 초기 파일 확인이 끝나기 전에 대기를 종료했다. 실행 결과 폴더를 목록에서 분리한 뒤 보관된 준비 자료를 다시 읽는 데 성공했다. 이 수정이 들어간 준비 09도 빌드·cook·완료 기록 발행을 마쳤다.
+
+준비 09의 Game에서는 다음 자료 이름 검사에서 수집 연결이 중단됐다. 전체 cook 목록에는 현재 게임이 사용하지 않는 플러그인 자료도 들어 있다. 해당 자료까지 현재 게임에 등록된 경로여야 한다고 요구하던 조건을 이름 형식 검사로 바꿨다. 실제 원본·cook·실행 자료의 대응과 게임이 읽은 자료의 대조는 유지했다. 초기 대기는 추가로 늘리지 않았다. 수정본의 수집 시작·다음 회차·종료·재사용은 남아 있다. 자동 입력 실행은 사람 입력 수집과 구분한다.
+
+준비 10은 초기 실행물·자료 확인을 통과했다. 이후 게임이 만든 세션 번호가 저장 규칙에 맞지 않아 시작을 거부했다. 이미 오류 기록 번호에 사용하던 생성 함수를 세션·회차에도 연결했다. 입력받은 번호의 검사와 이전 파일 보존 규칙은 그대로 유지했다. 자동 실행의 세션 연결 대기는 10초로 제한했다. 사람의 시작 명령을 기다리는 시간에는 이 제한을 적용하지 않는다.
+
+준비 11은 빌드·cook·완료 기록 발행을 마쳤다. 세션 번호 형식과 초기 저장 예산 예약을 통과했다. 첫 세션 파일의 저장 단계에서 거부됐다. 실제 수집 파일은 남지 않았다. 실패한 세션에서 같은 오류를 매 tick 기록하던 경로를 막았다. 저장 거부 지점과 연결 오류를 구분하는 로그를 추가했다. 저장 조건과 기존 native 저장 코드는 유지했다.
+
+준비 12도 빌드·cook·완료 기록 발행을 마쳤다. 저장 전 검사 뒤 빈 저장 결과가 반환됐고 성공한 파일 정보는 없었다. 세션 관리자의 첫 로그만으로는 정확한 원인이 드러나지 않았다. 실제 저장 요청과 폴더 준비·쓰기·읽기 단계에도 실행 중 오류 기록을 추가했다. 이 기록은 원인 진단용이다. 첫 파일 저장을 해결한 결과는 아직 없다.
+
+준비 13은 빌드·cook·완료 기록 발행 뒤 Game의 저장 폴더 준비에서 실패했다. 저장 코드가 Windows 오류값을 읽기 전에 임시 경로 문자열을 해제하고 있었다. 실제 Game의 메모리 관리 경로에서 그 오류값이 초기화될 수 있다. 오류값을 먼저 보관하도록 폴더 열기·생성과 파일 예약·발행·정리의 해당 호출을 수정했다. 기존 거부 조건과 테스트는 유지했다. 새 빌드에서 수집 시작·다음 회차·종료·재사용 확인이 남아 있다.
+
+준비 14는 첫 세션 파일과 설정 저장을 마쳤다. 실행기 연결도 성공했다. 이후 새 게임 상태를 기다리는 단계에서 시간 초과가 발생했다. 같은 빌드의 재사용 실행에서도 이 오류가 반복됐다. 실패한 게임 창은 사용자에게 알린 뒤 정상 종료했다. 기존 준비 자료와 세션 파일은 보존했다.
+
+회차 준비 실패의 구체적인 대기 조건을 남기도록 진단을 추가했다. 이전 게임 상태의 정리, 새 게임 상태의 시작, 플레이어·NPC 구성과 수집 전 상태를 구분한다. 준비 시간 제한과 수집 허용 조건은 바꾸지 않았다. 이 변경은 진단 추가이며 원인 해결 결과가 아니다.
+
+2026-11-03의 첫 진단 빌드는 이전 게임 상태 정리와 새 게임 상태 시작을 통과했다. 그러나 수집 전부터 NPC의 기억인 Knowledge에 감각 입력이 쌓였다. 준비 중 감각 입력을 Knowledge에 반영하지 않도록 실제 입력 경로를 수정했다. 이미 쌓인 기억을 지우거나 초기 상태 번호를 강제로 되돌리지 않는다. 일반 플레이와 진행 중인 회차는 기존 감각 입력을 처리한다. 수정본의 실제 시작·저장 결과는 아직 미확인이다.
+
+같은 날 다음 빌드는 회차 준비에 진입했다. 플레이어 배치에서 실패한 뒤 오류 기록, 회차·세션 종료 파일과 최종 목록을 저장했다. 게임은 일반 플레이로 복귀했다. 저장 파일을 실제로 읽어 최종 목록의 크기·내용 식별값과 종료 기록의 파일 연결이 맞는 것을 확인했다. 정상 회차 완료나 판단 기록 수집의 성공은 아니다. 지면, 이동 가능한 영역, 목적지 충돌과 배치 이동 중 어느 단계가 실패하는지 구분하도록 진단을 추가했다. 배치 조건과 준비 제한 시간은 유지했다.
+
+2026-11-03의 배치 진단 빌드도 준비와 실제 Game 실행을 마쳤다. 지면 검사에서 바닥을 찾지 못했다. cook의 실제 Actor 배치 기록에서도 해당 지점은 기존 바닥 범위 밖이었다. 오류 기록과 최종 목록을 저장하고 일반 플레이로 돌아왔다. 최종 목록과 연결된 세션·회차 파일의 크기·내용 식별값을 실제 파일에서 확인했다. 실행 도구의 종료 코드 0은 실패 기록을 저장하고 연결을 닫았다는 결과다. 정상 수집 성공을 뜻하지 않는다. NPC의 초기 방향을 조정하는 최소 맵 변경을 제안하며, 원본 Content 변경은 승인 전까지 보류한다.
+
+NPC 방향 변경을 저장한 뒤 시작한 준비는 수정용 Editor와 통신 포트가 겹쳐 cook 단계에서 실패했다. 사용자의 계속 진행 요청에 따라 미저장 프로젝트 자료가 없는 것을 확인하고 해당 Editor만 정상 종료했다. 포트 점유가 해제된 뒤 새 준비의 Editor·Game 빌드, cook·실행 자료 배치와 완료 기록 발행이 성공했다. 방화벽 허용은 이 충돌과 별개다.
+
+새 Game에서는 배치를 통과하고 첫 회차 수집이 시작됐다. 판단 기록과 저장 완료 표식 1개를 실제로 읽어 연결 정보와 내용이 일치함을 확인했다. 이후 회차 완료 경로가 종료 사유를 비워 전달해 종료 파일 저장이 거부됐다. 실제 사건을 모두 관측한 완료 경로에 그 사유를 넣도록 수정했다. 저장 형식 검사와 실제 완료 조건은 유지했다. 이 수정본의 새 빌드를 준비 중이며 기존 실패 자료와 판단 기록은 보존한다.
+
+### 이번에 작성한 기능 — 기존 빌드로 다시 수집하기
+
+기존 빌드로 다시 수집하기는 이미 만든 게임 실행 파일을 다시 켜서 새 수집을 시작하는 기능이다.
+
+1. 처음에는 이 기능을 포함한 게임을 한 번 빌드한다.
+2. 준비 도구가 빌드와 게임 자료 준비를 마치면 준비 완료 기록을 저장한다.
+3. 다음에는 사용자가 그 준비 결과를 선택한다.
+4. 실행기는 빌드 과정을 건너뛰고 같은 게임 실행 파일을 다시 켠다.
+5. 사용자가 새 게임의 Console에서 수집 시작 명령을 입력한다.
+6. 게임은 새 세션 번호로 수집을 시작한다. 이전 수집 결과는 보존한다.
+
+새 수집을 여는 데 이전 준비 도구가 계속 실행 중일 필요는 없다. 저장한 준비 완료 기록을 다시 읽는다. 필요한 파일이 없거나 기록과 다르면 오류를 알린다. 자동으로 재빌드를 시작하지 않는다.
+
+최초 준비는 새 별도 작업 폴더에서 빌드·cook을 수행하고 완료 기록을 만드는 과정이다. 앞선 준비의 cook 성공과 후속 기록 발행 성공은 구분한다. 수정한 소스는 새 준비에서 빌드한다. 실패하거나 중단한 준비 폴더는 성공 결과로 바꾸지 않는다. 완료 기록이 없는 과거 빌드는 이번 재사용 기능의 입력으로 받지 않는다. 성공한 준비 폴더는 처음 만든 위치에 유지한다.
+
+실행기는 Windows Python으로 실행한다. 수집하는 동안 이번 실행기는 계속 열어 둔다. 정확한 명령과 파일 위치는 부록 D에 정리했다.
+
+같은 세션에서 다음 회차를 진행하는 기능은 그대로 유지한다. 게임 안에서 회차를 바꾸는 일과 게임을 다시 켜서 새 세션을 만드는 일은 구분한다.
+
+### 후속 태스크에서 작성한 수집 화면
+
+수집 화면은 시나리오와 조건을 고르고 기존 세션 기능을 호출하는 화면이다. 상위 시나리오 계획의 태스크 3에서 코드를 작성했다. 후속 명시 요청으로 빌드·검토·테스트와 자동 입력용 Game의 실제 화면 조작을 수행했다. 확인 결과와 남은 문제는 위 최신 수집 화면 결과를 따른다.
+
+- `F8`로 화면을 열고 닫는다. 화면 안에서는 `Esc`로도 닫는다.
+- 시나리오 목록과 허용 조건은 이번 실행이 이미 읽은 카탈로그에서 가져온다. 미지원 시나리오도 제외 이유를 보여 준다.
+- 시작 버튼은 실행 준비 때 고정된 입력 출처에 맞춰 활성화한다. 자동 실행을 사람 플레이로 바꾸지 않는다.
+- 다음 회차는 현재 세션의 같은 조건을 사용한다. 회차 한도는 그대로 유지한다.
+- 종료 요청과 최종 목록 저장 완료를 따로 표시한다. 판단 기록 수, 오류 기록 수와 저장 위치를 보여 준다.
+
+이 화면을 포함한 준비 `collection-ui-prepared-20261103-01`을 만들고 재사용했다. 이전 준비 20261103-07의 실행 파일과 수집 결과는 보존했다. 종료된 다른 세션을 불러오는 재생 기능과 구분한다.
+
+### 후속 범위
+
+다양한 조건을 묶어서 반복하는 자동 수집 제품, 이전 실행의 재생 기능, 학습 도구로 가져오기와 배포용 빌드는 후속 범위다. 선택 화면의 기본 자동 수집 흐름은 실제 확인했다. 사람 직접 플레이와 확인 기록에 적은 실행·검사 문제는 남아 있다. 내부 자동 입력 연결은 자동 실행으로 구분해 유지한다.
 
 <!-- PS:entry -->
-## 3. 실제 일반 플레이 진입과 닫힌 옵션
+## 3. 사용 명령과 기본 조건
 
-- **PS05**: UAINativeNPCCollectionSessionSubsystem은 새 UGameInstanceSubsystem owner다. 실제 nondev console WithWorld 진입이 typed closed parameters로 owner를 호출하며 dev wrapper를 production 진입으로 사용하지 않는다.
-- **PS06**: 기본 수집은 꺼져 있다. start는 MVP Game/PIE World·authority·exact native Guard/Host·단일 local Player.Main·실제 controller provenance·owned runtime inputs를 모두 검사한다. 잘못된 map은 거부하며 기본 ThirdPerson Config를 바꾸지 않는다.
-- **PS07**: collection intent의 preparing/missing context/stale lease는 legacy fallback을 금지한다. intent 없는 일반 플레이의 입력·Goal·Capture·ResolveShadow 동작은 보존한다.
+사용자는 게임의 명령 입력창인 Console에서 수집을 조작한다. 아래 명령은 이번 기능의 공개 진입점이다. 실제 동작 확인은 사용자 담당이다.
 
-아래는 **새로 제안**하는 공개 경계다. `FAutoConsoleCommandWithWorldAndArgs`를 subsystem cpp에 등록한다. `FConsoleCommandWithWorldAndArgsDelegate`가 준 exact World에서 GameInstance와 subsystem을 찾는다. 전역 첫 World나 첫 Player를 대신 선택하지 않는다. Unreal의 bool parser로 authority 인수를 받지 않는다.
+- **수집 시작:** `anpc.Collection.Start`
+- **다음 회차:** `anpc.Collection.NewEpisode`
+- **수집 종료:** `anpc.Collection.Stop`
 
-| 명령 | 인수 | 효과 |
-|---|---|---|
-| anpc.Collection.Start | 인수 없음 또는 scenario distance angle seed | 닫힌 값 파싱 후 RequestStartManual |
-| anpc.Collection.NewEpisode | 인수 없음 | 현재 조건 유지·새 ID·실제 fresh World barrier |
-| anpc.Collection.Stop | 인수 없음 | cancel 또는 기존 terminal 유지·drain·최종 index |
+시작 명령에는 시나리오, 거리, 접근 각도와 초기 조건 선택값을 지정할 수 있다. 초기 조건 선택값은 seed라고 부른다.
 
-새 C++ entry는 `RequestStartManual`, `RequestNewEpisode`, `RequestStop`이다. 첫 요청은 공개 mutable ContextInput 대신 `FAINativeNPCCollectionManualOptions`라는 신규 값 타입으로 받는다. scenario는 닫힌 enum, distance는 400/600, angle은 0, seed는 0/1/2만 표현한다. 문자열 console 경계는 정확한 인수 수·철자·정수 문법을 검사하여 이 타입으로 바꾼다. option에는 path, hash, controller/source/mode, 승인 bool, reset receipt, class/asset/command가 없다. public start 결과는 started/pending/rejected 및 reason을 나타내는 값이며 authority 객체가 아니다.
-
-| 항목 | 고정 기본값 |
-|---|---|
-| enabled | false |
-| scenario_id | hearing_only |
-| distance_cm | 400 |
-| approach_angle_deg | 0 |
-| seed | 0 |
-| max_episodes | 2 |
-| episode_timeout_seconds | 30 |
-| preparation_timeout_seconds | 10 |
-| max_decisions | 100 |
-| storage_limit_bytes | 67108864 |
-| split | unassigned |
-
-이 예산과 회차 수는 이번 최소 수동 도구의 보수적인 실행 기본값이다. 학습량·coverage 기준이 아니다. 예산은 첫 쓰기 전 필요한 reservation을 만족하는지 실제 계산하며 부족하면 시작을 거부한다. 공개 명령으로 limits를 변경하지 않는다. 신뢰한 실행 profile과 이 기본값이 다르면 실패한다.
-
-카탈로그의 `hearing_only`, `hearing_appearance`, `hearing_appearance_loss`만 선택한다. `relationship_friendly`, `relationship_hostile`, `low_identity`, `unreachable_greet`는 기존 제외 이유를 반환한다. `support_semantics=code_supported_pending_runtime_validation`을 유지한다. scene 성공이나 벽 가림이 이미 검증됐다고 표시하지 않는다.
-
-입력·대상 검사는 Game/PIE와 해당 GameInstance, standalone authority, local player 목록과 실제 소유 Controller/Pawn 관계, 단 하나의 `Player.Main`, exact native `AAINativeNPCGuardPawn`와 연결된 GuardController/Host/Knowledge/Executor/StateTree/GoalTimer를 함께 본다. Quinn mesh·noise emitter·sensor profile 준비도 실제 객체에서 검사한다. dedicated server, client, split screen, 추가 Guard, transient test World를 manual 경로에서 거부한다. `GetPlayerController(0)` 성공 하나만으로 단일 플레이어를 증명하지 않는다.
-
-설치된 UE 5.7 소스에서 확인한 API 근거:
-
-- `Engine/Source/Runtime/Engine/Public/Subsystems/GameInstanceSubsystem.h`: GameInstance 수명과 `GetGameInstance`.
-- `Engine/Source/Runtime/Engine/Classes/Engine/GameInstance.h`: `GetSubsystem`, `GetLocalPlayers`.
-- `Engine/Source/Runtime/Core/Public/HAL/IConsoleManager.h`: `FAutoConsoleCommandWithWorldAndArgs`, delegate의 `(TArray<FString> const&, UWorld*)` 입력.
-- `Engine/Source/Runtime/Engine/Classes/Kismet/GameplayStatics.h`: `OpenLevel`은 반환값 없는 travel 요청이다. 호출 성공을 reset 성공으로 사용할 수 없다.
-
-<!-- PS:inputs -->
-## 4. 실제 metadata package와 private issuer
-
-- **PS08**: context/lease/session 생성과 Host attach는 owner-private runtime 경로다. public bool/digest/fixtureResetReceipt와 TryAttachOwnedCollectionForTest 또는 TryBindCollectionStorageForTest 호출로 실제 허가를 만들지 않는다.
-- **PS09**: catalog/profile/schema/build는 실제 파일 bytes와 독립 launcher 관측을 검증해 owned 값으로 고정한다. FApp::GetBuildVersion 문자열 hash·임의 hex·caller expected 값은 실제 runtime build identity를 대체하지 않는다.
-
-### 4.1 현재 저장 위치와 새 배치 위치
-
-권위 catalog/schema는 현재 문서 저장소의 `contracts/current/`에 있다. project Source/Config/Build.cs 검색에서 이 catalog를 일반 runtime에 전달하는 package 경로는 확인되지 않았다. 현재 Host `ComputeRuntimeBuildHash()`는 `FApp::GetBuildVersion()` 또는 fallback 문자열을 사용한다. fixture 테스트는 입력 문자열을 공급한다. 이 두 경로를 실제 수집 metadata로 재사용하지 않는다. 따라서 **catalog package availability**와 **actual runtime build identity**의 배치·실제 로딩이 이번 runtime 연결의 필수 작업이다.
-
-Development 실행용 고정 package root를 project `Saved/AINativeNPC/CollectionRuntime`로 새로 정한다. 부모의 신뢰한 준비/launch 도구가 현재 source로 실제 build를 완료한 뒤 exclusive staging·readback하여 공급한다. 기존 runtime package를 임의로 덮어쓰지 않고 실행별 고정 하위 디렉터리를 선택하는 bootstrap이 소유한다. public console에서 그 경로를 받지 않는다. 이 경로는 Development용 loose metadata다. cooked Content나 Shipping package availability를 주장하지 않는다.
-
-package 파일 이름은 `catalog.json`, `collection-schema.json`, `capture-schema.yaml`, `skill-registry.yaml`, `goal-registry.yaml`, `execution-profile.json`, `utility-profile-source.json`, `runtime-build-evidence.json`, `session-start-evidence.json`이다. 원본 Schema/registry bytes와 compiled/generated contract identity를 대조한다. catalog만 strict parse 뒤 `catalog_digest`와 같은 canonical object without LF로 hash한다. descriptor는 원본 파일 exact bytes를 hash한다. profile/build/start evidence의 JSON은 기존 provenance schema와 계약에 따른다.
-
-### 4.2 검증과 소유권
-
-1. 부모 launcher가 `independent_out_of_band`로 선택한 trusted project/authority/evidence base, source inventories, 실제 강제 build command·exit·log·receipt·module artifacts·engine/toolchain identity를 고정한다. `source_inventory_before`와 `source_inventory_after`는 membership까지 같아야 한다. `build_mode=clean_or_forced_project_modules`이며 incremental 성공만으로 채우지 않는다. 선택 MVP Content dependency closure도 포함한다.
-2. 새 process를 시작해 PID와 OS process-start identity, actual executable/loaded-module 경로·크기·digest, Live Coding/hot reload 부재를 관측한다. 기존 Editor 재사용이나 가장 최근 DLL 선택으로 대신하지 않는다. `loaded_module_inventory`는 실제 loaded module을 receipt와 대조한다. 최소 변경으로 live module identity 관측이 구현되지 않았다면 실제 수집을 열지 않고 해당 blocker를 명시한다.
-3. 신규 RuntimeInputs loader는 trusted bootstrap이 소유한 package와 독립 pin을 읽는다. 제출 JSON에 담긴 expected digest와 같은 JSON의 digest를 비교하는 self-assertion 경로를 만들지 않는다. root의 물리적 identity·alias·stable ownership, schema closed fields·duplicate keys·정수/유한값, 현재 source/loaded binary와 고정 build evidence를 검사한다. launcher 설정 bool만으로 통과시키지 않는다.
-4. session ID는 owner가 발급·영구 예약한다. start evidence는 그 ID와 실제 실행 중인 process 관측을 결속해 저장한다. launcher가 미리 만든 process 관측 부분을 쓰더라도 다른 session ID를 복사하지 않는다. 읽은 profile/build/catalog/schema와 start evidence는 immutable owned 값 및 보관 bytes로 고정한다.
-5. 신규 `FAINativeNPCCollectionValidatedRuntimeInputs`의 생성은 검증 구현 내부로 제한한다. owner는 이 객체와 실제 World/Host 준비 관측으로 ContextInput을 구성한다. 독립 검증이 필요한 값과 caller 선언을 구조적으로 분리한다. Context/Lease의 runtime constructor는 private friend 경계로만 호출한다.
-6. collection runtime namespace는 새 `play_session_runtime_v1`, fixture namespace는 기존 `host_transient_fixture_v1`로 구분한다. fixture minting·test-only expected의 이름을 바꾸거나 macro를 걷어내는 구현은 금지한다. 공통 구조 검증은 분리할 수 있으나 runtime authority 획득은 별도다.
-
-기존 FixtureSession ledger를 GameInstance owner가 실제 strong ownership한다. owner는 root/thread/limits/used IDs/previous lease/index reservations를 World 교체 동안 유지한다. Host storage bind는 owner가 획득한 같은 native root를 이용하는 새 private runtime 경로다. 빈 constructor 또는 hash 문자열 비교만으로 issuer가 완성됐다고 표시하지 않는다.
-
-신뢰 전제는 설치 engine/toolchain과 collector/launcher가 소유한 private stable 저장소다. hostile arbitrary in-process C++·관리자 권한 process를 방어하는 완전한 원격 attestation은 이번 범위가 아니다. local 파일 hash 성공도 ML completion authority를 만들지 않는다.
-
-<!-- PS:lifecycle -->
-## 5. 처음 시작·다음 회차·실제 사건 관측
-
-- **PS10**: session_id와 collection_episode_id는 재사용 없는 lowercase UUIDv4다. Capture episode_id와 process-wide nonzero sequence는 별개이며 World reset·session 종료로 재설정하지 않는다.
-- **PS11**: 첫 회차는 현재 World/Host/Player의 pristine 준비 관측을 요구한다. 다음 회차는 이전 terminal persist/readback·실제 drain·이전 World cleanup·다른 World identity·새 assembly 준비·reset 결과 persist/readback 뒤에만 fresh ID로 attach한다.
-- **PS12**: 동시 회차는 하나다. preparation 포함 monotonic deadline을 사용하며 at/after deadline은 timed_out 우선이다. completed는 실제 사건 전체 prefix가 deadline 전에 관측됐을 때만 허용한다.
-
-### 5.1 상태와 실제 작업
-
-owner 내부 상태는 Idle → Preparing → Running → StopRequested → Draining → TerminalPersisted로 진행한다. 그 뒤 사용자가 NewEpisode를 요청하면 AwaitingFreshWorld → Idle/Preparing, Stop을 요청하면 Finalizing → Finalized로 진행한다. Blocked는 sticky다. 이 이름은 내부 enum 설계이며 collection wire state를 확장하지 않는다.
-
-시작 전에 limits·metadata·native root·session ID inventory와 필요한 terminal/index 예산을 확보한다. `sessions/<id>/session.json`의 CREATE_NEW/readback은 session ID의 영구 예약이 된다. 기존 root에서 이미 예약된 ID를 재사용하지 않는다. `mUsedEpisodeIds`와 immutable preparing 파일이 episode 재사용을 막는다. 생성 실패 ID도 재활용하지 않는다. 프로세스 간 crash-recovery/resume는 구현 범위 밖이며 남아 있는 이름·bytes는 계속 충돌 대상이다.
-
-현재 MVP World가 이미 진행돼 pristine하지 않으면 기록을 조작해 첫 회차에 붙이지 않는다. 최소 구현은 명시적 Start를 받은 뒤, 소유한 입력/old assembly를 안전하게 정지하고 같은 map을 한 번 새로 열어 bootstrap한다. 이는 episode를 아직 붙이지 않은 초기화다. old World에서 발생한 판단을 새 회차로 소급 수집하지 않는다. 초기화가 없던 경우에도 현재 World가 해당 process/GameInstance의 준비 조건을 충족했다는 관측이 필요하다.
-
-Host `BeginPlay::TryInstallAssembly`와 최초 dispatch 사이에 owner rendezvous를 새로 연결한다. owner에 시작/회차 준비 intent가 있으면 이 World의 Host는 preparing collection fence를 먼저 설치한다. running context가 아직 없을 때 legacy decision으로 빠지지 않는다. intent가 없는 Host의 기존 BeginPlay 흐름은 그대로다. 자동 Start를 모든 map BeginPlay에 넣지 않는다.
-
-### 5.2 placement와 수동 사건
-
-`distance_cm`, `approach_angle_deg`, seed는 이름표가 아니라 실제 준비 조건이다. 준비 단계는 catalog가 허용한 player/Guard 배치만 수행한다. 신규 preparation에서 Guard의 초기 home transform을 기준으로 player를 선택 거리의 시야 밖 위치에 배치하고, angle=0의 접근 기준을 고정한다. 실제 collision/sweep·nav/ground/mesh/emitter 준비와 readback pose를 확인한다. 배치가 허용 오차 안에 실제 성립하지 않으면 preparing 실패/timeout이며 다른 조건으로 조용히 변경하지 않는다. 구체적인 좌표계·허용 오차는 기존 catalog에 정의돼 있지 않으므로 §12의 구현 전 확정 항목으로 남긴다. scene 편집·벽 가림 가정·Knowledge/Tensor/센서 값 주입은 허용하지 않는다.
-
-준비 중에는 입력과 emitter를 막고 collection decision을 시작하지 않는다. `HasBegunPlay`, exact native assembly·identity, 새 Knowledge/Timer/Executor 상태, player 준비를 관측한 뒤 immutable context/lease를 같은 GameThread 경계에서 설치한다. preparation 시작 origin을 running attach에서 재설정하지 않는다. 첫 running tick 전에 입력 제한을 소유량만 해제한다.
-
-수동 실행은 실제 `ANeuralGameCharacter::DoMove` → Animation Notify → `UPlayerNoiseEmitterComponent` → Hearing/Sight → Knowledge → Host의 기존 경로를 사용한다. source의 실제 hearing, appearance, target loss 사실을 owner에게 read-only 관측으로 전달한다. `event_observations`는 순서가 맞는 prefix만 기록한다. `move_for_hearing`은 실제 movement와 authored notify/hearing 관측을 요구한다. `appear`와 `lose_target`는 앞 사건 이후 실제 sight 획득/상실을 요구한다. catalog timeout·movement duration을 위반하면 성공 사건을 만들지 않는다. 자동 player 이동 연출·NPC 상태 강제 변경은 추가하지 않는다.
-
-모든 prefix가 기한 전에 성립하면 completed로 종료할 수 있다. 사용자가 먼저 Stop/NewEpisode를 요청하면 cancelled와 실제 reason을 남긴다. 관측 오류는 deadline 전 failed, 이후 timed_out이다. max_decisions 도달은 더 쓰지 않고 cancelled/decision_limit_reached로 종료한다. full-prefix completed 또는 timeout이 이미 관측됐다면 그 결과를 보존한다. max_episodes가 소진되면 NewEpisode를 거부하고 Stop을 통한 최종화를 허용한다.
-
-### 5.3 새 World 장벽
-
-`UGameplayStatics::OpenLevel`은 고정 catalog MVP map에만 호출한다. 호출 후 반환은 성공 receipt가 아니다. `FWorldDelegates::OnPostWorldCleanup`에서 exact old World의 종료를 관측하고, 같은 GameInstance에 속한 새 World의 준비를 따로 기다린다. `UWorld::OnWorldBeginPlay`/`HasBegunPlay`와 현재 객체를 검사한다. 기존 코드의 `Lease::IsBoundToWorld`처럼 WeakObject index+serial로 비교하며 두 null weak pointer의 같음을 새로운 World 증거로 사용하지 않는다.
-
-새 Pawn/Controller/Host/Knowledge/StateTree/Timer/emitter identity를 이전 것과 대조한다. old input target·예약 callback·executor result sink가 새 객체를 가리키면 실패다. 소멸/cleanup·drain·준비를 전부 확인하고 이전 회차의 reset_result=verified 파일을 publish/readback한 뒤에만 다음 ID를 발급·attach한다. failed/unverified는 세션을 막는다. guard나 Pawn transform만 되돌리는 soft reset은 fresh World를 대신하지 않는다.
-
-NewEpisode는 같은 조건의 새 수동 회차다. 실행 mode를 replay로 바꾸지 않으며 `replay_of`를 추가하지 않는다. 자동/replay 제품 경로는 후속이다.
-
-<!-- PS:drain -->
-## 6. 정지·입력·Timer·Executor drain
-
-- **PS13**: stop/cancel/error는 callback·I/O 전에 terminal latch·retry epoch·lease를 닫는다. committed-start/receipt stack 안에서는 World·authority를 파괴하거나 새 회차를 붙이지 않는다.
-- **PS14**: owner는 입력·emitter·예약 사건·retry·GoalTimer·Executor timer/move·StateTree를 실제 정지하고 attempt depth와 Executor result/external-effect dispatch가 0인 관측을 확인한다. fixture drain bool이나 EndPlay 플래그 초기화는 증거가 아니다.
-
-정지 순서는 다음과 같다.
-
-1. 현재 exact owner/session/episode/World/lease를 strong pin한다. terminal outcome·reason을 결정하고 Host와 owner latch/retry epoch를 먼저 닫는다. old callback은 새 회차를 poison하지 못한다. callback 안의 Stop은 요청만 누적한다.
-2. owner가 보유한 local controller에 `SetIgnoreMoveInput`/`SetIgnoreLookInput`을 소유량만 적용하고 `FlushPressedKeys`를 호출한다. player `StopJumping`, movement `StopMovementImmediately` 및 필요 시 `DisableMovement`를 적용한다. 이번에 획득한 input ignore count와 원래 movement mode를 추적한다. 다른 시스템의 ignore count를 전체 reset하지 않는다. `PlayerNoiseEmitterComponent.cpp`는 collection preparing/stopping owner가 있는 경우에만 새 notify 발행을 막는다.
-3. `FWorldDelegates::OnWorldTickEnd`에서 deferred stop을 진행한다. 이것만으로 drain을 단정하지 않고 Host의 `mCollectionAttemptDepth`, owner `mAttemptDepth`, publication in-flight/held image, retry pending 상태를 읽는다. 이미 예약된 retry callback은 exact epoch fence에서 실제로 소진/거부돼야 한다. sleep 한 번을 drain으로 쓰지 않는다.
-4. Host authority를 통해 GoalTimer teardown, StateTree stop 및 Executor의 신규 collection-only stop을 수행한다. 기존 `QuarantineForAssemblyFailure`·`ClearTimers`·move stop·result sink 경계를 좁게 재사용한다. 정상 Goal/Skill 정책을 바꾸지 않는다. 실행 중 Greet는 기존 social cancellation 경로로 끝내며 여기서 public permit을 만들지 않는다.
-5. Executor의 `bResultDispatchInProgress`, `bExternalEffectInProgress`, `mCommittedGreetStartInProgress`가 모두 false인지 실제 read-only snapshot을 얻는다. 실제 timer handles의 active 여부, running/move 종료, sink detach, StateTree/GoalTimer 상태도 확인한다. status만 보고 timer 없음으로 추론하지 않는다. 현재 public timer accessor가 Running 조건으로 감싸져 있으므로 신규 private drain 관측은 실제 handle 상태도 검사한다.
-6. `UninstallResultSinkForAuthority` 반환과 Knowledge sink lease 해제를 확인한 뒤에만 authority/assembly를 해제한다. 현 `Shutdown()`은 반환값을 버리므로 collection 경로에 성공 관측을 추가해야 한다. 확인 전 mExternalDispatchDrained를 true로 세팅하지 않는다.
-7. 종료 evidence를 저장하고 필요 시 새 World travel을 수행한다. 정상 Stop 뒤 일반 플레이를 돌려줄 때도 shutdown된 Host를 같은 World에서 collection이 없는 것처럼 다시 열지 않는다. 정지된 세션을 최종화한 뒤 fresh normal World로 복귀하거나 기존 assembly 보존이 실제 증명된 경우에만 소유한 input 제한을 해제한다. 반환 방식은 §12의 사용자 가시 결정이다.
-
-정지 watchdog은 단조 시각의 bounded wait다. 관측이 끝나지 않으면 reset_result=unverified와 sticky block을 기록한다. World destroy/PIE end/GameInstance Deinitialize에서 디스크 기록이 불가능하면 성공으로 바꾸지 않는다. 기존 finals를 보존하고 index 미완료로 남긴다. owner thread 밖에서 native root의 마지막 pin을 해제하지 않는다.
-
-<!-- PS:persist -->
-## 7. session·회차·terminal 파일과 닫힌 발행 목적
-
-- **PS15**: session descriptor·episode terminal·reset 결과·session terminal journal은 immutable 별도 파일로 exclusive publish와 exact readback을 수행한다. session/episode Schema에 terminal-history 필드를 끼워 넣지 않는다.
-- **PS16**: storage/sidecar/diagnostic/terminal/index 저장 실패와 reset failed/unverified는 sticky session block이다. 원본 Capture/marker·수락 ledger·잔여 bytes를 보존하며 같은 세션 재개와 성공 index를 차단한다.
-
-출력 root는 owner가 획득한 native private root이며 기본 namespace는 project `Saved/AINativeNPC/Collections`다. root 밖 절대 경로·backslash·parent traversal·reparse/alias escape를 허용하지 않는다. `PublishJsonExact`의 기존 CREATE_NEW → full write/flush/close → nonreplace MoveFileW → held-image actual exact readback을 재사용한다. `IsCanonicalJsonRelativePath`를 임의 `.json` 허용으로 넓히지 않는다.
-
-| purpose | 상대 경로 | payload |
-|---|---|---|
-| Session | sessions/<session UUID>/session.json | scenario_collection_session_v1 |
-| EpisodePreparing | episodes/<session UUID>/<episode UUID>/preparing.json | scenario_collection_episode_v1 |
-| EpisodeTerminal | episodes/<session UUID>/<episode UUID>/terminal.json | scenario_collection_episode_v1 |
-| EpisodeReset | episodes/<session UUID>/<episode UUID>/reset.json | scenario_collection_episode_v1 |
-| SessionTerminal | sessions/<session UUID>/terminal.json | anpc_collection_session_terminal_v1 |
-| Index | indexes/<session UUID>/index.json | scenario_collection_index_v1 |
-| Metadata | metadata/<session UUID>/<closed name>.json | 검증한 원본 metadata bytes |
-
-Metadata의 closed name은 `catalog`, `collection-schema`, `execution-profile`, `utility-profile-source`, `runtime-build-evidence`, `session-start-evidence`다. yaml/registry 원본은 trusted package에서 hash 검증한다. 필요한 장기 보관은 build evidence의 source inventory/archive로 결속하며 `.json` 이름으로 YAML을 저장하지 않는다. 저장 metadata가 canonical digest와 raw descriptor digest를 혼동하지 않게 한다.
-
-FileStore request에 신규 닫힌 purpose와 exact owner/session/episode/finalization generation을 결속한다. 가능한 operation과 경로는 purpose로 결정한다. UUID·고정 파일명은 owner의 typed 입력에서만 만들며 경로 문자열을 external caller가 제공하지 못한다. request는 owner thread에서 한 번 소비한다. sidecar와 diagnostic 기존 lease predicate는 보존한다. 새 session/terminal/index publication은 Host의 revoked lease 대신 owner-private lifecycle receipt로 매 stage 전후·readback 뒤 현재성을 확인한다. callback bool을 authority로 받지 않는다.
-
-session 파일은 기존 Schema의 immutable 시작 설정이다. wire session에는 terminal state가 없다. episode의 preparing 파일, terminal 파일, reset 파일은 각각 기존 episode Schema 전체를 지키며 바뀌는 state/reason/reset_result만 현재 관측에 따라 달라진다. terminal 파일은 reset_result=not_attempted로 먼저 저장한다. 새 회차 전에 reset 결과를 별도 파일로 보존한다. 이전 terminal 파일을 교체하지 않는다.
-
-새 내부 `session_terminal` journal은 `format="anpc_collection_session_terminal_v1"`, `version=1`, `session_id`, `outcome`, `reason`, `observed_at_seconds`, `session`, `ordered_episodes`만 갖는 closed object로 구현한다. outcome은 finalized/cancelled/timed_out/failed 중 실제 session 종료 이유다. session과 ordered_episodes 항목은 FileStore가 실제 publish/readback한 `{path,size_bytes,sha256}` descriptor다. ordered_episodes는 실패·Capture 없는 회차도 포함하며 reset 파일이 있으면 그것을, 없으면 terminal 파일을 최종 descriptor로 선택한다. active episode를 넣지 않는다. 이 journal은 collection session Schema나 ML completion_closure가 아니다. format의 finalized는 ledger를 닫은 내부 상태이며 index I/O 성공을 선포하지 않는다. 최종 index readback 성공은 별도 owner 결과로만 반환한다.
-
-preparation에서 실패한 경우 아직 DecisionId가 없다면 diagnostic observed_id=null, memory-only Snapshot이면 snapshot_present=false/snapshot_ref=null이다. 기존 Host의 storage scope가 없는 preparation/reset diagnostic도 신규 owner-private 경로로 실제 저장한 뒤 ledger에 넣는다. 필요할 때 진단 저장 실패는 재귀 진단 없이 memory failure를 남긴다. host에서 이미 저장한 diagnostic을 다시 accepted entry로 복제하지 않는다.
-
-<!-- PS:index -->
-## 8. 최종 index를 한 번 저장하는 알고리즘
-
-- **PS17**: 최종 index의 필드는 format/version/session_id/entries뿐이다. entries는 readback된 accepted/diagnostic canonical entry 본문이며 descriptor 목록·counts·approval·session/episode 객체를 추가하지 않는다.
-- **PS18**: 정지·drain·terminal 저장 뒤 ledger를 동결한다. accepted entries 다음 diagnostic entries의 기존 순서를 보존하고 각 마지막 LF만 제거해 합친 canonical UTF-8 index를 session당 한 번 nonreplace publish/readback한다.
-- **PS19**: index 발행은 lease revoke 뒤에도 유효한 owner-private one-shot purpose 권한을 사용한다. sidecar current-lease 검사를 풀거나 public arbitrary-path writer를 만들지 않으며 중복 stop은 기존 결과만 반환한다.
-
-최종화 입력은 owner의 `mAcceptedEntries`, `mDiagnosticEntries`, readback된 session/episode descriptor 목록이다. disk 디렉터리 glob이나 raw 파일 개수로 ledger를 재구성하지 않는다. 기존 accepted identity/sample/path/episode-decision set과 `mIndexEntryCount`의 일관성을 검사한다. 모든 referenced episode는 terminal이며 마지막을 제외한 회차는 verified reset이어야 한다.
-
-1. entry 발행·진단·stop stack이 모두 끝났고 sticky persistence/reset 오류가 없는지 검사한다. 성공한 Capture가 없어도 실제 종료 기록이 보존되었다면 empty index가 가능하다.
-2. ledger를 frozen 상태로 전환해 mutation과 reentrant append를 막는다. accepted, diagnostic 배열 각각의 순서를 유지한 owned snapshot을 만든다. canonical entry를 의미 해석 없이 임의 JSON 문자열로 받지 않는다. 생성 당시 typed record와 exact sidecar readback에 결속된 body만 사용한다.
-3. 각 body가 LF로 끝나는 검증된 canonical UTF-8 객체인지 확인한다. 끝 LF 하나만 제거한다. 본문 문자열을 trim하거나 double 기반 JSON 경로로 재직렬화하지 않는다. uint64 DecisionId의 정확성을 보존한다.
-4. key 순서는 `entries`, `format`, `session_id`, `version`이다. entries 안의 body 사이에만 comma를 넣고 wrapper 뒤 LF 하나를 붙인다. 기준은 `sorted_json_bytes(value) + b"\n"`, UTF-8/BOM 없음·compact·ensure_ascii=False·allow_nan=False다. runtime 바이트 길이는 `mIndexBytes`와 같아야 한다.
-5. native root가 idle이고 budget이 허용하면 exact Index purpose의 one-shot 권한을 mint한다. 최종 경로와 임시 sibling 충돌·symlink/ancestor 변경을 검사한다. `PublishJsonExact`의 actual exact readback 뒤 마지막 owner generation/current 검사를 수행한다.
-6. 성공 descriptor를 owner에 한 번 저장한다. Stop 재호출은 pending이면 같은 pending 상태를 반환하고, 성공이면 같은 descriptor를 반환한다. 다시 I/O하거나 accepted count를 올리지 않는다. 실패 후 같은 session 경로로 재시도하거나 final을 덮어쓰지 않는다.
-7. 부모 실파일 검사에서 session/ordered episodes/index를 strict parse하고 `validate_index(index, root, session, episodes, catalog, expected_profile_sha256=..., expected_runtime_build_sha256=...)`를 실제 신뢰 package의 pin과 실행한다. Capture/marker는 기존 동일 bytes decoder를 사용한다. catalog-only CLI 성공은 index 검사 성공이 아니다.
-
-이미 실물 파일로 옮겨졌지만 readback/current 확인에 실패한 index는 보존하되 성공 descriptor를 반환하지 않는다. 파일 존재와 최종화 성공을 구분한다. 마지막 cancelled/timed_out/관측 실패 회차도 저장·drain이 정상이고 session block이 없으면 구조적으로 유효한 최종 index에 포함할 수 있다. reset failed/unverified 또는 저장 실패가 있으면 성공 index는 만들지 않는다.
-
-<!-- PS:budget -->
-## 9. 누적 저장 예산 보존
-
-- **PS20**: 누적 budget은 Capture/marker/entry/diagnostic/index/session/episode/reset/journal/metadata와 in-flight overhead를 포함한다. checked arithmetic·쓰기 전 예약·실제 정산을 사용하며 World 교체·root/limit 변경으로 소비량을 지우지 않는다.
-- **PS21**: mIndexBytes의 기존 예약은 최종 본문으로 한 번 전환한다. 빈 ledger도 wrapper를 예약하고 최종 bytes와 일치시킨다. 실패 final/residual 예약은 남기며 보존 자료 삭제로 예산을 확보하지 않는다.
-
-현 Host `ReserveCollectionPublication`은 Capture/marker와 entry·diagnostic 및 향후 index body를 예약한다. `TryPublishCollectionReceipt`/diagnostic 완료는 `mIndexBytes`와 배열을 갱신한다. 이 회계와 별도의 새 세션 budget을 만들어 양쪽 제한을 우회하지 않는다.
-
-owner의 `mBudgetBytes` 한 장부에 신규 descriptor/terminal/metadata 비용을 추가한다. 같은 native root와 storage limit을 lifetime 동안 고정한다. 모든 더하기·곱하기·length 변환은 checked로 처리한다. 메모리 배열 한도와 FileStore의 hash padding 한도도 쓰기 전에 검사한다. 신규 Session 시작 때 empty index wrapper 및 반드시 필요한 종료 기록 reservation을 먼저 만든다. 이후 첫 capture 예약이 wrapper를 다시 더하지 않도록 기존 `mIndexBytes==0` 경계와 통합한다.
-
-index 저장 때 이미 예약된 본문 bytes를 실제 final 소비로 옮긴다. rename이 같은 bytes를 temp에서 final로 옮기는 부분을 중복 청구하지 않는다. 추가 실제 disk overhead가 필요한 경우만 별도 checked reservation을 확보한다. readback 실패·temp cleanup 실패·final 보존은 보수적으로 사용량에 남긴다. 중간 회차 terminal/reset 파일이 늘어나도 budget은 누적된다. 준비 실패·취소·빈 ledger에서도 초과 write를 허용하지 않는다.
-
-native root와 마지막 strong pin은 owner thread에서만 해제한다. World 해제로 root를 재획득하거나 세션 중 output root/limit을 바꾸는 요청은 거부한다. parent validator의 referenced-artifact 합산은 producer의 이 누적 회계를 대체하지 않는다.
-
-<!-- PS:provenance -->
-## 10. 출처·검증 범위와 승인 경계
-
-- **PS22**: 자동검사는 automated_runtime/automatic/automated 또는 격리 test_fixture로 기록한다. public manual start의 자동 호출은 human 허가를 만들지 않는다. 사람 플레이 확인은 사용자 실제 입력과 피드백으로만 완료한다.
-- **PS23**: index readback 성공은 구조·저장 완료다. completion pin/ML importer/Teacher/Human label/Resolve readiness/Shipping/UI/자동 시나리오 연출/commit/push는 이번 범위 밖이다.
-
-manual 공개 경로는 실제 local controller와 trusted launcher가 허용한 입력 주체를 확인한다. `GIsAutomationTesting` 및 automation/commandlet launch 상황에서 public manual 시작을 거부한다. 단순히 이 플래그가 false인 것만으로 사람을 인증하지 않는다. 자동 하네스는 private automation input adapter가 동일 nondev issuer·owner 본문을 실행하되 source/controller/mode를 실제 자동 실행으로 고정한다. 별도 테스트 fixture의 실제 관측을 general human input으로 승격하지 않는다.
-
-Unreal latent PIE 검사에서 실제 movement/sensing/World reset/file I/O를 실행한 결과는 자동 통합 증거다. 사용자 피드백과 실제 입력이 없으면 사람 플레이 확인은 미완료다. screenshot·commandlet·모의 성공 count만으로 이를 대신하지 않는다.
-
-이번 실행 대상 선택 이후 위 PIE 증거의 적용 범위는 Editor 하위 회귀다. 과거 PIE 증거를 Development Game 수집 통합 증거로 승격하지 않는다. 자동 Game 실행도 automated_runtime 출처로 남기며 사용자 실제 입력 확인과 분리한다.
-
-기존 Utility label은 raw 2/Dagger와 scenario_collection_utility_unreviewed다. Resolve capture-only는 기존 confidence와 phase 의미를 유지하며 ResolvePolicyReady를 바꾸지 않는다. `validate_index` 결과의 validated_row_count=0, production_eligible=false는 최종 보고에도 유지한다. 외부 completion pin/closure의 authority 검증은 Task 4의 별도 작업이다. 이번 local terminal journal·index hash가 그 권한이 되지 않는다.
-
-<!-- PS:matrix -->
-## 11. 사용자 확인용 행동 하네스와 실패 대응표
-
-이 절은 사용자 확인용 참고다. 현재 구현 전용 작업에서 AI는 검사 작성·실행·결과 판정을 수행하지 않는다.
-
-- **PS24**: 각 실패 검사는 정상 control과 실제 경계 도달을 함께 기록한다. 컴파일 실패·0 discovery·timeout·문서 mutation은 Unreal 행동 RED나 사람 플레이 증거가 아니다.
-
-새 Unreal 검사명 prefix는 `AINativeNPC.Collection.Host.PlaySession.*`로 고정한다. 기존 runner의 Host filter를 재사용한다. source의 기존 `Tests/AINativeNPCProductionPIESmokeTests.cpp`는 `LoadMap(MVP)` → `FStartPIECommand(false)` → latent verify → `FEndPlayMapCommand` 예제다. 이 기존 테스트를 수정하지 않는다. 기존 PIE smoke가 Phase3B 디렉터리를 삭제하는 동작도 있으므로 부모는 반드시 격리 Saved와 preserved-source inventory를 사용한다.
-
-| ID | 경계 | 입력·실패 | 필수 oracle |
-|---|---|---|---|
-| S01 | start | 정상 MVP/단일 local/assembly | nondev owner·첫 lease·session readback |
-| S02 | start | ThirdPerson/wrong World/no authority/복수 player | attach와 Capture 0·일반 플레이 보존 |
-| S03 | inputs | malformed catalog/profile/build·동일 forged digest | 실제 검증 실패·fixture 승격 0 |
-| S04 | provenance | 자동 runner의 manual start | human 오분류 0·automation 출처 유지 |
-| S05 | id | 중복 session/episode·sequence/epoch overflow | 재사용 0·기존 bytes 보존 |
-| S06 | lifecycle | 동시 start/new·기한 경계·관측 prefix 부족 | 단일 회차·timeout 우선·completed 거부 |
-| S07 | stop | committed-start/result callback 중 stop | revoke 선행·stack 내 teardown 0 |
-| S08 | drain | 입력 held·emitter·timer·move·dispatch 진행 | 실제 정지/0 관측 전 reset 금지 |
-| S09 | reset | old cleanup 누락·동일 World·재사용 Host·late callback | fresh barrier 거부·새 회차 불변 |
-| S10 | persist | terminal/reset/session write/readback 실패 | sticky block·원본 보존·index 성공 0 |
-| S11 | index | accepted+diagnostic·빈 ledger | strict fields·canonical bytes·실파일 재검증 |
-| S12 | index | final/temp 충돌·alias·race·readback 변조 | nonreplace·실패 bytes 보존·재발행 0 |
-| S13 | budget | wrapper/metadata/terminal/residual·overflow | 누적 선예약·이중 청구 0·초과 write 0 |
-| S14 | cancel | 중복 stop·cancel 뒤 new·GameInstance 종료 | 일회 index·drain·오류 상태 보존 |
-| S15 | normalgame | 수집 off·Resolve capture-only | legacy 동작·세 승인 false 유지 |
-| S16 | nondev | macro-off compile/preprocess와 실제 entry | prod 경로 존재·test helper 의존 0 |
-| S17 | realfile | session/episodes/index·Capture/marker 재읽기 | validate_index·validated_row_count=0·production_eligible=false |
-
-각 관측 receipt는 실제 syscall·timer/dispatch·World identity에서 생성한다. hostile test injection은 실패를 발생시키거나 관측할 뿐 성공 권한을 대신 주입하지 않는다. old receipt와 새 lease 교차, session block 이후 new episode, preparation-only/capture 없는 cancel, max uint64 정밀도, index 최종 readback 후 재진입을 포함한다.
-
-<!-- PS:execution -->
-## 12. 부모 구현 순서·실행 소유·인계 결정
-
-- **PS25**: AI는 문서 태스크 단위의 코드 작성만 소유한다. 검토·검증·구현 확인과 build·Automation·실파일 확인은 사용자가 담당한다. 과거 문서 작성 상태와 실행 기록은 당시 범위의 기록으로 보존한다.
-
-### 12.1 기존 문서 하네스 — 사용자 참고
-
-아래 명령과 실패 분류는 과거 절차의 참고 기록이다. AI는 이 하네스를 실행하거나 변경된 작업 방식에 맞춰 별도 검사 수정 작업을 시작하지 않는다.
-
-새 pytest는 active exact tag·규범 문장·allowlist/명령/default/path/matrix 표, Schema의 closed index, 실제 catalog membership을 검사한다. 삭제·완화·fence/comment 은닉·잘못된 scope 이동·중복/누락/순서 변경·각 실패 oracle 삭제를 메모리 mutation으로 거부한다. 기존 문서나 tests를 쓰지 않는다. 아래 명령은 **실행 지시 예시이며 실행 결과가 아니다**. 새 evidence 하위 이름을 사용하고 이미 존재한 결과를 덮어쓰지 않는다.
-
-```bash
-cd /home/namingsense/AI-Native-NPC
-PYTHONDONTWRITEBYTECODE=1 ANPC_PLAY_SESSION_DOCUMENT_MODE=before-plan python -B -m pytest tests/test_collection_play_session_index_document.py -q -p no:cacheprovider --basetemp=/home/namingsense/AI-Native-NPC-evidence/collection-publication-c92d7rmc/play-session-index-implementation-01/doc-red-tmp-01 --junitxml=/home/namingsense/AI-Native-NPC-evidence/collection-publication-c92d7rmc/play-session-index-implementation-01/doc-red-01.xml
-PYTHONDONTWRITEBYTECODE=1 python -B -m pytest tests/test_collection_play_session_index_document.py -q -p no:cacheprovider --basetemp=/home/namingsense/AI-Native-NPC-evidence/collection-publication-c92d7rmc/play-session-index-implementation-01/doc-green-tmp-01 --junitxml=/home/namingsense/AI-Native-NPC-evidence/collection-publication-c92d7rmc/play-session-index-implementation-01/doc-green-01.xml
+```text
+anpc.Collection.Start hearing_only 400 0 0
 ```
 
-실행 옵션은 `ANPC_PLAY_SESSION_DOCUMENT_MODE=before-plan`, `PYTHONDONTWRITEBYTECODE=1`, `-B -m pytest`, `-p no:cacheprovider`, `--basetemp`, `--junitxml`로 고정한다. before-plan의 예상 실패는 active play-session clauses 부재 assertion이다. import/FileNotFound/환경 오류는 행동 RED가 아니다. 기존 문서 하네스도 부모가 필요한 회귀만 실행하고 문서 검사 수를 Unreal 수에 합산하지 않는다.
+이 예시는 소리 듣기 시나리오를 거리 400cm, 접근 각도 0도, seed 0으로 시작하는 요청이다.
+
+### 기본값
+
+- 수집은 기본적으로 꺼져 있다.
+- 기본 시나리오는 소리 듣기다(`hearing_only`).
+- 기본 거리는 400cm다. 선택 가능한 거리는 400cm와 600cm다.
+- 접근 각도는 0도다.
+- 기본 seed는 0이다. 선택 가능한 값은 0, 1, 2다.
+- 최대 회차 수는 2다.
+- 회차 제한 시간은 30초다. 준비 제한 시간은 10초다.
+- 판단 한도는 100이다.
+- 저장 한도는 67108864바이트다.
+- 학습 자료의 분할 용도는 미지정 상태다(`unassigned`).
+
+시작 명령으로 저장 위치나 한도를 바꾸는 기능은 제공하지 않는다. 명령의 인수 수와 허용 값을 확인한다.
+
+### 선택할 수 있는 시나리오
+
+- 소리 듣기(`hearing_only`).
+- 소리를 들은 뒤 플레이어 보기(`hearing_appearance`).
+- 소리를 들은 뒤 플레이어를 보고 다시 놓치기(`hearing_appearance_loss`).
+
+이 목록은 코드가 지원하는 범위다. 실제 맵에서의 동작 확인은 남아 있다. 그 밖의 시나리오는 기존 제외 이유를 반환한다.
+
+<!-- PS:inputs -->
+## 4. 수집 시작 준비
+
+시작 준비는 이번 수집에 사용할 게임, 설정과 플레이 상태를 맞추는 단계다.
+
+1. 준비 도구가 사용할 소스와 빌드 결과를 기록한다.
+2. 준비 도구가 선택한 맵의 실행 자료를 준비한다.
+3. 실행기가 새 게임 프로세스를 시작한다.
+4. 게임이 실제 실행물과 빌드 기록의 대응을 확인한다.
+5. 세션 관리자가 새 세션 번호와 시작 기록을 만든다.
+6. 플레이어와 NPC의 준비가 끝나면 수집을 시작한다.
+
+세션 관리자는 회차가 바뀌어도 세션 기록을 유지하는 구성 요소다. 구현에서는 GameInstance subsystem이 이 역할을 맡는다.
+
+실행기는 새 게임의 초기 파일 확인 완료를 최대 60초 기다린다. 이 대기는 수집을 시작하기 전의 게임 실행 단계다. 회차 준비 제한 10초와 기존 40ms 제한은 유지한다. 게임이 실행 중 생성한 설정·로그 폴더는 빌드 입력 목록에서 제외한다. 실제 게임 자료와 실행 파일의 대조는 유지한다.
+
+자동 실행은 초기 확인 뒤 세션 예약을 최대 10초 기다린다. 시작 기록을 보낸 뒤 준비 완료 응답도 최대 10초 기다린다. 응답이 없으면 실행기는 오류를 반환한다. 사람 입력 모드에서는 사용자가 시작 명령을 입력할 때까지 기다린다. 게임 창의 자동 강제 종료는 추가하지 않는다.
+
+시작하려면 지원하는 맵과 한 명의 로컬 플레이어가 있어야 한다. NPC의 감각과 행동 실행 구성도 준비되어야 한다. 수집을 켜지 않은 일반 플레이는 기존 동작을 유지한다.
+
+### 수집 중 지킬 운영 규칙
+
+한 세션은 같은 빌드로 진행한다. 수집 프로세스에는 실행 중 코드를 바꾸는 Live Coding과 hot reload를 적용하지 않는다. 변경한 코드를 적용할 때는 수집을 종료하고 새 빌드로 새 세션을 시작한다.
+
+실제 코드 변경이나 패치 적용이 확인되면 해당 세션을 중단한다. Live Coding 내부의 모든 상태를 관측할 수 있는지는 시작 조건으로 삼지 않는다.
+
+원본 개발 폴더와 설치 엔진은 그대로 둔다. 준비 결과와 수집 파일은 별도 작업 위치에 저장한다. 다른 개발 폴더를 편집하거나 무관한 DLL을 로드한 일만으로 수집을 실패시키지 않는다. DLL은 게임이 사용하는 프로그램 구성 파일이다.
+
+<!-- PS:lifecycle -->
+## 5. 첫 회차와 다음 회차
+
+회차는 정해진 초기 조건에서 시작한다. 세션 관리자는 한 번에 한 회차만 진행한다.
+
+이미 플레이가 진행된 상태에서 시작을 요청하면 현재 작업을 정지한다. 그 뒤 같은 지원 맵을 새로 열어 첫 회차를 준비한다. 이전에 일어난 판단은 새 회차에 넣지 않는다.
+
+준비 중에는 플레이어 입력과 발소리 발행을 잠시 제한한다. 플레이어를 선택한 거리에 배치한다. 실제 위치와 NPC 준비를 확인한 뒤 입력을 돌려준다.
+
+### 실제 사건 기록
+
+플레이어의 이동은 기존 게임 입력 경로를 사용한다. 애니메이션에서 발소리가 발생하면 NPC의 청각으로 전달된다. 플레이어를 보고 놓치는 사건도 실제 시야 관측을 사용한다.
+
+시나리오 사건은 일어난 순서대로 기록한다. NPC의 기억이나 센서 값을 직접 바꿔 성공 사건을 만들지 않는다.
+
+회차 결과는 다음과 같다.
+
+- 필요한 사건이 기한 전에 모두 일어나면 **완료**다(`completed`).
+- 사용자가 먼저 종료나 다음 회차를 요청하면 **취소**다(`cancelled`).
+- 기한 전에 오류가 생기면 **실패**다(`failed`).
+- 제한 시간에 도달하면 **시간 초과**다(`timed_out`).
+
+이미 확정된 결과는 유지한다. 판단 한도와 회차 한도도 적용한다.
+
+### 다음 회차로 이동
+
+다음 회차를 요청하면 현재 결과를 먼저 저장한다. 진행 중인 행동을 정지한 뒤 이전 게임 상태를 정리한다. 새로 열린 맵의 준비가 끝나면 초기화 결과를 저장하고 다음 회차를 연결한다.
+
+같은 위치로 되돌리는 것만으로 초기화를 끝내지 않는다. 새 World와 새 객체의 준비를 확인한다. 다음 회차는 같은 조건의 새로운 플레이다. 이전 회차를 재생하는 기능과 구분한다.
+
+<!-- PS:drain -->
+## 6. 수집 종료
+
+수집 종료는 새 기록을 멈추고 진행 중인 작업을 끝내는 과정이다.
+
+1. 새 판단과 저장 요청을 막는다.
+2. 플레이어 입력과 발소리를 제한한다.
+3. NPC의 이동, 예약된 행동과 실행 중인 작업을 정지한다.
+4. 처리 중인 결과 전달이 끝나기를 기다린다.
+5. 회차 종료 기록과 세션 종료 기록을 저장한다.
+6. 최종 목록을 저장하고 일반 플레이용 맵을 새로 연다.
+
+정지는 현재 세션이 소유한 작업에만 적용한다. 다른 시스템이 건 입력 제한은 유지한다.
+
+종료가 기한 안에 끝나지 않으면 확인하지 못한 상태를 기록한다. 강제 종료나 디스크 오류로 저장을 마치지 못한 경우도 미완료로 남긴다. 저장 결과와 일반 플레이 복귀 결과는 따로 보고한다.
+
+<!-- PS:persist -->
+## 7. 저장하는 자료
+
+수집 결과는 세션별로 구분해 저장한다. 기본 저장 위치는 `Saved/AINativeNPC/Collections`다.
+
+- **세션 시작 기록:** 이번 세션의 설정과 식별 번호를 담는다.
+- **회차 준비 기록:** 회차의 시작 조건을 담는다.
+- **회차 종료 기록:** 완료, 취소, 실패 또는 시간 초과 결과를 담는다.
+- **초기화 결과:** 다음 회차를 시작할 준비가 끝났는지 담는다.
+- **세션 종료 기록:** 종료 이유와 회차 기록의 위치를 담는다.
+- **판단 기록과 오류 기록:** 실제 수집 내용과 수집 중 문제를 담는다.
+- **최종 목록:** 저장이 끝난 판단 기록과 오류 기록을 모은다.
+- **수집 설정과 빌드 기록:** 어떤 조건과 실행물로 수집했는지 남긴다.
+
+파일은 새 이름으로 저장한다. 저장한 내용을 다시 읽어 원래 내용과 일치하는지 확인한다. 기존 수집 파일은 덮어쓰지 않는다.
+
+저장이나 초기화가 실패하면 그 세션에 실패를 남긴다. 기존 자료와 실패한 파일은 보존한다. 같은 세션을 정상 완료한 것처럼 계속 진행하지 않는다.
+
+<!-- PS:index -->
+## 8. 최종 목록 저장
+
+최종 목록은 저장을 마친 자료를 세션당 한 번 정리한 파일이다.
+
+세션 관리자는 각 저장이 끝날 때 내부 목록에 결과를 남긴다. 수집을 종료하면 이 목록에 새 항목을 추가하는 일을 멈춘다. 그 뒤 판단 기록과 오류 기록을 정해진 순서로 묶어 파일에 쓴다.
+
+판단 기록이 없는 취소 세션도 종료 기록이 정상적으로 저장됐다면 빈 최종 목록을 남길 수 있다. 저장이나 초기화가 실패한 세션은 최종 저장 성공으로 표시하지 않는다.
+
+종료 명령을 다시 입력하면 기존 진행 상태나 저장 결과를 반환한다. 같은 목록을 다시 쓰지 않는다.
+
+<!-- PS:budget -->
+## 9. 저장 용량 관리
+
+저장 용량은 세션 전체를 하나의 장부로 관리한다.
+
+판단 기록, 오류 기록과 설정 파일에 사용한 용량을 모두 더한다. 회차 종료 기록과 최종 목록을 저장할 용량도 미리 확보한다. 다음 회차로 넘어가도 사용량은 유지한다.
+
+쓰기 전에 남은 용량을 확인한다. 저장 중 실패해 남은 파일도 사용량에 포함한다. 이전 자료를 삭제해서 이번 세션의 공간을 확보하지 않는다.
+
+<!-- PS:provenance -->
+## 10. 수집 출처와 학습 승인
+
+수집 출처는 사람이 직접 플레이했는지 자동 입력으로 실행했는지를 구분하는 정보다.
+
+자동 입력은 자동 실행으로 기록한다. 사람 플레이 확인은 실제 사용자 입력과 피드백에 근거한다. 내부 자동 도구가 같은 수집 기능을 사용해도 사람 플레이로 표시하지 않는다.
+
+NPC의 기존 행동 선택 결과는 정답 후보로 저장한다. 수집 파일 저장과 학습 정답 승인은 별도 단계다. 최종 목록을 저장한 것만으로 학습 사용이나 게임의 판단 정책 사용을 승인하지 않는다.
+
+현재 승인 상태와 정확한 기록값은 부록 E에 둔다.
+
+<!-- PS:matrix -->
+## 11. 사용자가 확인할 흐름
+
+사용자는 실제 게임에서 아래 동작을 확인한다. 이 목록은 AI에게 검사 실행을 지시하는 절차가 아니다.
+
+- 시작 명령으로 첫 회차가 준비되는지 확인한다.
+- 실제 이동과 NPC 관측이 기록되는지 확인한다.
+- 다음 회차에서 이전 결과가 보존되는지 확인한다.
+- 종료 후 최종 목록이 한 번 저장되는지 확인한다.
+- 일반 플레이로 돌아오는지 확인한다.
+- 잘못된 옵션, 저장 오류와 예산 부족이 실패로 표시되는지 확인한다.
+- 무관한 DLL 로딩이나 개발 폴더 편집 때문에 수집이 중단되지 않는지 확인한다.
+- 자동 입력과 사람 입력이 구분되는지 확인한다.
+
+기존 테스트와 과거 실행 결과는 보존한다. 과거 결과를 새 코드의 동작 확인으로 사용하지 않는다.
+
+<!-- PS:execution -->
+## 12. 구현 작업 단위
+
+구현은 기능별 태스크 단위로 진행한다. 기존 태스크 번호를 유지한다.
+
+### 12.1 작업 원칙
+
+한 태스크의 관련 코드는 같은 작업에서 연결한다. 함수별로 새 계획이나 검사를 만들지 않는다. 이미 작성한 코드는 이어서 사용한다.
+
+작성 결과에는 만든 기능과 남은 연결을 적는다. 입력이 정상이어도 시작을 항상 거부하는 부분이 남아 있으면 시작 연결 미완료로 기록한다.
 
 ### 12.2 구현계획 태스크 단위의 일괄 구현
 
-기존 제품 구현 항목 2–6의 번호와 기능 범위를 유지한다. 과거 항목 1의 검사 선행 단계와 항목 7–8의 실행 검증은 AI 구현 절차에서 제외한다. 태스크는 아래 덩어리 전체이며 내부 함수를 별도 위임 단계로 만들지 않는다.
+**태스크 2 — RuntimeInputs와 일반 플레이 진입**
 
-- **구현 태스크 2 — RuntimeInputs와 일반 플레이 진입:** RuntimeInputs와 GameInstance owner, typed options·console 등록·disabled default·현재 World 검사와 필요한 실제 package/build/start 입력 연결을 함께 구현한다. 관측이 없는 입력에는 실패 reason을 반환하는 제품 계약을 유지한다.
-- **구현 태스크 3 — 세션 소유와 회차 연결:** session/episode/root 소유와 private runtime Context/Lease/Host attach를 함께 구현한다. preparing intent rendezvous·실제 storage bind·runtime namespace를 연결한다.
-- **구현 태스크 4 — 정지와 새 World 전환:** input/emitter/retry/timer/Executor drain 관측과 deferred stop, terminal persist/readback, fresh World/reset 결과 저장을 하나의 구현 태스크로 연결한다.
-- **구현 태스크 5 — 수명 기록 저장:** FileStore의 purpose별 closed grammar와 owner-private one-shot current 확인, Bridge의 typed session/episode/journal/index serializer를 함께 구현한다. 기존 lower syscall/readback을 재사용한다.
-- **구현 태스크 6 — 최종 목록과 누적 예산:** ledger frozen index와 empty wrapper·metadata/terminal reservation을 통합한다. collision/readback/budget 실패 처리와 일회 저장·결과 캐시를 제품 코드에 연결한다.
+수집 설정과 게임 실행물을 연결하는 작업이다. 시작 명령, 옵션 확인과 현재 게임 상태 확인을 함께 연결한다. RuntimeInputs는 이때 읽고 소유하는 수집 입력을 담당한다.
 
-이미 작성된 부분은 이어서 사용한다. 새 태스크별 검사 문서·실패용 빈 본문·실행 증거를 작성하는 작업으로 되돌아가지 않는다. 태스크의 관련 코드를 작성한 뒤 `코드 작성 완료`와 `남은 구현`을 인계한다. 검토·검증·구현 확인은 사용자가 담당한다.
+기존 빌드로 다시 수집하는 연결도 이 태스크에서 작성한다. 준비 완료 기록 저장, 기존 결과 읽기, 새 실행과 세션 연결, 사용자가 호출할 명령을 한 작업으로 묶는다.
 
-### 12.3 구현 기본안과 실행으로 확인할 조건
+**태스크 3 — 세션 소유와 회차 연결**
 
-부모는 명시적 수집 요청에 아래 최소 기본안을 적용한다. 이 선택은 새 UI·자동 시나리오 연출을 추가하지 않는다. 실제 배치·관측 성공은 후속 Unreal 실행으로 확인한다.
+맵이 바뀌어도 세션과 저장 기록을 유지하는 작업이다. 준비된 NPC에 현재 회차의 수집 정보를 연결한다.
 
-- **배치 좌표계/오차:** Guard 초기 home의 수평 forward를 정규화한다. 목표 player XY는 home XY에서 선택 distance만큼 그 forward 반대 방향이다. angle=0은 player가 Guard 쪽을 향하는 접근 방향이다. 지면·capsule clearance를 실제 trace/sweep로 검사한 뒤 foot 기준 높이를 정한다. readback 수평 위치 오차 1cm 이하와 yaw 오차 1도 이하를 요구한다. 엔진의 충돌 보정으로 이 조건을 벗어나면 실패한다. 이 허용 오차는 센서 feature나 카탈로그 variation을 확장하지 않는 배치 검사 한도다. 실제 map에서 성립하는지는 별도 실행으로 증명한다.
-- **정상 Stop 뒤 플레이 반환:** terminal/index를 저장한 뒤 같은 MVP map의 fresh normal World로 복귀한다. Start/NewEpisode는 명시적 수집 회차 초기화를 포함한다. 완료 index를 바꾸지 않는다. 복귀 실패는 별도 운영 오류로 보고한다. shutdown된 Host를 같은 World에서 재활성화하지 않는다.
-- **trusted package/launcher 공급:** `RuntimeInputs`와 부모 전용 준비 도구가 실제 metadata·forced project-module build·receipt·source와 loaded module을 결속한다. 부모 도구가 별도 launch 환경에 package 위치와 exact digest pin을 전달한다. 제출 JSON의 expected 필드는 권한을 만들지 않는다. 실제 module 목록과 OS creation time은 Windows API로 관측한다. package root의 stable ownership과 시작 뒤 module 변경 검사는 계속 필수다. 이 기본안은 구현·실행 완료 주장이 아니다.
-- **manual 완료 사건 관측:** 이동 사건은 Running 이후 실제 player 수평 이동 시간의 누적이 catalog의 movement_seconds를 만족하고, 같은 player의 성공한 authored Animation Notify 증가와 실제 SoundHeard를 관측한 때 성립한다. 준비 이전 관측을 재사용하지 않는다. 후속 appearance/loss는 같은 typed player의 실제 SightAcquired/SightLost 순서만 받는다. 매 사건의 trigger 이후 timeout과 전체 monotonic deadline을 함께 적용한다. 짧은 이동 한 번이나 Goal phase 진입을 전체 사건 완료로 바꾸지 않는다.
+**태스크 4 — 정지와 새 World 전환**
 
-좌표·입력 종료·사건 기준은 구현 기본안이다. 실제 source 경계와 실행 결과가 이를 충족하지 못하면 실패를 기록하고 필요한 좁은 교정을 문서·하네스에 먼저 반영한다. stub 성공·허위 hash·fixture receipt로 미완료를 채우지 않는다.
+진행 중인 입력과 NPC 행동을 끝내는 작업이다. 이전 회차를 저장하고 새 게임 상태에서 다음 회차를 준비한다.
 
-### 12.4 별도 Development Game의 최종 수집 통합
+**태스크 5 — 수명 기록 저장**
+
+세션 시작, 회차 준비, 회차 종료와 초기화 결과를 파일로 남기는 작업이다. 기존 저장 기능을 재사용한다.
+
+**태스크 6 — 최종 목록과 누적 예산**
+
+세션 결과를 한 번 저장하고 전체 저장 용량을 관리하는 작업이다. 반복된 종료 요청에는 같은 결과를 반환한다.
+
+### 12.3 구현 기본안
+
+플레이어는 NPC의 초기 위치를 기준으로 배치한다. 선택한 거리와 접근 방향을 실제 위치에 적용한다. 정확한 배치 기준은 부록 B에 둔다.
+
+정상 종료 후에는 같은 수집용 맵을 일반 플레이 상태로 새로 연다. 종료한 NPC 구성을 그대로 다시 켜는 방식은 사용하지 않는다.
+
+### 12.4 별도 Development Game
+
+현재 설치 엔진과 기존 게임 실행 대상을 사용한다. 실행 중 코드 변경은 운영 규칙으로 제한한다. 엔진 전체의 변화를 감시하는 기능은 이번 시작 조건에 포함하지 않는다.
+
+선택 화면은 상위 계획의 태스크 3에서 코드를 작성했다. 더 넓은 NPC·플러그인 구성과 강제 종료 복구는 후속 기능으로 둔다. 기존 빌드 재사용은 현재 구현 범위다. 상세 실행 조건은 부록 F에 정리한다.
+
+---
+
+<details>
+<summary>부록 펼치기: 코드 이름·파일 형식·세부 구현 기준</summary>
+
+## 부록 — 구현에 필요한 정확한 기준
+
+이 부록은 본문의 기능을 코드와 파일 형식에 연결한다. 명령, 값과 저장 형식은 기존 계약을 유지한다.
+
+## A. 시작 입력과 실행 연결
+
+### 수집 입력의 보관
+
+수집 입력은 실행별 새 폴더에 보관한다. 기준 위치는 `Saved/AINativeNPC/CollectionRuntime`이다.
+
+- 시나리오 목록: `catalog.json`.
+- 수집 파일 형식: `collection-schema.json`.
+- 판단 기록 형식: `capture-schema.yaml`.
+- 행동·목표 정의: `skill-registry.yaml`, `goal-registry.yaml`.
+- 실행 설정: `execution-profile.json`.
+- 기존 행동 선택 정책의 출처: `utility-profile-source.json`.
+- 빌드 기록: `runtime-build-evidence.json`.
+- 세션 시작 기록: `session-start-evidence.json`.
+
+파일 내용은 한 번 읽은 바이트에서 해석하고 식별값을 계산한다. 파일 식별값은 내용의 일치를 확인하는 digest다. 카탈로그 내용을 정해진 표현으로 바꿔 얻는 digest와 원본 파일 bytes의 digest는 구분한다.
+
+입력은 기존 Schema의 필드와 값 범위를 따른다. 잘못된 JSON, 중복 key, 범위 밖 수치와 유한하지 않은 값은 거부한다. 기록된 digest와 실제 파일 내용의 불일치도 거부한다.
+
+빌드 기록은 실제 명령과 산출물에 연결한다. 빌드 방식 값은 `build_mode="clean_or_forced_project_modules"`다. 변경된 부분만 빌드한 결과를 이 값으로 표시하지 않는다. 게임 자료를 실행 형식으로 준비하는 과정은 cook/staging이라고 부른다.
+
+### 세션 관리자와 수집 권한
+
+맵 전환 동안 살아 있는 게임 단위는 GameInstance다. 그 안의 세션 관리자가 세션 번호, 저장 위치, 용량 장부와 회차 기록을 소유한다.
+
+현재 회차의 고정 정보는 Context다. 현재 회차에서 기록할 수 있는 수명이 제한된 권한은 Lease다. 이 둘은 세션 관리자의 내부 경로에서 발급한다. 공개 성공값이나 테스트용 연결 함수로 대신하지 않는다.
+
+시작 명령을 받은 World의 GameInstance를 사용한다. 세션 번호를 예약한 뒤 이번 프로세스의 시작 기록에 연결한다. 프로세스 번호와 OS 시작 식별값을 함께 사용한다. 다른 세션이나 다른 실행물의 기록은 거부한다.
+
+실제 수집의 이름 영역은 `play_session_runtime_v1`이다. 격리 테스트의 이름 영역은 `host_transient_fixture_v1`이다.
+
+### 공개 명령의 내부 연결
+
+- 수집 시작은 `RequestStartManual`로 연결한다.
+- 다음 회차는 `RequestNewEpisode`로 연결한다.
+- 수집 종료는 `RequestStop`으로 연결한다.
+
+시작 인수는 없거나 `scenario distance angle seed` 전체가 있어야 한다. 경로, digest, 승인값, 입력 출처와 실행 class는 공개 옵션으로 받지 않는다.
+
+기본값의 정확한 필드는 다음과 같다.
+
+```text
+enabled = false
+scenario_id = hearing_only
+distance_cm = 400
+approach_angle_deg = 0
+seed = 0
+max_episodes = 2
+episode_timeout_seconds = 30
+preparation_timeout_seconds = 10
+max_decisions = 100
+storage_limit_bytes = 67108864
+split = unassigned
+```
+
+시나리오 지원 표시는 `support_semantics=code_supported_pending_runtime_validation`을 유지한다.
+
+### 시작 시 필요한 게임 구성
+
+플레이어 입력 제어 객체는 Controller다. 실제 캐릭터 객체는 Pawn이다. 둘의 실제 소유 관계와 하나의 `Player.Main`을 확인한다.
+
+NPC에는 Guard와 그 Controller가 있어야 한다. 판단 실행을 연결하는 Host, 기억을 관리하는 Knowledge, 행동을 실행하는 Executor가 필요하다. 행동 흐름인 StateTree와 목표 시간 관리자인 GoalTimer도 준비되어야 한다. 외형 mesh, 발소리 발생기와 감각 설정을 확인한다.
+
+현재 범위는 단일 로컬 플레이어와 권한 있는 실행이다. client, dedicated server, split screen과 복수 Guard는 지원 범위 밖이다. 기본 ThirdPerson 설정은 유지한다.
+
+### Live Coding과 세션 중 확인
+
+이미 로드된 Live Coding 모듈이 있으면 지원하는 비활성화와 상태 조회를 사용한다. 알려진 활성화, 컴파일 또는 패치 사실은 시작 거부 사유다. 조회를 위해 모듈을 새로 로드하지 않는다.
+
+모듈이나 조회 API의 부재는 시작을 막지 않는다. 내부 시작 중 상태인 `Starting`을 구분하지 못하는 경우도 같다. 보조 프로세스가 시작됐다는 사실만으로 패치가 적용됐다고 판단하지 않는다.
+
+시작 기록의 `live_coding_state="disabled"`와 `hot_reload_state="disabled"`는 실제 비활성 설정과 운영 규칙을 뜻한다. 실제 관측과 이 기록이 모순되면 거부한다. 모든 순간을 감시했다는 인증값으로 사용하지 않는다.
+
+진행 중에는 현재 관리자, 세션, World와 Lease가 유효한지 확인한다. 이전 요청과 새 요청은 세대 번호인 generation으로 구분한다. 실행기 프로세스와 통신 상태도 확인한다.
+
+실제 코드 변경이 확인되면 세션을 실패 처리한다. 일반 DLL의 로딩이나 전체 개발 폴더의 변경 자체를 실패 사유로 사용하지 않는다. 고정 입력과 전체 파일 목록을 매 게임 갱신마다 다시 읽지 않는다.
+
+## B. 회차와 종료의 세부 기준
+
+### 식별 번호와 상태
+
+세션 번호와 수집 회차 번호는 재사용하지 않는 lowercase UUIDv4다. UUIDv4는 각 기록을 구별하는 식별 번호 형식이다. 실패한 시도에 사용한 번호도 다시 사용하지 않는다.
+
+판단 기록 자체의 회차 번호와 프로세스 전체의 순번은 별도로 유지한다. 이 순번은 0을 사용하지 않는다. 새 World나 새 회차를 시작해도 재설정하지 않는다.
+
+내부 상태는 다음과 같다.
+
+- 시작과 진행: `Idle → Preparing → Running`.
+- 정지와 회차 저장: `StopRequested → Draining → TerminalPersisted`.
+- 다음 회차 준비: `AwaitingFreshWorld → Idle/Preparing`.
+- 세션 종료: `Finalizing → Finalized`.
+
+저장이나 초기화 실패는 세션의 차단 상태로 남긴다. 준비 시간도 회차의 시간 계산에 포함한다. 시스템 시계 보정의 영향을 받지 않는 단조 시각을 사용한다. 기한에 도달한 뒤에는 시간 초과를 우선한다.
+
+### 배치와 사건 관측
+
+NPC의 초기 위치를 기준점인 home으로 사용한다. 초기 정면의 수평 방향을 구한다. 그 반대 방향에 선택 거리만큼 플레이어를 둔다. 접근 각도 0은 플레이어가 NPC 쪽을 향하는 방향이다.
+
+지면과 캐릭터가 들어갈 공간을 실제 충돌 검사로 확인한다. 수평 위치 오차는 1cm 이하여야 한다. 수평 회전각인 yaw의 오차는 1도 이하여야 한다. 조건에 맞지 않으면 준비 실패로 처리한다.
+
+실제 입력 흐름은 다음과 같다.
+
+```text
+DoMove → Animation Notify → NoiseEmitter → Hearing/Sight → Knowledge → Host
+```
+
+Animation Notify는 애니메이션에서 발생시키는 사건 알림이다. 이동 사건은 Running 이후의 실제 이동 시간이 시나리오의 `movement_seconds`를 만족해야 한다. 같은 플레이어의 발소리 알림과 청각 관측(`SoundHeard`)도 필요하다.
+
+그 뒤의 시야 획득(`SightAcquired`)과 시야 상실(`SightLost`)을 순서대로 기록한다. 사건별 제한 시간과 전체 제한 시간을 함께 적용한다. 준비 이전의 사건을 재사용하지 않는다.
+
+### 새 World 준비
+
+맵 전환 요청은 `OpenLevel`로 보낸다. 이전 World의 정리가 끝난 뒤 같은 GameInstance에 새 World가 준비됐는지 확인한다. 요청 반환만으로 성공을 기록하지 않는다.
+
+회차의 첫 판단 전에 세션 관리자와 Host가 준비 상태를 맞춘다. 준비 중 수집 정보가 부족하면 수집을 기다린다. 일반 판단으로 우회해서 새 회차 기록을 만들지 않는다.
+
+새 World의 준비가 끝나기 전에는 감각 입력을 Knowledge에 반영하지 않는다. 배치와 수집 연결을 마치면 실제 감각 입력을 다시 처리한다. 준비 중 입력을 성공 사건으로 재사용하지 않는다. 일반 플레이로 돌아가면 기존 감각 입력 처리를 유지한다.
+
+다음 회차를 연결하기 전에 초기화 확인값(`reset_result=verified`)을 저장한다. 이전 회차에서 늦게 도착한 작업은 새 회차에 적용하지 않는다.
+
+### 안전한 정지
+
+이벤트 처리 중 호출되는 함수는 callback이다. 그 안에서 종료를 요청하면 먼저 요청을 남긴다. World와 권한을 해제하는 작업은 callback 밖에서 진행한다.
+
+정지 시에는 먼저 새 판단과 재시도를 닫는다. 현재 세션이 설정한 입력 제한만 관리한다. 이동, 타이머, StateTree와 Executor를 정지한다. 실행 중 social action은 기존 취소 경로를 따른다.
+
+게임 갱신이 끝나는 경계에서 남은 판단과 저장 작업이 끝났는지 확인한다. 결과 전달과 외부 효과 전달도 끝나야 한다. 이벤트 결과를 받는 연결인 sink를 해제한 뒤 회차를 정리한다. 종료 함수에서 상태값만 초기화한 일을 실제 종료 확인으로 대신하지 않는다.
+
+## C. 저장 형식과 용량 계산
+
+### 파일 위치
+
+파일은 정해진 목적에 맞는 경로에 저장한다.
+
+| 기록 | 상대 경로 | 형식 |
+|---|---|---|
+| 세션 시작 | `sessions/<session UUID>/session.json` | `scenario_collection_session_v1` |
+| 회차 준비 | `episodes/<session UUID>/<episode UUID>/preparing.json` | `scenario_collection_episode_v1` |
+| 회차 종료 | `episodes/<session UUID>/<episode UUID>/terminal.json` | `scenario_collection_episode_v1` |
+| 초기화 결과 | `episodes/<session UUID>/<episode UUID>/reset.json` | `scenario_collection_episode_v1` |
+| 세션 종료 | `sessions/<session UUID>/terminal.json` | `anpc_collection_session_terminal_v1` |
+| 최종 목록 | `indexes/<session UUID>/index.json` | `scenario_collection_index_v1` |
+| 수집 입력 보관 | `metadata/<session UUID>/<closed name>.json` | 원본 JSON |
+
+수집 입력 보관 파일의 허용 이름은 다음과 같다.
+
+```text
+catalog
+collection-schema
+execution-profile
+utility-profile-source
+runtime-build-evidence
+session-start-evidence
+```
+
+YAML 형식의 입력은 JSON 이름으로 저장하지 않는다.
+
+### 저장 절차
+
+기존 파일 저장기(FileStore)를 사용한다. 저장 절차는 배타적 생성, 전체 쓰기, 디스크 반영, 덮어쓰기 없는 이동, 동일 내용 읽기 확인 순서다.
+
+저장 경로는 정해진 식별 번호와 파일명으로 만든다. 외부 호출자가 임의 경로를 넣을 수 없다. 지정 저장 위치 밖으로 나가는 경로도 거부한다.
+
+저장 요청에는 목적과 세션·회차를 연결한다. 저장이 끝날 때까지 세션 관리자와 해당 요청의 세대가 유효해야 한다. 종료 기록은 이미 해제한 Host의 Lease 대신 세션 관리자의 수명으로 보호한다.
+
+회차 종료 파일은 초기화 전 상태(`reset_result=not_attempted`)로 저장한다. 초기화가 끝나면 별도 파일에 결과를 쓴다. 기존 종료 파일은 유지한다.
+
+파일 명세(descriptor)는 실제 저장하고 다시 읽은 파일을 가리킨다. 필드는 `{path,size_bytes,sha256}`다.
+
+### 세션 종료 기록
+
+세션 종료 기록은 다음 필드만 갖는다.
+
+```text
+format = anpc_collection_session_terminal_v1
+version = 1
+session_id
+outcome
+reason
+observed_at_seconds
+session
+ordered_episodes
+```
+
+종료 결과(`outcome`)는 `finalized`, `cancelled`, `timed_out`, `failed` 중 실제 상태를 쓴다. 세션과 회차는 파일 명세로 연결한다.
+
+회차 목록에는 실패하거나 판단 기록이 없는 회차도 넣는다. 초기화 결과 파일이 있으면 그 파일을 선택한다. 없으면 회차 종료 파일을 선택한다.
+
+내부 종료 상태인 `finalized`와 최종 목록의 저장 성공은 구분한다. 준비 실패로 판단 번호가 없으면 오류 기록의 `observed_id=null`을 유지한다. 오류 기록의 저장마저 실패하면 오류 기록을 다시 반복해서 쓰지 않는다.
+
+### 최종 목록의 정확한 형식
+
+최종 목록은 `format`, `version`, `session_id`, `entries`만 가진다. 항목은 저장 확인이 끝난 판단 기록 항목(accepted) 다음에 오류 기록 항목(diagnostic)을 놓는다. 각 목록 안의 기존 순서는 유지한다.
+
+파일 개수나 디렉터리 검색으로 저장 장부를 재구성하지 않는다. 세션 관리자가 보관한 항목 본문을 사용한다.
+
+항목은 정해진 바이트 표현인 canonical JSON으로 보관한다. 조합할 때는 각 항목 끝의 줄바꿈 LF 하나만 제거한다. 그 밖의 공백을 임의로 지우거나 숫자를 다시 변환하지 않는다. 판단 번호의 uint64 값을 정확히 보존한다.
+
+최종 key 순서는 `entries`, `format`, `session_id`, `version`이다. 저장 바이트 기준은 다음과 같다.
+
+```text
+sorted_json_bytes(value) + b"\n"
+UTF-8
+BOM 없음
+compact
+ensure_ascii=False
+allow_nan=False
+```
+
+실제 길이는 예약한 index bytes와 같아야 한다. 저장 후 읽기와 마지막 수명 확인이 끝나면 성공 파일 명세를 한 번 보관한다. 반복된 Stop은 이 결과를 반환한다.
+
+파일이 생겼어도 읽기 확인이 실패하면 성공 결과를 반환하지 않는다. 실패한 파일과 기존 자료는 보존한다.
+
+### 누적 용량
+
+한 용량 장부에 판단 기록(Capture), 기록 저장 확인 파일(marker), 목록 항목(entry), 오류 기록(diagnostic)을 포함한다. 수집 입력(metadata), 세션·회차·초기화·종료 기록과 최종 목록(index)도 포함한다. 쓰기 중 필요한 비용도 예약한다.
+
+기존 Host의 저장 예약과 같은 장부를 사용한다. 빈 최종 목록의 기본 구조와 필수 종료 기록의 용량을 시작 전에 확보한다.
+
+수치 계산과 길이 변환은 허용 범위를 확인한다. 같은 바이트를 임시 파일에서 최종 파일로 옮긴 비용은 이중 청구하지 않는다. 실패 후 남은 파일의 비용은 사용량에 남긴다. 세션 중 저장 위치나 한도를 바꾸지 않는다.
+
+<!-- PS:files -->
+## D. 구현 파일과 변경 범위
+
+게임 코드의 기준 위치는 `NeuralGame/Source/NeuralGame/AINativeNPC/`다. 아래 경로는 이 위치를 기준으로 한다.
+
+| 역할 | 파일 |
+|---|---|
+| 세션 유지와 공개 요청 | `Collection/AINativeNPCCollectionSessionSubsystem.h/.cpp` |
+| 수집 입력 읽기와 시작 허가 | `Collection/AINativeNPCCollectionRuntimeInputs.h/.cpp` |
+| 회차 정보와 수집 권한 | `Collection/AINativeNPCCollectionContext.h/.cpp` |
+| NPC 판단과 수집 연결 | `Execution/AINativeNPCGoalHostComponent.h/.cpp` |
+| 행동 정지와 종료 상태 | `Execution/AINativeNPCSkillExecutorComponent.h/.cpp` |
+| 준비·정지 중 발소리 제한 | `Player/PlayerNoiseEmitterComponent.cpp` |
+| 저장할 기록의 구성 | `Collection/AINativeNPCCollectionCaptureBridge.h/.cpp` |
+| 목적별 파일 저장 | `Collection/AINativeNPCCollectionFileStore.h/.cpp` |
+
+준비 도구의 파일은 `play_session_launcher.py`, `play_session_native_io.py`, `play_session_game_plan.py`다. 이 파일들은 저장소 밖의 로컬 작업 영역에 있다. 이 문서와 함께 GitHub에 게시된 파일로 취급하지 않는다.
+
+최근 시작 조건 단순화는 수집 입력 처리, 필요한 세션 연결과 위 준비 도구에 한정했다. 기존 파일 저장기의 하위 보호는 유지했다.
+
+기존 장부 타입 이름은 `FAINativeNPCCollectionFixtureSession`이다. 실제 수집에서는 세션 관리자가 소유한 인스턴스를 사용한다. 테스트용 권한을 실제 수집 권한으로 바꾸지 않는다.
+
+Engine, Target.cs, Config, Content와 기존 테스트는 보존한다. 파일 형식 정의인 Schema, 시나리오 catalog와 생성 코드도 보존한다. 기존 Builder와 파일 직렬화 의미, ML 코드는 이번 문서 개정으로 바꾸지 않는다. 파일 직렬화는 메모리의 값을 저장할 바이트로 표현하는 과정이다.
+
+### 기존 빌드로 다시 수집하기
+
+수집 화면을 포함한 빌드는 재사용 명령에 `--collection-ui`를 붙여 시작 버튼을 기다릴 수 있다. 이 옵션은 Game 인수 끝에 `-ANPCCollectionUI` 하나를 추가한다. 실제 인수와 시작 기록에 같은 값을 보관한다. 그 밖의 인수와 입력 출처는 바꾸지 않는다. 옵션을 생략한 기존 자동 실행은 그대로 즉시 시작한다. 화면에서 선택을 기다리는 시간과 시작 요청 이후의 제한 시간은 구분한다.
+
+화면 코드와 실행기 옵션은 작성 상태다. 이전 준비 20261103-07은 이 화면을 포함하지 않는다. 그 실행물에 새 옵션을 붙이거나 완료 기록을 고쳐 새 기능이 포함된 것처럼 사용하지 않는다.
+
+처음 준비하는 경로는 기존 강제 빌드와 게임 자료 준비를 사용한다. 준비 완료 기록은 이 과정이 성공한 뒤 마지막에 저장한다. 중간 실패는 완료 기록을 만들지 않는다.
+
+재사용 경로는 선택한 준비 완료 기록과 실제 파일의 대응을 확인한다. 소스와 계약은 빌드할 때 보관한 사본을 사용한다. 원래 개발 폴더의 이후 편집 내용을 과거 빌드 기록에 섞지 않는다.
+
+빌드를 만든 실행 번호와 이번 수집 실행 번호는 구분한다. 원래 빌드 기록의 번호와 내용은 유지한다. 이번 수집에는 새 실행 번호, 새 프로세스 시작 정보와 새 세션 번호를 부여한다.
+
+세션 시작 기록과 실행 로그도 새 위치에 저장한다. 기존 빌드 기록과 이전 세션 결과를 덮어쓰지 않는다. 준비 기록에 묶인 실행 설정을 그대로 사용한다. 게임 안에서 시나리오·거리·seed를 선택하는 명령은 유지한다.
+
+재사용 명령은 빌드·cook·staging을 호출하지 않는다. 필요한 입력이 잘못되면 오류를 반환한다. 다른 실행물로 바꾸거나 자동 재빌드로 대신하지 않는다. 게임 시작 후에는 기존 통신과 세션 연결을 사용한다.
+
+아래 사용법은 코드 작성 인계에 근거한다. 최초 준비 명령은 실행했지만 Editor 빌드 오류로 완료하지 못했다. 이후 원본 프로젝트에서 Editor 빌드를 수정해 성공했다. 재사용 실행은 아직 확인하지 않았다. 별도로 수행한 C++ 빌드 성공과 최초 준비 완료는 구분한다.
+
+#### 실제 빌드 결과
+
+2026-11-02에 원본 프로젝트의 `NeuralGame Win64 Development` 대상을 빌드했다. 헤더 경로와 공유 포인터 선언 오류를 수정한 뒤 `Result: Succeeded`와 종료 코드 `0`을 받았다. 생성된 `Binaries/Win64/NeuralGame.exe`와 Game/Development 빌드 결과 명세를 확인했다.
+
+Windows 함수 포인터 변환 경고(`C4191`)는 남아 있다. 이번 실행은 C++ 컴파일·링크에 한정했다. cook, 준비 완료 기록 발행, 게임 실행과 수집 테스트는 수행하지 않았다. 이 빌드를 강제 준비 완료 기록으로 대신하지 않는다.
+
+같은 날 사용자의 Editor 빌드 오류 해결 요청에 따라 원본 프로젝트의 `NeuralGameEditor Win64 Development`를 빌드했다. 누락된 헤더와 타입 선언을 보완했다. 플러그인 수정은 기준 소스에서 작성한 뒤 NeuralGame에 같은 변경만 반영했다. 설치된 플러그인의 다른 변경은 유지했다.
+
+실패 당시의 `-DisableUnity -NoPCH -NoSharedPCH` 옵션을 유지한 재빌드에서 `Result: Succeeded`와 종료 코드 `0`을 받았다. `UnrealEditor-NeuralGame.dll`, `UnrealEditor-UnrealMCPEditor.dll`과 Editor/Development 결과 명세의 갱신을 확인했다. 마지막 재빌드는 앞선 빌드의 성공한 컴파일 결과를 재사용했다. 이를 별도 작업 폴더의 강제 준비 완료로 표시하지 않는다.
+
+최종 로그는 원본 프로젝트의 `Saved/Logs/editor-include-fix-20261102T144656.log`다. `IKRig` 의존성 선언 경고는 남아 있다. 이전 전체 컴파일에서 나온 함수 포인터 변환, 지역 변수 초기화와 사용 중단 API 경고도 이번 수정 범위에 포함하지 않았다. 자동검사 코드는 컴파일했지만 실행하지 않았다. cook과 실제 수집 동작은 별도 단계다.
+
+#### 준비 완료 기록과 실행별 저장 위치
+
+준비 작업 폴더를 `W`라고 부른다. 준비 완료 기록은 `W/evidence/prepared-game-ready.json`이다. 이 기록은 원래 빌드 번호, 준비 폴더, 입력 주체와 고정 입력 파일을 연결한다.
+
+완료 기록은 준비가 끝난 뒤 마지막에 발행한다. 준비 중 사용하는 `.pending` 파일은 완료 기록으로 읽지 않는다. 완료 기록 없는 과거 결과를 자동으로 변환하지 않는다.
+
+이번 실행의 입력은 `W/NeuralGame/Saved/AINativeNPC/CollectionRuntime/<run_id>/`에 둔다. 실행 로그와 실제 프로세스 관측 기록은 `W/evidence/runs/<run_id>/`에 둔다. 세션 결과는 기존 `W/NeuralGame/Saved/AINativeNPC/Collections/`의 세션별 저장 규칙을 따른다.
+
+준비 번호(`build_run_id`)와 이번 실행 번호(`run_id`)를 구분한다. 세션 번호(`session_id`)는 게임의 세션 관리자가 발급한다. 원래 빌드 기록은 보존한다.
+
+#### 명령줄 사용법
+
+아래는 PowerShell 사용 예다. 꺾쇠로 표시한 값은 실제 Windows 경로로 바꾼다. 도구와 계약 저장소가 WSL에 있으면 Windows에서 접근할 수 있는 경로를 사용한다.
+
+```powershell
+$Python = '<Windows python.exe 절대경로>'
+$Launcher = '<play_session_launcher.py의 Windows 접근 경로>'
+$Authority = '<AI-Native-NPC 저장소의 Windows 접근 경로>'
+$Engine = '<설치 엔진의 Engine 폴더 절대경로>'
+
+# 최초 준비: 이번 C++ 변경을 포함한 빌드와 게임 자료를 만든다.
+& $Python $Launcher --project 'D:\Codex-cli\NeuralProject\NeuralGame' --authority $Authority --engine $Engine --workspace 'D:\ANPCCollection\prepared-game-01'
+
+# 다음 수집: 같은 준비 폴더로 새 게임을 실행한다.
+& $Python $Launcher --reuse 'D:\ANPCCollection\prepared-game-01'
+```
+
+예시의 부모 폴더 `D:\ANPCCollection`은 미리 있어야 한다. 최초 준비할 때 `prepared-game-01`은 새 폴더여야 한다. 준비 성공 출력에는 완료 기록 위치와 재사용 명령이 포함된다.
+
+재사용에는 준비 폴더 대신 `D:\ANPCCollection\prepared-game-01\evidence\prepared-game-ready.json`을 지정해도 된다. 준비 폴더를 옮기거나 실행 파일만 따로 지정하는 방식은 지원하지 않는다.
+
+최초 준비 명령에 `--launch`를 붙이면 준비 직후 실행한다. `--reuse`는 자체적으로 게임을 실행한다. 재사용 명령에는 `--project`, `--authority`, `--engine`, `--workspace`를 함께 넣지 않는다.
+
+입력 주체는 준비할 때 저장한 값을 사용한다. `--input-actor`를 명시하면 저장한 값과 같아야 한다. 다른 실행 설정이 필요하면 새 준비 결과를 만든다.
+
+사람 입력 모드에서는 실행기의 시작 대기 상태(`awaiting_session`) 이후 게임 Console에서 `anpc.Collection.Start`를 입력한다. 실행기는 게임의 세션 준비 응답(`session_armed`)을 받은 뒤 실행 상태(`running`)를 출력한다. 게임을 켰다는 사실만으로 수집 권한을 얻었다고 표시하지 않는다.
+
+수집이 끝날 때까지 실행기를 유지한다. 실행기를 종료하면 기존 통신 수명 규칙에 따라 자식 게임의 수집 권한이 종료된다.
+
+#### Python API
+
+재사용 공개 함수는 `launch_reused_game(*, prepared: Path, input_actor: str | None = None)`이다. `prepared`에는 준비 폴더 또는 완료 기록 경로를 넣는다. `input_actor=None`은 저장된 입력 주체를 사용한다.
+
+반환된 실행 객체의 `service()`를 계속 호출해야 게임과 시작 정보를 주고받는다. 사용이 끝나면 `close()`를 호출한다. 다음 예는 Windows Python에서 실행 도구와 형제 모듈을 import할 수 있을 때 사용한다.
+
+```python
+from pathlib import Path
+import time
+from play_session_launcher import launch_reused_game
+
+session = None
+try:
+    session = launch_reused_game(prepared=Path(r"D:\ANPCCollection\prepared-game-01"))
+    while session.service() != "closed":
+        time.sleep(0.01)
+except BaseException as error:
+    session = getattr(error, "runtime_session", None) or session
+    raise
+finally:
+    if session is not None:
+        session.close()
+```
+
+기존 최초 준비 함수(`TrustedGameBuildProducer.run_forced()`)와 준비 직후 실행 함수(`prepare_and_launch_game()`)는 유지한다. 재사용 함수는 빌드·cook 도구를 호출하지 않는다.
+
+기록된 설치 도구와 고정 입력 파일의 일치 조건은 유지한다. 재사용 명령에 `--engine`이 없어도 기록된 설치 파일이 사라지거나 바뀌면 거부할 수 있다. 이번 변경에서 전역 파일 감시나 자동 재빌드는 추가하지 않았다.
+
+## E. 출처와 승인값
+
+사람 플레이는 입력 출처·실행 방식·입력 주체를 각각 `human_play/manual/human`으로 기록한다. 자동 입력은 같은 순서로 `automated_runtime/automatic/automated`를 사용한다.
+
+자동 검사나 명령줄 전용 실행에서 수동 시작으로 사람 출처를 만들지 않는다. 내부 자동 입력 연결은 같은 세션 흐름을 사용하면서 자동 출처를 유지한다.
+
+기존 Utility 정책은 규칙에 따라 행동을 선택하는 정책이다. 그 결과는 아직 검토하지 않은 정답 후보로 보관한다. 기존 raw 2/Dagger 표현과 `scenario_collection_utility_unreviewed`를 유지한다.
+
+현재 승인 관련 값은 다음과 같다.
+
+```text
+Approved = false
+ResolvePolicyReady = false
+production_eligible = false
+validated_row_count = 0
+```
+
+수집 완료를 외부에서 확인하는 값, Teacher 정답과 Human 정답 승인은 후속 작업이다. 최종 목록의 hash를 해당 승인으로 사용하지 않는다.
 
 <!-- GAME:decision -->
-**적용 결정:** 기존 엔진과 별도 Development Game 대상 선택은 유지한다. 과거 build·cook 승인 기록의 근거는 evidence root의 `development-game-path-decision-01.md`다. 현재 §0의 지시에 따라 빌드·cook·실행 확인은 사용자 담당이며 AI는 이를 실행하지 않는다. Shipping 배포는 계속 제외한다.
+## F. 게임 실행 대상과 제외 범위
 
-- **DG01:** 최종 대상은 기존 Target=NeuralGame, Win64/x64/Development/Game이다. `UnrealEditor.exe -game`과 새 Game target 생성을 채택하지 않는다. 기존 Editor/Host Automation은 lower regression이며 최종 수집통합은 별도 Development Game에서 확인한다.
-- **DG02:** PS01–PS25의 Console 3개·기본값·limits·PS13–PS14 drain·native publication·index·World identity 계약을 유지한다. 자동 Game 입력은 automated_runtime/automatic/automated다. human_play/manual/human은 실제 사용자 입력과 피드백으로 별도 확인한다.
-- **DG03:** read-only Game planner는 actual receipt·uproject·모든 project-local uplugin descriptor·현재 Target.cs/Build.cs bytes를 고정 입력으로 받는다. 현재 receipt는 stale build여도 계획의 actual input이다. 최신 기능 build 성공은 별도 forced compile/link 증거를 요구한다.
-- **DG04:** 현재 지원 범위는 단일 논리 project module NeuralGame이 기본 monolithic EXE에 결합되는 닫힌 source 형태다. module_descriptor{module_name,base,path,size_bytes,sha256}에 실제 EXE를 한 행으로 표현한다. 같은 EXE의 중복 path rows·빈 목록·DLL 위장은 거부한다. descriptor eligibility에서 예상 집합을 먼저 정하며 실제 observed module 누락에 맞춰 줄이지 않는다.
-- **DG05:** 현재 GameDevMCPPlugin의 UnrealMCPEditor는 Editor module이므로 Game compile/runtime 대상에서 제외한다. 제외를 결정한 descriptor도 inventory/pin에 포함한다. Editor 전용 MCP를 Game runtime 제어에 사용한다고 가정하지 않는다. 새 runtime RPC/원격 bridge를 추가하지 않는다.
-- **DG06:** HotReload와 LiveCoding은 별도 검증이다. WITH_HOT_RELOAD 기본식과 실제 Game build definitions/link를 대조한다. bWithLiveCoding/-NoLiveCoding의 RequiresUniqueBuildEnvironment를 우회하지 않는다. supported session query/disable API와 연속 현재성 관측의 미확인 성공 조건은 pending으로 남긴다.
-- **DG07:** GameInstance early-init 이후 bootstrap rendezvous, 상속 native pipe protocol, private automation adapter를 연결한다. 현재 N1은 raw file/pipe IO만이며 전체 bootstrap authority가 아니다. startup만으로 gameplay 성공을 주장하지 않는다.
-- **DG08:** 최종 증거는 forced Game compile/link action coverage → 선택 MVP asset dependency cook/staging → 새 Game PID/creation/EXE/loaded inventory → Start→NewEpisode→Stop→terminal/index readback이다. original Content/Saved는 보존하며 source/build/cook/startup/수집/재읽기 결과를 각각 기록한다.
-- **DG09:** 사용자 승인으로 NeuralGame.Build.cs에 `if (Target.bWithLiveCoding)` 조건의 `PrivateIncludePathModuleNames.Add("LiveCoding")` 한 항목을 허용한다. planner는 기존 형태와 이 정확한 successor 형태만 허용하며 추가 의존성·macro·Target 변경은 거부한다. public header의 실제 compile로 소비를 확인한다. 이는 설정 보완이며 runtime disabled/currentness나 일반 플레이 수집 성공 증거가 아니다.
+아래 항목은 별도 게임 실행에 관한 기존 결정 번호를 유지한다.
 
-§12.2의 Editor build/Host filter와 자동 PIE 설명은 lower regression 절차로 보존한다. 최종 Game 수집 경로는 이 절이 추가로 요구한다. 원본 `runtime-inputs-launcher-design-01.md`의 Development Editor + PIE 대상, 두 DLL/.modules 계획, Editor 이후 GI claim 순서, Editor MCP/AssetRegistry 사용 위치와 사람 Editor launch 미결정은 이 선택 범위에서 `development-game-launch-slice-01.md`가 supersede한다. 원본 기록은 수정하거나 삭제하지 않는다. 상속 pipe의 닫힌 메시지·독립 pin·same-read bytes·source closure·sticky invalidation·owner SessionID 예약 순서는 유지한다.
+- **실행 대상(DG01):** 기존 `NeuralGame`, Win64/x64/Development/Game을 사용한다. `UnrealEditor.exe -game`이나 새 Target으로 대신하지 않는다. Shipping 배포는 별도다.
+- **기능 범위(DG02):** 명령, 기본값과 한도를 유지한다. 종료, 저장, 새 World와 출처 구분도 유지한다.
+- **빌드 해석(DG03):** 빌드 결과 명세인 receipt와 project/plugin descriptor를 사용한다. Target.cs·Build.cs 원문도 보관한다. 주석과 공백까지 과거 전체 문자열과 같아야 한다는 조건은 두지 않는다.
+- **실행물 표현(DG04):** 하나의 논리 project module `NeuralGame`이 EXE에 포함된 형태를 지원한다. module descriptor에는 실제 EXE를 한 행으로 기록한다. 누락된 실행물을 임의 값으로 채우지 않는다.
+- **Editor 기능 구분(DG05):** `UnrealMCPEditor`는 Editor 전용이다. Game에 Editor MCP나 새 원격 제어 기능을 추가하지 않는다.
+- **코드 변경 제한(DG06):** Live Coding·hot reload를 비활성 상태로 운영한다. 모든 내부 상태를 감시할 수 있는지는 시작 조건으로 두지 않는다. 기존 엔진과 ABI를 유지한다. ABI는 빌드된 코드가 서로 연결되는 규약이다.
+- **시작 연결(DG07):** GameInstance와 준비 입력을 연결한다. 기존 프로세스 간 통신 pipe와 내부 자동 입력을 재사용한다. 실제 세션·통신 오류는 실패로 처리한다.
+- **준비 도구 재사용(DG08):** 기존 빌드와 cook/staging 경로를 사용한다. 설치 엔진 전체나 미지의 모든 동적 자료를 추적하는 과제를 추가하지 않는다.
+- **기존 설정 유지(DG09):** 이미 승인된 조건부 `PrivateIncludePathModuleNames.Add("LiveCoding")`를 유지한다. 새로운 ABI나 Target 변경을 추가하지 않는다.
 
-새 planner의 immutable API·정확한 첫 실패 assertion·actual input snapshot 인계·실행별 미확정 조건은 같은 evidence root의 `development-game-launch-slice-01.md`와 `development-game-plan-red-handoff-01.md`에 있다. 추가 문서 하네스의 초기 PASS는 추가 문서 coverage이지 behavioral RED가 아니다. 작성자는 planner 본문을 `return None`에 두고 종료한다. 실제 Python RED와 후속 GREEN·Game 실행은 부모만 수행한다.
+운영자가 관리하는 로컬 환경과 지정 준비 도구를 전제로 한다. 관리자나 같은 프로세스의 임의 코드 변조까지 방어하는 기능은 이번 범위 밖이다. 전체 파일·DLL 변화 감시, 강제 종료 복구, 동일 세션 재개와 범용 C# 분석기도 추가하지 않는다.
+
+## G. 관련 계약과 기존 항목 번호
+
+이 계획의 사용 흐름과 세부 저장 규칙은 다음 문서를 함께 따른다.
+
+- 수집 데이터 계약: `scenario-collection-v1-data-contract.md`.
+- NPC 관측과 판단 기록 연결: `scenario-host-capture-v1-contract.md`.
+- 수집 파일 형식: `scenario_collection_v1.schema.json`.
+- 지원 시나리오: `scenario_catalog_v1.json`.
+- 출처와 학습 가져오기: [Runtime 수집 자료의 ML 가져오기 V1 계약](runtime-capture-import-v1-contract.md).
+- 별도 게임 실행: [Development Game 보충 설계](development-game-launch-slice-01.md).
+
+기존 구현 항목은 다음 위치에서 이어서 설명한다. 번호는 참조용이며 새 작업 단계를 뜻하지 않는다.
+
+- 범위와 역할: PS01, PS02, PS03 → §§0–2, §10, 부록 E.
+- 변경 파일: PS04 → 부록 D.
+- 공개 진입과 기본 조건: PS05, PS06, PS07 → §§3–4, 부록 A–B.
+- 입력과 권한: PS08, PS09 → §4, 부록 A.
+- 식별 번호와 회차: PS10, PS11, PS12 → §5, 부록 B.
+- 정지와 작업 종료: PS13, PS14 → §6, 부록 B.
+- 기록 저장과 실패: PS15, PS16 → §7, 부록 C.
+- 최종 목록: PS17, PS18, PS19 → §8, 부록 C.
+- 누적 용량: PS20, PS21 → §9, 부록 C.
+- 출처와 승인: PS22, PS23 → §10, 부록 E.
+- 사용자 확인과 작업 단위: PS24, PS25 → §§11–12.
+
+</details>

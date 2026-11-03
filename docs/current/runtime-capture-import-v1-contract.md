@@ -283,9 +283,13 @@ source 목록의 항목은 `{base,path,size_bytes,sha256}`다. 최소 포함 범
 
 빌드 전후 목록(`source_inventory_before`, `source_inventory_after`)은 항목·크기·digest가 모두 같아야 한다. 새 파일, 삭제와 누락도 차이로 취급한다. project-local 생성 header가 빌드 중 바뀌면 안정화한 source로 새 빌드 기록을 만든다. UHT가 Intermediate에 만든 결과는 build receipt와 log의 산출물로 식별한다.
 
+이 목록은 준비한 빌드의 입력을 보관하는 기록이다. 수집에는 별도 작업 위치의 고정 입력을 사용한다. 원본 개발 폴더·설치 Engine·원본 Saved 전체를 세션 내내 잠그거나 재귀 감시할 필요는 없다. 매 tick·Capture 발행 때 이 목록의 모든 파일을 다시 읽는 조건도 두지 않는다. 고정 입력과 수집 출력의 실제 읽기·쓰기 실패는 계속 처리한다.
+
 #### 실제 빌드와 모듈 확인
 
-허용하는 빌드 방식은 `build_mode="clean_or_forced_project_modules"`다.
+허용하는 빌드 방식은 `build_mode="clean_or_forced_project_modules"`다. 이 값은 준비한 빌드의 생성 방식을 뜻한다. 같은 빌드로 다음 회차나 새로운 수집 세션을 진행할 때마다 재빌드할 필요는 없다.
+
+기존 빌드로 다시 수집할 때는 원래 준비한 실행물과 빌드 기록을 함께 사용한다. 준비 완료 기록은 실제 빌드와 게임 자료 준비가 끝난 뒤 발행한다. 재사용은 그 기록과 실제 파일의 대응을 확인한 뒤 수행한다. 재사용 사실을 새로운 빌드 성공으로 기록하지 않는다.
 
 - `build_argv`는 실행 인수 배열이다. shell string 하나로 저장하지 않는다.
 - `build_working_directory`는 `{base,path}`다.
@@ -293,6 +297,10 @@ source 목록의 항목은 `{base,path,size_bytes,sha256}`다. 최소 포함 범
 - `build_log`와 `build_receipt`는 evidence root 기준 파일 명세다.
 - clean 또는 forced rebuild가 대상 project module의 모든 translation unit을 실제 compile/link했는지 log와 receipt로 확인한다.
 - `incremental_success_only`는 거부한다.
+
+Unreal 빌드 도구는 C++ 컴파일과 Windows 실행 파일의 리소스 컴파일을 모두 `Compile`로 기록할 수 있다. 실제 호출 도구와 입력·출력으로 두 작업을 구분한다. 리소스 컴파일은 `rc.exe`, 설치 엔진의 `Default.rc2`, 생성된 `.res`와 최종 링크의 연결을 기록한다. C++ 입력이 없는 리소스 작업에 가상의 C++ 파일을 요구하지 않는다.
+
+Unreal이 생성한 C++ 코드는 여러 파일을 묶은 컴파일 입력을 사용할 수 있다. 빌드 기록에서는 생성 코드 폴더의 직접 입력과 `Intermediate/Build/` 아래의 `Module.NeuralGame.gen.*.cpp` 입력을 함께 지원한다. 두 경우 모두 실제 컴파일 명령·입력 파일·산출물·링크 기록을 사용한다.
 
 빌드 성공 여부와 별도로 나열한 source/DLL hash만으로 source와 binary의 대응을 인정하지 않는다.
 
@@ -314,20 +322,34 @@ source 목록의 항목은 `{base,path,size_bytes,sha256}`다. 최소 포함 범
 
 ### 3.3 시작 시 검사와 과거 import
 
-**수집 실행은 시작할 때 확인한 코드로 끝까지 유지한다.** Live Coding과 hot reload 관련 조건은 수집 도중 코드가 바뀌는 일을 막고 감지하기 위한 조건이다.
+**수집 실행은 준비한 고정 빌드를 사용하는 운영 규칙으로 관리한다.** 신뢰한 로컬 운영자는 수집 프로세스에 Live Coding·hot reload를 적용하지 않는다. 코드를 변경해 적용하려면 수집을 종료하고 새 빌드로 새 세션을 시작한다.
+
+이 규칙은 관리된 로컬 수집을 전제로 한다. 관리자나 같은 프로세스의 임의 코드가 실행을 변조하는 경우까지 인증하는 계약은 아니다. 엔진 내부 모든 순간의 상태 관측을 시작 조건으로 두지 않는다. 기존의 연속 상태 감시 요구는 이 절로 교체한다.
 
 #### 새 수집을 시작할 때
 
-1. 현재 설치된 binary와 source를 외부 빌드 확인값·기록과 대조한다.
-2. 신뢰한 실행기가 새 프로세스를 시작한다. 기존 Editor 프로세스를 재사용하지 않는다.
-3. 실행 파일과 실제 로드된 모듈의 경로·크기·digest를 build receipt와 비교한다.
+1. 준비한 binary와 source snapshot을 외부 빌드 확인값·기록과 연결한다.
+2. 신뢰한 실행기가 별도 Development Game 프로세스를 시작한다. 기존 Editor 프로세스를 재사용하지 않는다.
+3. 실제 EXE와 필요한 project module의 경로·크기·digest를 build receipt와 비교한다.
 4. OS의 프로세스 시작 식별값을 기록한다. 같은 PID의 재사용과 구별한다.
-5. Live Coding이 비활성화된 실행 인수·설정을 확인한다.
-6. 실제 patch module과 hot-reload module의 부재를 로드 목록과 loader log에서 확인한다.
+5. 실제 실행 인수·설정에서 Live Coding 비활성 실행을 확인한다. 이미 로드된 상태 API가 있으면 알려진 활성화·컴파일 상태를 확인한다. 조회를 위해 모듈을 새로 로드하지 않는다.
+6. 실제 patch나 hot-reload 실행이 확인되면 시작을 거부한다. 운영 규칙과 모순되는 관측은 성공 기록으로 남기지 않는다.
 
-설정 bool이나 `cold_start=true`라는 선언만으로 위 조건을 충족한 것으로 처리하지 않는다. 실행기·수집기가 실제 기록을 만들고 비교해야 한다.
+같은 빌드를 재사용해도 실행 번호와 세션 번호는 새로 만든다. 실제 새 프로세스의 시작 정보를 기록한다. 원래 빌드 준비 기록의 `run_id`는 빌드를 만든 실행을 가리킨다. 현재 통신의 `run_id`는 이번 수집 실행을 가리킨다. 두 번호의 동일성 대신 원래 빌드 기록의 식별과 이번 프로세스·세션의 연결을 각각 확인한다.
 
-시작 뒤 모듈 변경이나 patch load를 관찰하면 해당 세션을 실패시킨다. 그 세션의 완료 확인값은 발행하지 않는다.
+새 시작 기록과 실행 로그는 이전 파일과 다른 위치에 저장한다. 이전 세션의 시작·종료 기록을 복사해 새 실행의 관측으로 사용하지 않는다. 원래 빌드 기록과 그 digest는 유지한다.
+
+게임이 실행 중 만드는 설정·로그는 고정 빌드 입력과 구분한다. 현재 cook 배치에서는 준비 프로젝트의 `Saved/Cooked/Windows/NeuralGame/Saved/`를 cook 입력 목록에서 제외한다. 준비 도구, 재사용 실행기와 게임은 같은 범위를 제외한다. 다른 cook 자료와 전체 stage 목록의 경로·내용 대조는 유지한다.
+
+전체 cook 목록의 자료 이름은 문법과 원본·cook·stage 경로의 대응으로 확인한다. 현재 Game에 해당 자료의 경로가 등록되어 있는지는 전체 목록의 형식 조건으로 사용하지 않는다. 선택한 맵의 의존 자료와 실제 로드한 자료의 cook 대응 확인은 유지한다. 사용하지 않는 플러그인을 이 검사 때문에 활성화하지 않는다.
+
+실행기는 새 프로세스의 초기 파일 확인 완료를 최대 60초 기다린다. 이 대기는 회차 시작 전의 실행 준비에 해당한다. 회차 준비 제한 10초와 기존 40ms 제한은 유지한다. 기존 메시지·파일 형식과 세션 연결 조건은 바꾸지 않는다.
+
+자동 실행의 세션 예약 응답과 시작 기록 전송 뒤의 준비 완료 응답은 각각 최대 10초 기다린다. 응답이 없으면 오류를 반환한다. 사람의 시작 명령을 기다리는 시간에는 이 제한을 적용하지 않는다. 새 세션·회차 번호는 기존 UUIDv4 규칙에 맞게 생성한다. 외부 입력과 이미 저장한 번호를 자동으로 보정하지 않는다.
+
+실행기·수집기는 실제 프로세스와 빌드 기록의 대응을 확인한다. 제출된 `cold_start=true`나 임의 digest만으로 이를 대신하지 않는다. 다만 Live Coding 모듈·조회 API 부재, `Starting` 미구별, 틱 사이 모든 변화의 미관측은 시작 거부 사유가 아니다. helper 프로세스의 시작 자체도 patch 적용 사실로 취급하지 않는다.
+
+일반 DLL·asset load/unload와 무관한 개발 폴더 변경은 코드 교체로 분류하지 않는다. 전역 module epoch 변경이나 전체 파일 트리 변경만으로 세션을 실패시키지 않는다. 수집 프로세스에 실제 코드 변경·컴파일·패치가 확인되면 해당 세션을 실패 처리하고 완료 확인값을 발행하지 않는다.
 
 #### 시작 기록의 필드
 
@@ -342,7 +364,11 @@ source 목록의 항목은 `{base,path,size_bytes,sha256}`다. 최소 포함 범
 | source와 관측 기록 | `source_inventory`, `loader_log` |
 | 코드 교체 기능의 상태 | `live_coding_state`, `hot_reload_state` |
 
-`process_start_identity`는 OS가 제공한 프로세스 시작 식별값이다. 이 시작 확인을 수행하는 Runtime 연결은 구현 대상이다.
+`process_start_identity`는 OS가 제공한 프로세스 시작 식별값이다. `live_coding_state="disabled"`와 `hot_reload_state="disabled"`는 실제 실행의 비활성 설정과 해당 기능을 사용하지 않는 운영 규칙을 나타낸다. 모든 상태 변화를 감시했다는 인증값이 아니다. 실제 설정·관측 사실·운영 전제는 기존 `launch_argv`와 `loader_log`에 구분해 남긴다. closed Schema에 새 상태 필드를 추가하지 않는다.
+
+수집 화면에서 시작을 기다리는 실행은 `launch_argv` 끝에 `-ANPCCollectionUI`를 포함할 수 있다. 실행기 옵션은 `--collection-ui`다. 원래 인수열 또는 이 인수가 끝에 한 번 추가된 인수열만 허용한다. 실제 프로세스 인수와 기록의 일치는 유지한다. 이 옵션은 시작 대기 방식만 바꾼다. 준비할 때 정한 입력 출처·입력 주체·실행 방식과 학습 승인은 바꾸지 않는다.
+
+시작 기록의 형식은 유지한다. Runtime 연결의 코드 작성과 실제 실행 확인은 구분한다. 현재 구현 범위는 [일반 플레이 수집 구현계획](scenario-collection-play-session-index-v1-implementation-plan.md)을 따른다.
 
 #### 보관된 과거 수집 자료를 가져올 때
 
@@ -940,7 +966,7 @@ ML이 문서 저장소의 decoder·검사 도구를 읽을 때는 실제 의존 
 | `R2-authorized-human` | 확인된 Teacher 검토 근거와 독립적인 소유자의 결정·원본·검토자 권한이 있으면 Gold 매핑부터 최종 권한 확인까지 허용한다. 새 프로세스에서도 같은 결과를 얻는다. |
 | `R3-public-proofless-forgery` | 출처를 지우고 전체를 다시 hash한 Gold는 기존 구조 호출에서 통과할 수 있다. 권한을 요구하는 채택에서는 거부한다. 학습 준비 완료로 처리하지 않는다. |
 | `R3-public-authorized-origins` | 재생성한 procedural Silver, Runtime+허용된 Teacher Silver, Runtime+허용된 Human Gold의 정상 최종 컨텍스트를 각각 허용한다. 다른 row·파일 컨텍스트와 누락된 정답 근거는 거부한다. 실제 권한이 없는 긍정 시뮬레이션은 fixture-only로 보고한다. |
-| `P1-cold-start-historical` | source·receipt·module 경로/bytes 불일치, incremental-only, patch DLL, 재사용 프로세스, 시작 뒤 module 변경과 bool-only 근거를 거부한다. 일치하는 과거 완료 묶음은 현재 설치가 달라졌다는 이유로 재해석하지 않는다. |
+| `P1-cold-start-historical` | 고정 source·receipt·실행물의 불일치, incremental-only의 강제 빌드 위장, 실제 patch 적용, 재사용 프로세스와 bool-only 빌드 근거를 거부한다. 비활성 운영 설정의 정상 시작은 Live Coding 조회 부재·미관측 Starting·일반 DLL 로딩·무관한 개발 폴더 변경만으로 거부하지 않는다. 일치하는 과거 완료 묶음은 현재 설치가 달라졌다는 이유로 재해석하지 않는다. |
 | `P2-full-parity` | 모든 Tensor·Candidate·handle·switch·label·group·identity와 원본 optional 값의 Snapshot 대응을 확인한다. 의미 버전의 원본 wire 부재, template 출처와 허용 후보 목록 보존을 확인한다. |
 | `P3-four-policy-combinations` | null/null, value/null, null/value, 서로 다른 value/value를 exact 보존한다. 판단 계약을 부모 정책에 대신 넣으면 거부한다. |
 | `P4-prepublication-lifecycle` | positional label metadata와 keyword-only origin_context 전달을 유지한다. Dataset digest 없이 발행 전 컨텍스트를 만들고 최종 bytes 확인 뒤 파생 목록을 발행한다. 새 프로세스 재구성에서 가변 값과 낡은 결과 치환을 거부한다. |

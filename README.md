@@ -11,8 +11,8 @@ AI Native NPC는 게임 속 NPC가 알고 있는 정보와 현재 목적을 보�
 학습 자료의 대량 생성·수집은 자동화하고, 사람은 대표 사례의 플레이 확인과 정답 검토를 맡도록 계획했습니다.
 상황은 NPC가 판단하는 순간의 상태이고, 시나리오는 초기 조건과 사건 순서를 정한 플레이 구성입니다.
 [학습용 시나리오 실행·수집 계획](docs/current/ml-data-pipeline-v1-implementation-plan.md#scenario-collection-plan)에
-AI 개발 에이전트·사용자·생성 도구의 역할과 직접 플레이·자동 수집 방식을 정리했습니다. 선택 화면과 실행 도구는 구현 전입니다.
-세부 [시나리오 수집 V1 구현 계획](docs/current/scenario-collection-v1-implementation-plan.md)에 따라 계약·실패 검사부터 구현하고 있습니다.
+AI 개발 에이전트·사용자·생성 도구의 역할과 직접 플레이·자동 수집 방식을 정리했습니다. 선택 화면의 빌드와 실제 자동 수집·다음 회차·중단·최종 저장·같은 빌드 재사용을 확인했습니다. 시야 상실 시나리오의 시간 초과, 선택 목록 가독성과 일부 검사 실패가 남아 있습니다. 자세한 결과는 [수집 화면 확인 기록](docs/history/collection-ui-verification-2026-11-03.md)에 있습니다.
+2026-11-03부터 사용자가 로컬에서 직접 후속 작업을 진행합니다. AI의 수정 작업은 중단했습니다. [로컬 작업 인계](docs/history/local-development-handoff-2026-11-03.md)에 현재 변경, 남은 문제, 소스·백업 위치와 Git 게시 범위를 정리했습니다. 기능별 구현 기준은 [시나리오 수집 V1 구현 계획](docs/current/scenario-collection-v1-implementation-plan.md)입니다.
 
 ### 개발자용 상세 상태
 
@@ -49,7 +49,15 @@ AI 개발 에이전트·사용자·생성 도구의 역할과 직접 플레이·
 8. [시나리오 실행·수집 도구 V1 구현 계획](docs/current/scenario-collection-v1-implementation-plan.md)
    - 실제 관측 Feature, 회차별 초기화, 충돌 없는 저장, 선택 화면과 ML import를 순서대로 연결합니다.
 9. [Host 관측 연결과 수집 Capture 발행 V1 계약](docs/current/scenario-host-capture-v1-contract.md)
-   - Task 2의 회차 실패·검증된 초기화 장벽, 관측 호출, 출처와 append-only 발행을 정의한 활성 구현 계약입니다. 문서 하네스 단계이며 Host/bridge Runtime 구현은 후속입니다.
+   - Task 2의 회차 실패·검증된 초기화 장벽, 관측 호출, 출처와 append-only 발행을 정의한 활성 구현 계약입니다.
+10. [수집 출처·결과 연결 구현 계획](docs/current/scenario-collection-publication-v1-implementation-plan.md)
+   - 고정된 회차 출처를 판단 기록에 넣고, 연결 파일을 저장·재검증한 뒤 수락하는 Task2E의 구현 순서와 실패 검사를 정합니다.
+
+<!-- T2E:current -->
+저장·읽기와 실제 NPC 실행 연결(Task2D)은 지정 범위의 구현·실행·독립 검토를 마쳤습니다.
+출처·결과 연결(Task2E)의 최초 문서·pytest 인계와 이후 일반 플레이 수집 실행은 서로 다른 작업 범위입니다. 후속 실행 결과는 일반 플레이 수집 계획에 기록했습니다.
+선택 화면은 빌드·검토·테스트와 실제 Game 조작을 수행했습니다. 정상 수집과 중단·저장을 확인했고 일부 실행·검사 문제는 남아 있습니다. 사람 직접 플레이와 학습 가져오기는 후속 범위이며 **production collection closed**를 유지합니다.
+<!-- T2E:end -->
 
 제품 요구사항은 목적과 책임을 설명합니다. 세부 기술 요구사항은 정확한 Runtime 의미를, Implementation Plan과 UE Plan은 실행 절차를, Contract Appendices는 생성된 값과 승인 Gate를 제공합니다.
 
@@ -59,10 +67,13 @@ AI 개발 에이전트·사용자·생성 도구의 역할과 직접 플레이·
   - 원본 출처 확인, 정답 승인, 학습 자격을 구분하고 정확한 변환 규칙을 설명합니다.
 - [일반 플레이 수집 세션·초기화와 최종 목록 저장 구현계획](docs/current/scenario-collection-play-session-index-v1-implementation-plan.md)
   - 수집 시작·다음 회차·종료와 저장 연결을 정합니다. 현재 작업 방식은 문서 §0을 따릅니다.
+  - 수집 화면의 사용 흐름과 확인 범위는 [시나리오 계획의 태스크 3](docs/current/scenario-collection-v1-implementation-plan.md#task-3-세션회차-runner와-native-화면)에 정리했습니다. 자동 입력용 Development Game에서 실제 버튼과 저장 흐름을 확인했습니다.
 - [별도 Development Game 보충 설계](docs/current/development-game-launch-slice-01.md)
-  - 기존 로컬 설계의 공개 보관본입니다. 작성 당시 상태와 현재 작업 방식을 구분합니다.
+  - 고정 빌드로 별도 게임을 실행하는 범위와 필수 시작 조건을 설명합니다. 전역 변경 감시 등 이번에 제외한 조건을 구분합니다.
 
 ## 문서 작성 규칙
+
+**앞으로 새로 작성하거나 수정하는 모든 문서에 이 규칙을 적용합니다.** 요구사항·계약·구현계획·설계·보고서·부록과 로컬 작업 문서가 대상입니다. AI에게 위임한 문서도 같은 기준을 따릅니다.
 
 - 정의와 결론을 첫 문장에 씁니다.
 - `A는 C다` 형태의 짧고 긍정적인 문장을 사용합니다.
@@ -70,6 +81,10 @@ AI 개발 에이전트·사용자·생성 도구의 역할과 직접 플레이·
 - 한 문장에는 하나의 판단을 담습니다.
 - 정식 독자용 명칭을 먼저 정의하고 문서 전체에서 같은 이름을 사용합니다.
 - 코드·Schema 식별자는 독자용 명칭 뒤에 괄호로 표시합니다.
+- 본문은 목적, 용어의 뜻, 사용 흐름과 현재 상태를 먼저 설명합니다.
+- 명사와 영문 식별자를 길게 나열한 문장은 풀어 씁니다.
+- 정확한 파일 경로·필드·내부 상태·저장 형식은 설명이 붙은 부록에 모읍니다. 부록도 같은 문장 규칙을 따릅니다.
+- 가독성을 고칠 때 기능 범위·기본값·오류 처리와 계약의 의미를 유지합니다.
 
 예시:
 

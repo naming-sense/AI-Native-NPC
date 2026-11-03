@@ -1,6 +1,6 @@
 # 학습용 시나리오 실행·수집 도구 V1 구현 계획
 
-> **For Hermes:** `subagent-driven-development`로 문서·하네스, Runtime, ML 연결을 순서대로 구현하고 독립 검토한다. 이번 요청에는 commit/push가 포함되지 않는다.
+> **현재 작업 방식:** AI는 문서의 태스크 전체 코드를 작성한다. 코드 검토·테스트·실행 확인은 사용자 담당이다. 빌드는 별도로 요청받은 범위에서 수행한다. 아래 과거 검사·독립 검토 절차는 새 구현의 선행 조건으로 재실행하지 않는다. commit/push는 이번 요청에 포함하지 않는다.
 
 **Goal:** 하나의 시나리오 정의로 직접 플레이·자동 실행·조건 재실행을 제공하고, 실제 Unreal 판단 기록을 출처와 함께 안전하게 수집한다.
 
@@ -8,9 +8,19 @@
 
 **Tech Stack:** Unreal Engine 5.7 C++·native UMG, 기존 GameDevMCP, Python ML CLI, JSON 계약·pytest·Unreal Automation.
 
-**상태:** 수집 검증기와 디코더의 독립 명세·품질 검토를 마쳤다. 순수 관측 adapter도 구현·Unreal 자동검사·독립 명세·품질 검토를 마쳤다. Runtime import 설계의 지정 문제도 독립 재검토를 통과했다. provenance Schema·구조 검증기는 구현·자동검사·독립 명세·품질 검토를 마쳤다. 품질 검토의 오류 처리 문제도 수정 뒤 독립 재검토를 통과했다. Task 2B Host 관측 연결 코드와 Host 9·Observation 37 실행 증거가 존재한다. S01만 좁게 승인됐으며 `whole_task2b_closed=false`다. [Task 2C context/lease](scenario-collection-context-v1-implementation-plan.md)는 아래 copy 구현·실행 checkpoint까지 진행됐다. 수집 저장·발행, 실제 runner/reset/화면, 출처·정답 승인 및 ML 가져오기는 후속이다. 이 문서는 기능 전체 완료나 Production 승인을 뜻하지 않는다.
+**현재 상태:** 태스크 3의 수집 화면을 빌드하고 실제 Development Game에서 자동 시작·다음 회차·중단·최종 저장·빌드 재사용을 확인했다. 시야 상실 시나리오의 시간 초과, 선택 목록 가독성과 일부 검사 실패가 남아 있다. 태스크 4의 학습 입력 연결은 후속 구현이다. 전체 기능 완료나 Production 승인은 아니다.
+
+**이전 단계의 승인 범위:** 수집 검증기·디코더·관측 adapter·출처 구조 검증기는 각각 기록된 범위의 구현·검토를 마쳤다. Task 2B의 S01만 좁게 승인됐으며 `whole_task2b_closed=false`다. [Task 2C context/lease](scenario-collection-context-v1-implementation-plan.md)의 copy 구현·실행과 Task2D의 저장·Host 연결도 당시 범위의 기록이다. 아래 과거 checkpoint는 이후 일반 플레이 수집 결과나 새 화면의 확인 상태를 대신하지 않는다.
 
 <!-- T2C:historical -->
+## 최신 구현 상태 — 수집 화면 실행 확인
+
+수집 화면은 시나리오와 조건을 선택하고 수집 시작·다음 회차·종료·결과 확인을 하는 화면이다. 2026-11-03의 명시적 요청에 따라 빌드·독립 읽기 전용 검토·테스트·실제 Game 조작을 수행했다. 기본 수집 흐름은 동작했고 전체 통과는 아니다. [수집 화면 확인 기록](../history/collection-ui-verification-2026-11-03.md)에 성공·실패·미확인 범위를 구분했다.
+
+이전 준비07의 판단 기록 6개와 새 화면의 실행 결과는 별도 자료다. 새 화면 빌드에서는 세 세션의 네 회차에서 판단 기록 10개를 저장했다. 두 회차는 정상 완료했고 한 회차는 시간 초과, 한 회차는 요청 중단으로 끝났다. 아래 Task2C·Task2D·Task2E의 이전 미완료 표현은 당시 범위의 기록으로 읽는다. 현재 실행 결과는 [일반 플레이 수집 계획](scenario-collection-play-session-index-v1-implementation-plan.md)에 기록했다. 학습 입력 연결은 태스크 4로 남아 있다.
+
+### 이전 단계 기록
+
 **역사적 문서 단계:** Task 2C 계획·문서 하네스 작성 당시의 **C++ 미수정, Unreal build/run 미실행**은 **문서-only checkpoint에 한한 역사적 사실**이다.
 
 <!-- T2C:current -->
@@ -22,8 +32,14 @@
 **고정 후보의 최종 검토 기록:** 독립 SPEC와 QUALITY가 같은 `final-05` source와 실행 증거의 Task2C 부분 범위를 승인했다. 부모는 subject 전체 파일과 두 검토 산출물의 동일성을 재검증했다. 승인 기록은 `/home/namingsense/AI-Native-NPC-evidence/collection-next-uq63w5dx/review-01/acceptance/acceptance.json`이다. **원본 승격 없음**이며 실제 저장·reset·production authority·학습 준비 완료는 이 승인에 포함하지 않는다. 검토 당시의 상태 문서와 기존 증거는 read-only subject에 그대로 보존하고, 이 단락과 승인 상태 문구만 현재 문서에 갱신했다.
 <!-- T2C:end -->
 
-<!-- T2D:active -->
-**현재 후속 단계:** [Task2D 안전 저장·동일 이미지 검증 세부 계획](scenario-collection-storage-v1-implementation-plan.md)과 `tests/test_collection_storage_contract_document.py`를 먼저 확정한다. 부모가 lower Store/Dataset과 실제 Host wiring을 별도 구현·검증한다. **Task2D 전체 완료는 lower test만으로 주장 금지**다. Task2E metadata/group/context join·sidecar·diagnostic, Task3 실제 owner/reset/UI, Task4 authority/import는 후속으로 구분한다. 문서/하네스 작성자는 C++ 구현·실행을 수행하지 않는다.
+<!-- T2D:historical -->
+**역사적 Task2D 착수 상태:** [Task2D 안전 저장·동일 이미지 검증 세부 계획](scenario-collection-storage-v1-implementation-plan.md)과 `tests/test_collection_storage_contract_document.py`를 먼저 확정하고, 부모가 lower Store/Dataset과 실제 Host wiring을 별도 구현·검증하는 순서였다. **Task2D 전체 완료는 lower test만으로 주장 금지**라는 경계는 유지한다. 위 Task2C의 ‘현재’·‘실제 collection 저장 미구현’·‘원본 승격 없음’은 고정된 Task2C checkpoint의 역사적 범위다.
+
+<!-- T2E:current -->
+**현재 후속 단계:** Task2D는 native FileStore·same-image Dataset·Reader-owned receipt·실제 Host 저장 연결의 지정 범위에서 독립 SPEC→QUALITY와 부모 승인을 마쳤다. 근거는 `/home/namingsense/AI-Native-NPC-evidence/collection-publication-c92d7rmc/predecessor/task2d-final-acceptance-01.json`이다.
+[Task2E 출처·결과 연결 세부 계획](scenario-collection-publication-v1-implementation-plan.md)과 `tests/test_collection_publication_contract_document.py`가 다음 구현 기준이다. metadata/group/context join·sidecar·diagnostic은 부모 C++ 구현·실행 대상이다.
+문서 검사와 Runtime 완료를 구분한다. Task3 실제 owner/reset/UI·Task4 authority/import는 남아 있으며 **production collection closed**를 유지한다. 이 문서 작업자는 C++ 구현·Unreal/build 실행·commit/push를 수행하지 않는다.
+<!-- T2E:end -->
 
 ---
 
@@ -43,13 +59,13 @@
 
 ### 2.1 관측 Feature 연결
 
-Task 2B의 현재 Host는 `PrepareDecisionFeatures`에서 승격 전 Knowledge를 복사하고 현재 Pawn pose로 Populate를 호출한 뒤 Finalize한다. Host 9·Observation 37 실행 증거와 S01의 제한된 승인을 보존한다. copy에는 Task 2C context/lease 구현·실행 checkpoint가 추가됐다. 실제 수집 Capture roundtrip인 H10과 collection 저장·발행은 남아 있다.
+Task 2B의 Host는 `PrepareDecisionFeatures`에서 승격 전 Knowledge를 복사하고 현재 Pawn pose로 Populate를 호출한 뒤 Finalize한다. Host 9·Observation 37 실행 증거와 S01의 제한된 승인을 보존한다. 이후 Task2C context/lease와 Task2D의 실제 Host 저장 연결이 지정 범위에서 승인됐다. Task2D의 phase별 Capture 검증을 자연스러운 전체 phase loop나 실제 수집 활성화로 확대하지 않는다. metadata와 sidecar 발행은 Task2E로 남아 있다.
 
 이 연결은 [관측 Feature 연결 V1 계약](scenario-observation-adapter-v1-contract.md)에 따라 작은 순수 adapter와 실패 검사로 검증한다. 위치·거리·방향·관측 age/confidence·Goal만 연결하고 CandidatePair는 보존한다. 관측 근거가 없는 관계·성격·경로 정보는 지원 축에서 제외한다. 순수 adapter의 단위·동일 위치 convention·missing sentinel·실패 시 Draft 보존 검토와 기존 Host 연결을 보존한다. collection 실패 수명은 Task 2C의 최신 copy 실행 검증 완료와 고정 부분 범위의 독립 SPEC→QUALITY 승인 완료로 구분한다.
 
 ### 2.2 모든 수집 단계의 충돌 없는 저장
 
-현재 ResolveShadow는 process session/sequence를 사용하지만 일반 Phase3B 경로는 고정 이름의 파일을 삭제하고 다시 쓴다. 수집 모드에서는 Resolve 이전 단계까지 모두 새 session/sequence 경로를 사용하고 기존 final·pending·marker·임시 파일이 있으면 거부한다. 기존 일반 플레이의 계약 변경 여부는 회귀 검사와 함께 별도로 명시한다.
+비수집 legacy ResolveShadow는 process session/sequence를 사용하고 일반 Phase3B 경로는 고정 이름의 파일을 삭제하고 다시 쓴다. Task2D의 fixture-only 수집 경로는 모든 생산 phase에서 새 session/sequence 경로와 기존 final·pending·marker·임시 파일 충돌 거부를 구현·검증했다. 실제 collection issuer는 닫혀 있다. 기존 일반 플레이의 계약은 보존하고 회귀 검사한다.
 
 자동 실행이 `resolve_greet_user_play_v1`로 기록되지 않도록 capture producer가 현재 회차 context에서 family·seed·출처를 읽는다. 원본 기록의 identity를 사후 수정하지 않는다.
 
@@ -134,8 +150,8 @@ Tests/DecisionRecordV2Tests.cpp
 | 2A 문서/하네스 | `tests/test_collection_host_bridge_contract_document.py`로 기존 계약의 missing/conflicting clause RED, 활성 문서 GREEN·부정 mutation | 정책·순서·group·allowlist 일관성, 원본 §§1–6/Schema/다른 phase 보존; C++ 실행과 구분 |
 | 2B Host observation | 실제 preparation helper의 승격 전 복사·Finalize 앞 Populate 구현 존재; H01–H09 Host 9 실행 | 좁은 S01 승인 유지; H10·broad·whole Task2B 완료는 미승인 |
 | 2C context/lease | immutable context attach·intent·exact World/Host/episode lease·terminal latch 구현; C01–C07 부분 범위의 실제 검사 연결표·과거 RED·last runtime checkpoint 보존 | callback 전 revoke·old retry 억제·monotonic deadline·strong pin/재검사; receipt owner seam은 fixture-only, production collection closed; 최신 bytes 실행 검증 완료·독립 SPEC→QUALITY 부분 범위 승인 완료 |
-| 2D append-only/readback | [활성 세부 계획](scenario-collection-storage-v1-implementation-plan.md)의 문서/하네스→lower→Host 순서; P01–P13의 실제 Windows 충돌·race·ancestor·same-image 검사 | lower/Host oracle 분리; 모든 생산 phase·same DecisionId·World 재생성에서 이전 bytes 보존; Capture/marker 각 1회 committed readback receipt; 전체 완료는 lower test만으로 주장 금지 |
-| 2E metadata/publication | Record 전 exact namespace/build/group/seed/source, producer receipt→bridge, P14–P18 RED | sidecar exact readback 뒤 accepted, 실제 Commit 뒤 sidecar 실패 원본/producer 사실 보존·session 차단·diagnostic 실패 차단 |
+| 2D append-only/readback | [착수 당시 세부 계획](scenario-collection-storage-v1-implementation-plan.md)의 lower→Host 순서와 P01–P13을 수행; 지정 범위 독립 SPEC→QUALITY·부모 승인 완료 | lower/Host oracle 분리; 모든 생산 phase·same DecisionId·World 재생성에서 이전 bytes 보존; Capture/marker 각 1회 committed readback receipt; 전체 완료는 lower test만으로 주장 금지 |
+| 2E metadata/publication | [현재 세부 계획](scenario-collection-publication-v1-implementation-plan.md)의 metadata slice→lower JSON→bridge/diagnostics→Host wiring; C01–C07/P14–P18 RED | sidecar actual exact readback 뒤 accepted, 실제 Commit 뒤 sidecar 실패 원본/producer 사실 보존·session 차단·diagnostic 실패 차단; 문서 검사와 Runtime 완료 분리 |
 
 **Task 2 전체 acceptance 목표:** C01–C07의 metadata/group/Record 저장·receipt는 2C 완료 주장에 포함하지 않는다. 실제 owner/reset은 Task 3, authority/ML import는 Task 4다. 관측 값 변화가 실제 Tensor에 반영되고 reserved/padding/NoTarget·후보·CandidatePair·현재 Guard Utility 선택은 계약대로 보존된다. collection mode 모든 producing phase는 append-only다. hard observation failure는 해당 회차를 종료하고 terminal evidence persist/readback과 verified reset 뒤 새 회차만 허용한다. storage/sidecar/diagnostic 실패 또는 reset failed/unverified는 세션을 차단한다. bool-only 실패는 observation_mapping_failed로 남긴다. 정상 sensor 부재·위치 전용 입력·missing sentinel과 legacy retry를 보존한다.
 
@@ -143,10 +159,39 @@ Tests/DecisionRecordV2Tests.cpp
 
 ### Task 3: 세션·회차 runner와 native 화면
 
-- 추가: `Collection/`의 GameInstance subsystem·runner·UMG widget, 전용 Automation/PIE 검사.
-- 필요할 때만 `NeuralGame.Build.cs`의 UI 의존성과 PlayerController 연결을 최소 수정한다.
-- 수동/자동/재실행의 동일 조건 사용, 한 회차만 실행, timeout/cancel/reset 실패를 검증한다.
-- 실제 Editor에서 카탈로그 표시·버튼·이동·관측·저장·reset 결과를 확인한다.
+**코드 작성과 요청받은 실행 확인을 마쳤으며 일부 문제가 남아 있다.** 기존 세션·회차 실행 코드 위에 native UMG 화면을 연결했다. UMG는 Unreal의 화면 구성 기능이다. 별도 Widget Blueprint나 맵 변경을 요구하지 않는다. Editor·Development Game 빌드가 성공했다. 실행기 검사 11개는 통과했다. Unreal 내부 검사는 30개 중 29개가 통과했다. 과거 계획 검사 16개는 현재 예상값과 불일치했다. 실제 Game에서 기본 수집 흐름을 확인했다. 시야 상실 시간 초과와 펼친 목록의 글자 대비 보완이 남아 있다.
+
+#### 사용 흐름과 버튼 동작
+
+1. 화면 코드가 포함된 새 준비 빌드를 실행한다. 실행기에서 화면 시작 옵션을 사용한다.
+2. 화면에서 시나리오·거리·접근 방향·seed를 고른다. 목록은 실행기가 이미 전달한 카탈로그를 사용한다.
+3. 실행 준비 때 정한 입력 출처에 맞는 시작 버튼을 누른다. 직접 플레이용 실행과 자동 입력용 실행을 화면에서 바꿔 기록하지 않는다.
+4. 같은 조건으로 다음 회차를 진행하거나 종료를 요청한다. 기존 회차 한도와 저장 규칙을 유지한다.
+5. 회차 결과와 최종 목록 저장 상태를 확인한다. 저장 위치는 복사할 수 있다.
+
+- 시나리오 선택은 설명·지원 여부·제외 이유와 허용 조건을 갱신한다.
+- 기본 조건 버튼은 소리 듣기·400cm·0도·seed 0으로 되돌린다. 세션 시작 뒤 조건 선택은 잠근다.
+- 직접 플레이 시작은 기존 수동 시작 요청을 호출한다. 자동 수집 시작은 자동 출처를 확인한 뒤 같은 세션 예약 본문을 호출한다.
+- 다음 회차 버튼은 현재 세션의 같은 조건을 사용한다. 이전 세션 파일을 불러오는 재생 기능은 아니다.
+- 종료 버튼은 기존 정지·저장 요청을 호출한다. 요청 접수, 회차 결과, 최종 목록 저장과 일반 플레이 복귀를 따로 표시한다.
+- 화면 닫기는 수집을 종료하지 않는다. 게임 입력과 기존 커서 설정을 복구한다. `F8`로 다시 열고 화면 안의 `Esc`로도 닫는다.
+- 맵 전환 때 이전 Controller의 화면을 제거한다. 새 화면은 GameInstance의 현재 세션에서 표시값을 다시 얻는다. 진행 중인 다음 회차에서는 화면을 자동으로 열어 입력을 가로채지 않는다.
+
+화면에는 실제 저장 장부의 판단 기록 수와 오류 기록 수를 표시한다. 저장 예약을 포함한 사용량은 실제 파일 용량과 구분한다. 중복 분석과 학습 자격 판정을 이 수량에 섞지 않는다. 실패한 회차도 최종 목록을 저장할 수 있으므로 저장 완료를 시나리오 성공으로 표시하지 않는다.
+
+#### 실행 연결과 파일 범위
+
+실행기 옵션은 `--collection-ui`다. Python 진입점의 선택 인수는 `collection_ui=True`다. 실제 Game 인수 끝에 `-ANPCCollectionUI`를 한 번 추가한다. 시작 기록에도 실제 인수를 남긴다. 이 옵션이 있을 때만 자동 실행도 화면의 시작 요청을 기다린다. 옵션이 없는 기존 자동 실행은 유지한다. 시작 요청 뒤 제한 시간과 준비 완료 기록의 입력 출처는 유지한다.
+
+- 화면: `Collection/AINativeNPCCollectionWidget.h/.cpp`.
+- 읽기 전용 표시값: `Collection/AINativeNPCCollectionScreenState.h`.
+- 표시값 조회와 자동 시작 요청: 기존 `Collection/AINativeNPCCollectionSessionSubsystem.h/.cpp`.
+- 허용된 실제 실행 인수: 기존 `Collection/AINativeNPCCollectionRuntimeInputs.h/.cpp`.
+- 화면 생성·입력·World 수명: `NeuralGamePlayerController.h/.cpp`.
+- 화면 및 클립보드 모듈 의존성: `NeuralGame.Build.cs`.
+- 실행기: 저장소 밖 현재 도구의 `play_session_launcher.py`. 새 옵션의 생산과 게임의 소비 경로를 함께 작성했다.
+
+이전 준비 20261103-07에는 새 화면이 없다. 해당 실행물과 수집 기록은 보존했다. 새 화면은 준비 `collection-ui-prepared-20261103-01`에서 실행했다. 자동 출처의 조건 선택·시작·다음 회차·중단·결과·복사·닫기를 실제 확인했다. 사람 입력용 시작과 실제 사용자 플레이는 미확인이다. 600cm와 seed 2는 선택 표시까지만 확인했다. 이전 실행을 재생하는 기능과 다양한 조건의 일괄 수집은 후속 범위다.
 
 ### Task 4: ML import와 coverage
 
@@ -180,6 +225,8 @@ Tests/DecisionRecordV2Tests.cpp
 - Shipping/package는 이번 기능 검증 범위에 추가하지 않는다. commit/push도 이번 요청에서 수행하지 않는다.
 
 ## 6. 현재 검증 기준선
+
+아래 수량과 당시 미완료 표현은 역사적 checkpoint다. 최신 Task2D 지정 범위 승인은 상단 `task2d-final-acceptance-01.json`, 다음 Task2E 요구는 연결된 세부 계획을 따른다. 과거 실행 수를 최신 소스 재실행이나 전체 수집 승인으로 해석하지 않는다.
 
 2026-10-25 작업 시작 기준 문서 저장소 100 tests·133 subtests와 ML 47 tests가 통과했다. 실행 중인 Unreal Editor/commandlet/build process는 없었다. 이전 MCP descriptor는 종료된 PID를 가리켰으므로 현재 연결 증거로 사용하지 않는다.
 
